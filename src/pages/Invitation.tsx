@@ -13,10 +13,10 @@ export default function Invitation() {
   const navigate = useNavigate()
 
   return (
-    <div className="relative flex min-h-screen flex-col">
+    <div className="relative flex h-dvh flex-col overflow-hidden">
       <BackgroundCarousel images={TRAVEL_IMAGES} />
 
-      <div className="flex flex-1 items-center justify-center px-4 py-10">
+      <div className="flex flex-1 items-center justify-center px-4">
         <div className="w-full max-w-[640px] rounded-2xl border border-white/20 bg-white/60 px-8 py-12 shadow-2xl shadow-black/10 backdrop-blur-2xl sm:px-14 sm:py-14">
           <h1 className="text-center font-display text-3xl font-extrabold text-ink sm:text-[34px]">
             Has sido invitado

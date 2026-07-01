@@ -16,6 +16,13 @@
   #root {
     height: 100%;
   }
+  /* Prevent mobile browsers from auto-zooming on focus */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+    touch-action: manipulation;
+  }
   /* Remove number-input spinners for a cleaner field look */
   input[type='number']::-webkit-outer-spin-button,
   input[type='number']::-webkit-inner-spin-button {
