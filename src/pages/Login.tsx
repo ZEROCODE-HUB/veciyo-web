@@ -4,13 +4,12 @@ import Input from '../components/Input'
 import Button from '../components/Button'
 import BackgroundCarousel from '../components/BackgroundCarousel'
 
-const TRAVEL_IMAGES = [
-  'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1920&q=80',
-  'https://images.unsplash.com/photo-1568144622757-7c5e6e5c4a8b?w=1920&q=80',
-  'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=1920&q=80',
-  'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1920&q=80',
-  'https://images.unsplash.com/photo-1494500764479-0c8f07f2d12c?w=1920&q=80',
-]
+const images = import.meta.glob('../assets/Imágenes/*.{jpg,jpeg,png,webp,avif}', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+})
+const TRAVEL_IMAGES = Object.values(images) as string[]
 
 export default function Login() {
   const navigate = useNavigate()
