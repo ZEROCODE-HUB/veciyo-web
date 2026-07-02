@@ -11,6 +11,11 @@ export default function Footer() {
               Términos y condiciones
             </Link>
           </li>
+          <li>
+            <Link to="/soporte" className="hover:opacity-80">
+              Soporte
+            </Link>
+          </li>
         </ul>
 
         <SocialIcons className="mt-6" />

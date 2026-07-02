@@ -8,7 +8,7 @@ import FileUploader from '../components/FileUploader'
 import Button from '../components/Button'
 import { ClockIcon } from '../components/icons'
 
-type CompanionStatus = 'pending' | 'reviewing' | 'approved'
+type CompanionStatus = 'pending_tc' | 'tc_accepted'
 
 interface CompanionEntry {
   email: string
@@ -17,15 +17,13 @@ interface CompanionEntry {
 }
 
 const STATUS_LABELS: Record<CompanionStatus, string> = {
-  pending: 'Pendiente',
-  reviewing: 'En revisión',
-  approved: 'Aprobado',
+  pending_tc: 'Pendiente de T&C',
+  tc_accepted: 'T&C aceptados',
 }
 
 const STATUS_COLORS: Record<CompanionStatus, string> = {
-  pending: 'bg-gold/10 text-gold',
-  reviewing: 'bg-brand/10 text-brand',
-  approved: 'bg-success/10 text-success',
+  pending_tc: 'bg-gold/10 text-gold',
+  tc_accepted: 'bg-success/10 text-success',
 }
 
 export default function Companions() {
@@ -48,7 +46,7 @@ export default function Companions() {
   const addCompanion = () => {
     const email = emailInput.trim()
     if (!email) return
-    setCompanions((prev) => [...prev, { email, isMinor, status: 'pending' }])
+    setCompanions((prev) => [...prev, { email, isMinor, status: 'pending_tc' }])
     setEmailInput('')
     if (isMinor) {
       setMinorModalIndex(companions.length)
@@ -105,6 +103,14 @@ export default function Companions() {
                   Jueves 21/08/2025
                 </p>
               </div>
+            </div>
+            <div className="shrink-0">
+              <Button
+                type="button"
+                onClick={() => navigate('/pre-check-in')}
+              >
+                Iniciar verificación
+              </Button>
             </div>
           </div>
         </Card>

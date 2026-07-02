@@ -22,7 +22,7 @@ export default function ConfirmData() {
   }
 
   const docTypeLabel =
-    data.docType === 'dni' ? 'DNI' : data.docType === 'pasaporte' ? 'Pasaporte' : 'Cédula'
+    data.docType === 'dni' ? 'Cédula / DNI' : data.docType === 'pasaporte' ? 'Pasaporte' : 'Cédula'
 
   return (
     <MainLayout header="default" bg="soft">
