@@ -4,7 +4,7 @@ import Input from '../components/Input'
 import Button from '../components/Button'
 import BackgroundCarousel from '../components/BackgroundCarousel'
 
-const images = import.meta.glob('../assets/Imágenes/*.{jpg,jpeg,png,webp,avif}', {
+const images = import.meta.glob('../assets/Imágenes/*.jpg', {
   eager: true,
   query: '?url',
   import: 'default',

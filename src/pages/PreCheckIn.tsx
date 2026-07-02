@@ -134,43 +134,6 @@ export default function PreCheckIn() {
               />
             )}
 
-            {/* Extracted data from document (grey, non-editable) */}
-            <div className="border-t border-line pt-6">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink/50">
-                Datos del documento
-              </p>
-              <Input
-                label="Nombres"
-                tone="soft"
-                placeholder="Se completará desde tu documento"
-                disabled
-              />
-              <div className="mt-3">
-                <Input
-                  label="Apellidos"
-                  tone="soft"
-                  placeholder="Se completará desde tu documento"
-                  disabled
-                />
-              </div>
-              <div className="mt-3">
-                <Input
-                  label="Tipo de identificación"
-                  tone="soft"
-                  placeholder="Se completará desde tu documento"
-                  disabled
-                />
-              </div>
-              <div className="mt-3">
-                <Input
-                  label="Número de identificación"
-                  tone="soft"
-                  placeholder="Se completará desde tu documento"
-                  disabled
-                />
-              </div>
-            </div>
-
             {/* Editable contact data */}
             <div className="border-t border-line pt-6">
               <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink/50">
