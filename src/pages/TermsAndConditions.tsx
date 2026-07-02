@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import Accordion from '../components/Accordion'
 import Checkbox from '../components/Checkbox'
@@ -25,11 +25,13 @@ const SECTION_CONTENT: Record<string, string> = {
 
 export default function TermsAndConditions() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const mainGuest = (location.state as { name?: string; identification?: string }) || {}
   const [accepted, setAccepted] = useState(false)
 
   const handleConfirm = () => {
     if (accepted) {
-      navigate('/companions')
+      navigate('/companions', { state: mainGuest })
     }
   }
 
