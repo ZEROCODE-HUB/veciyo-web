@@ -25,24 +25,10 @@ const SECTION_CONTENT: Record<string, string> = {
 
 export default function TermsAndConditions() {
   const navigate = useNavigate()
-  const [accepted, setAccepted] = useState<Set<string>>(new Set())
-
-  const allAccepted = SECTIONS.every((s) => accepted.has(s.id))
-
-  const toggleAccept = (id: string) => {
-    setAccepted((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
-      return next
-    })
-  }
+  const [accepted, setAccepted] = useState(false)
 
   const handleConfirm = () => {
-    if (allAccepted) {
+    if (accepted) {
       navigate('/companions')
     }
   }
@@ -55,7 +41,7 @@ export default function TermsAndConditions() {
         </h1>
 
         <p className="mx-auto mt-3 max-w-md text-center text-base text-ink/60">
-          Revisa y acepta cada sección para continuar.
+          Revisa los documentos y acepta para continuar.
         </p>
 
         <div className="mt-8">
@@ -63,17 +49,16 @@ export default function TermsAndConditions() {
             sections={SECTIONS.map((s) => ({
               id: s.id,
               title: s.title,
-              content: (
-                <div className="space-y-3">
-                  <p>{SECTION_CONTENT[s.id]}</p>
-                  <Checkbox
-                    label="Acepto esta sección"
-                    checked={accepted.has(s.id)}
-                    onChange={() => toggleAccept(s.id)}
-                  />
-                </div>
-              ),
+              content: <p>{SECTION_CONTENT[s.id]}</p>,
             }))}
+          />
+        </div>
+
+        <div className="mt-8 flex items-start gap-3">
+          <Checkbox
+            label="Acepto los términos y condiciones"
+            checked={accepted}
+            onChange={(e) => setAccepted(e.target.checked)}
           />
         </div>
 
@@ -81,7 +66,7 @@ export default function TermsAndConditions() {
           <Button
             type="button"
             className="w-full max-w-md py-3.5"
-            disabled={!allAccepted}
+            disabled={!accepted}
             onClick={handleConfirm}
           >
             Confirmar y enviar
