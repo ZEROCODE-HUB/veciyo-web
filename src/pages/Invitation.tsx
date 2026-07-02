@@ -58,7 +58,7 @@ export default function Invitation() {
           <Button
             type="button"
             className="mt-10 w-full py-3.5"
-            onClick={() => navigate('/pre-check-in')}
+            onClick={() => navigate('/login')}
           >
             Continuar
           </Button>
