@@ -2,13 +2,9 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import Input from '../components/Input'
-import Select from '../components/Select'
 import FileUploader from '../components/FileUploader'
-import Checkbox from '../components/Checkbox'
 import Button from '../components/Button'
 import IdentityValidation from '../components/IdentityValidation'
-
-const SIRE_TRAO_PLACEHOLDER = 'Opciones pendientes de verificación con SIRE/TRAO'
 
 export default function PreCheckIn() {
   const navigate = useNavigate()
@@ -17,13 +13,11 @@ export default function PreCheckIn() {
   const [backDone, setBackDone] = useState(false)
   const [passportDone, setPassportDone] = useState(false)
   const [lastEntryDate, setLastEntryDate] = useState('')
-  const [isMinor, setIsMinor] = useState(false)
-  const [custodyDone, setCustodyDone] = useState(false)
   const [validating, setValidating] = useState(false)
 
   const allUploadsDone =
     docType === 'dni' ? frontDone && backDone : docType === 'pasaporte' ? passportDone : false
-  const canValidate = allUploadsDone && (!isMinor || custodyDone)
+  const canValidate = allUploadsDone
 
   const handleValidate = () => {
     if (canValidate) {
@@ -112,49 +106,6 @@ export default function PreCheckIn() {
               </div>
             )}
 
-            {/* Motivo de alojamiento */}
-            <Select
-              tone="soft"
-              label="Motivo de alojamiento"
-              placeholder={SIRE_TRAO_PLACEHOLDER}
-              options={[]}
-            />
-
-            {/* Menor de edad */}
-            <Checkbox
-              label="¿Es menor de edad?"
-              checked={isMinor}
-              onChange={(e) => setIsMinor(e.target.checked)}
-            />
-            {isMinor && (
-              <FileUploader
-                tone="soft"
-                title="Carta de potestad / tutela notarial"
-                onFileSelected={() => setCustodyDone(true)}
-              />
-            )}
-
-            {/* Editable contact data */}
-            <div className="border-t border-line pt-6">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink/50">
-                Datos de contacto
-              </p>
-              <Input
-                label="Número de teléfono"
-                type="tel"
-                tone="soft"
-                placeholder="Ingrese su número de teléfono"
-              />
-              <div className="mt-3">
-                <Input
-                  label="Dirección de residencia"
-                  tone="soft"
-                  placeholder="Ingrese su dirección de residencia"
-                  defaultValue="Calle 123, Bogotá"
-                />
-              </div>
-            </div>
-
             <div className="flex justify-center pt-2">
               <Button
                 type="button"
@@ -162,7 +113,7 @@ export default function PreCheckIn() {
                 onClick={handleValidate}
                 disabled={!canValidate}
               >
-                Validar identidad
+                Iniciar verificación
               </Button>
             </div>
           </div>

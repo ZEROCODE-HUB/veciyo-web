@@ -9,16 +9,20 @@ import Companions from './pages/Companions'
 import Validation from './pages/Validation'
 import ConfirmData from './pages/ConfirmData'
 import DownloadApp from './pages/DownloadApp'
+import Access from './pages/Access'
+import TermsAndConditions from './pages/TermsAndConditions'
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/invitacion" replace />} />
+      <Route path="/access/:token" element={<Access />} />
       <Route path="/invitacion" element={<Invitation />} />
       <Route path="/invitación" element={<Navigate to="/invitacion" replace />} />
       <Route path="/login" element={<Login />} />
       <Route path="/visit-details" element={<VisitDetails />} />
       <Route path="/pre-check-in" element={<PreCheckIn />} />
       <Route path="/confirm-data" element={<ConfirmData />} />
+      <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
       <Route path="/companions" element={<Companions />} />
       <Route path="/validation" element={<Validation />} />
       <Route path="/download-app" element={<DownloadApp />} />

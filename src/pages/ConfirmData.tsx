@@ -1,7 +1,19 @@
+import { useState } from 'react'
 import { useLocation, useNavigate, Navigate } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import Input from '../components/Input'
+import Select from '../components/Select'
+import Checkbox from '../components/Checkbox'
+import FileUploader from '../components/FileUploader'
 import Button from '../components/Button'
+
+const VISIT_REASONS = [
+  { value: 'turismo', label: 'Turismo' },
+  { value: 'negocios', label: 'Negocios' },
+  { value: 'trabajo', label: 'Trabajo' },
+  { value: 'estudios', label: 'Estudios' },
+  { value: 'transito', label: 'Tránsito' },
+]
 
 export default function ConfirmData() {
   const navigate = useNavigate()
@@ -10,13 +22,14 @@ export default function ConfirmData() {
     docType?: string
     docNumber?: string
   } | null
+  const [hasMinors, setHasMinors] = useState(false)
 
   if (!data?.docType) {
     return <Navigate to="/pre-check-in" replace />
   }
 
   const handleConfirm = () => {
-    navigate('/companions', {
+    navigate('/terms-and-conditions', {
       state: { name: 'Carlos Balazo', identification: data.docNumber },
     })
   }
@@ -34,20 +47,20 @@ export default function ConfirmData() {
         <div className="mt-8">
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-xl bg-surface-soft px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Nombres</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Nombre</p>
               <p className="text-sm font-bold text-ink">Carlos</p>
             </div>
             <div className="rounded-xl bg-surface-soft px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Apellidos</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Apellido</p>
               <p className="text-sm font-bold text-ink">Balazo</p>
             </div>
             <div className="rounded-xl bg-surface-soft px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Tipo de documento</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Tipo de identificación</p>
               <p className="text-sm font-bold text-ink">{docTypeLabel}</p>
             </div>
             <div className="rounded-xl bg-surface-soft px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Número de documento</p>
-              <p className="text-sm font-bold text-ink">{data.docNumber}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Número de identificación</p>
+              <p className="text-sm font-bold text-ink">{data.docNumber || '—'}</p>
             </div>
           </div>
 
@@ -67,7 +80,33 @@ export default function ConfirmData() {
                 placeholder="Ingrese su dirección de residencia"
                 defaultValue=""
               />
+              <Select
+                label="Motivo de alojamiento"
+                placeholder="Seleccione un motivo"
+                options={VISIT_REASONS}
+              />
             </div>
+          </div>
+
+          <div className="mt-6 border-t border-line pt-5">
+            <Checkbox
+              label="¿Hay menores de edad en tu grupo?"
+              checked={hasMinors}
+              onChange={(e) => setHasMinors(e.target.checked)}
+            />
+            {hasMinors && (
+              <div className="mt-4">
+                <FileUploader
+                  tone="soft"
+                  title="Carta de potestad / tutela notarial"
+                />
+              </div>
+            )}
+            {hasMinors && (
+              <p className="mt-3 text-xs text-ink/50">
+                Este caso no se procesa automáticamente, requiere aprobación manual.
+              </p>
+            )}
           </div>
 
           <div className="flex justify-center pt-6">
@@ -76,7 +115,7 @@ export default function ConfirmData() {
               className="w-full max-w-md py-3.5"
               onClick={handleConfirm}
             >
-              Confirmar y enviar
+              Continuar
             </Button>
           </div>
         </div>

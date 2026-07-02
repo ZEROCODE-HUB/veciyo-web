@@ -23,8 +23,7 @@ export default function Invitation() {
           </h1>
 
           <p className="mx-auto mt-4 max-w-md text-center text-base leading-relaxed text-ink/70">
-            El anfitrión te ha invitado a registrarte como huésped temporal en el edificio.
-            Completa tu registro para poder acceder a las instalaciones.
+            El anfitrión te ha invitado a registrarse.
           </p>
 
           <div className="mt-8 rounded-xl border border-white/30 bg-white/40 px-6 py-5 shadow-lg backdrop-blur-md">
@@ -59,7 +58,7 @@ export default function Invitation() {
           <Button
             type="button"
             className="mt-10 w-full py-3.5"
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/pre-check-in')}
           >
             Continuar
           </Button>
