@@ -1,30 +1,52 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useLocation, useNavigate, Navigate } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import Card from '../components/Card'
 import Input from '../components/Input'
+import Select from '../components/Select'
 import Checkbox from '../components/Checkbox'
 import FileUploader from '../components/FileUploader'
 import Button from '../components/Button'
-import { ClockIcon } from '../components/icons'
+import { CheckIcon } from '../components/icons'
 
-type CompanionStatus = 'pending_tc' | 'tc_accepted'
+const DOCUMENT_TYPES = [
+  { value: 'dni', label: 'Cédula / DNI' },
+  { value: 'pasaporte', label: 'Pasaporte' },
+]
 
-interface CompanionEntry {
+interface CompanionData {
+  id: number
+  type: 'adult' | 'minor'
+  docType: 'dni' | 'pasaporte' | null
+  docNumber: string
+  frontDone: boolean
+  backDone: boolean
+  passportDone: boolean
+  firstName: string
+  lastName: string
+  phone: string
   email: string
-  isMinor: boolean
-  status: CompanionStatus
+  selfRegister: boolean
+  cantAcceptTyC: boolean
+  completed: boolean
+  tutelaUploaded: boolean
 }
 
-const STATUS_LABELS: Record<CompanionStatus, string> = {
-  pending_tc: 'Pendiente de T&C',
-  tc_accepted: 'T&C aceptados',
+function createCompanion(id: number, type: 'adult' | 'minor'): CompanionData {
+  return {
+    id, type,
+    docType: null, docNumber: '',
+    frontDone: false, backDone: false, passportDone: false,
+    firstName: '', lastName: '', phone: '', email: '',
+    selfRegister: false, cantAcceptTyC: false,
+    completed: false, tutelaUploaded: false,
+  }
 }
 
-const STATUS_COLORS: Record<CompanionStatus, string> = {
-  pending_tc: 'bg-gold/10 text-gold',
-  tc_accepted: 'bg-success/10 text-success',
-}
+const MOCK_RESERVATION_COMPANIONS = [
+  { id: 1, type: 'adult' as const },
+  { id: 2, type: 'minor' as const },
+]
 
 export default function Companions() {
   const navigate = useNavigate()
@@ -34,29 +56,41 @@ export default function Companions() {
     identification?: string
   } | null
 
-  const [companions, setCompanions] = useState<CompanionEntry[]>([])
-  const [emailInput, setEmailInput] = useState('')
-  const [isMinor, setIsMinor] = useState(false)
-  const [minorModalIndex, setMinorModalIndex] = useState<number | null>(null)
+  const [companions, setCompanions] = useState<CompanionData[]>(() =>
+    MOCK_RESERVATION_COMPANIONS.map((c) => createCompanion(c.id, c.type))
+  )
+  const [policeVerified, setPoliceVerified] = useState(false)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setPoliceVerified(true), 6000)
+    return () => clearTimeout(timer)
+  }, [])
 
   if (!mainGuest?.name) {
     return <Navigate to="/pre-check-in" replace />
   }
 
-  const addCompanion = () => {
-    const email = emailInput.trim()
-    if (!email) return
-    setCompanions((prev) => [...prev, { email, isMinor, status: 'pending_tc' }])
-    setEmailInput('')
-    if (isMinor) {
-      setMinorModalIndex(companions.length)
-      setIsMinor(false)
-    }
+  const updateCompanion = (id: number, partial: Partial<CompanionData>) => {
+    setCompanions((prev) => prev.map((c) => (c.id === id ? { ...c, ...partial } : c)))
   }
 
-  const closeMinorModal = () => {
-    setMinorModalIndex(null)
+  const isFormValid = (c: CompanionData) => {
+    if (c.selfRegister) return c.email.trim().length > 0
+    return (
+      c.docType !== null &&
+      c.docNumber.trim().length > 0 &&
+      (c.docType === 'dni' ? c.frontDone && c.backDone : c.passportDone) &&
+      c.firstName.trim().length > 0 &&
+      c.lastName.trim().length > 0 &&
+      c.phone.trim().length > 0 &&
+      c.email.trim().length > 0 &&
+      (c.type === 'minor' ? c.tutelaUploaded : true)
+    )
   }
+
+  const allHandled = companions.every(
+    (c) => c.cantAcceptTyC || c.completed || (c.selfRegister && c.email.trim().length > 0)
+  )
 
   const handleSubmit = () => {
     navigate('/validation', {
@@ -80,139 +114,243 @@ export default function Companions() {
           Registro de acompañantes
         </h1>
 
-        {/* Responsible guest card */}
+        {/* Main guest card */}
         <Card className="mt-6 px-6 py-7 sm:px-10 sm:py-8">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-8">
-            <div className="min-w-0 sm:w-56">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-8">
+            <div className="min-w-0 flex-1">
               <p className="text-xs font-semibold uppercase tracking-wide text-ink/60">Huésped principal</p>
-              <h3 className="mt-1.5 text-lg font-bold text-ink">
-                {mainGuest.name}
-              </h3>
+              <h3 className="mt-1.5 text-lg font-bold text-ink">{mainGuest.name}</h3>
               {mainGuest.identification && (
                 <p className="mt-1 text-sm font-semibold text-ink/70">
                   Identificación: <span className="text-ink">{mainGuest.identification}</span>
                 </p>
               )}
             </div>
-            <div className="flex flex-1 items-center sm:justify-start">
-              <div className="flex items-center gap-3">
-                <ClockIcon className="h-9 w-9 shrink-0 text-ink" />
-                <p className="text-sm leading-snug text-ink/80">
-                  Viernes 03/07/2025 al
-                  <br />
-                  Jueves 21/08/2025
-                </p>
-              </div>
+          </div>
+          <div className="mt-5 space-y-3 border-t border-line pt-5">
+            <div className="flex items-center gap-3 rounded-lg bg-success/5 px-4 py-3">
+              <CheckIcon className="h-5 w-5 shrink-0 text-success" />
+              <span className="text-sm font-semibold text-success">TRA/SIRE verificado</span>
             </div>
-            <div className="shrink-0">
-              <Button
-                type="button"
-                onClick={() => navigate('/pre-check-in')}
-              >
-                Iniciar verificación
-              </Button>
+            <div className="flex items-center gap-3 rounded-lg px-4 py-3" style={{ backgroundColor: policeVerified ? 'rgba(18,115,212,0.05)' : 'rgba(242,186,13,0.05)' }}>
+              {policeVerified ? (
+                <>
+                  <CheckIcon className="h-5 w-5 shrink-0 text-success" />
+                  <span className="text-sm font-semibold text-success">
+                    Verificación policial y judicial completada.
+                  </span>
+                </>
+              ) : (
+                <>
+                  <div className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-gold border-t-transparent" />
+                  <span className="text-sm font-semibold text-gold">
+                    Verificación policial y judicial en proceso...
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </Card>
 
-        {/* Companion email input */}
-        <div className="mt-8 space-y-4">
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <Input
-                tone="soft"
-                placeholder="Correo electrónico del acompañante"
-                type="email"
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-              />
-            </div>
-            <Button
-              type="button"
-              className="px-6 py-3"
-              onClick={addCompanion}
-              disabled={!emailInput.trim()}
-            >
-              Agregar acompañante
-            </Button>
-          </div>
-          <Checkbox
-            label="¿Es menor de edad?"
-            checked={isMinor}
-            onChange={(e) => setIsMinor(e.target.checked)}
-          />
+        {/* Vehicles info */}
+        <div className="mt-6 rounded-card bg-white px-6 py-5 shadow-card sm:px-10 sm:py-6">
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink/60">Vehículos</p>
+          <p className="mt-1 text-base font-bold text-ink">2 vehículos incluidos en la reserva</p>
         </div>
 
         {/* Companion cards */}
-        {companions.length > 0 && (
-          <div className="mt-6 space-y-4">
-            <h2 className="text-lg font-bold text-ink">
-              Acompañantes ({companions.length})
-            </h2>
-            {companions.map((c, i) => (
-              <Card key={i} className="px-6 py-5 sm:px-10 sm:py-7">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-ink/60">
-                      Huésped acompañante
+        <div className="mt-6 space-y-6">
+          {companions.map((comp, idx) => (
+            <Card key={comp.id} className="px-6 py-7 sm:px-10 sm:py-8">
+              {/* Header */}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h3 className="text-lg font-bold text-ink">Acompañante {idx + 1}</h3>
+                {comp.cantAcceptTyC && (
+                  <span className="inline-block rounded-full bg-brand/10 px-4 py-1.5 text-sm font-bold text-brand">
+                    Pendiente de aceptación por parte del propietario
+                  </span>
+                )}
+                {comp.completed && !comp.cantAcceptTyC && (
+                  <span className="inline-block rounded-full bg-gold/10 px-4 py-1.5 text-sm font-bold text-gold">
+                    Pendiente de aceptación de Términos y Condiciones
+                  </span>
+                )}
+              </div>
+
+              {comp.type === 'minor' && !comp.cantAcceptTyC && (
+                <div className="mt-3">
+                  <span className="inline-block rounded-full bg-gold/10 px-3 py-1 text-xs font-semibold text-gold">
+                    Menor de edad
+                  </span>
+                </div>
+              )}
+
+              {/* Self-register option */}
+              {!comp.cantAcceptTyC && !comp.completed && (
+                <div className="mt-5">
+                  <Checkbox
+                    label="Este acompañante completará su documentación y sus datos por sí mismo."
+                    checked={comp.selfRegister}
+                    onChange={(e) => updateCompanion(comp.id, { selfRegister: e.target.checked })}
+                  />
+                </div>
+              )}
+
+              {/* Self-register message */}
+              {comp.selfRegister && !comp.cantAcceptTyC && !comp.completed && (
+                <div className="mt-5 space-y-4">
+                  <div className="rounded-xl bg-brand/5 px-5 py-4">
+                    <p className="text-sm leading-relaxed text-ink/80">
+                      Este acompañante completará su documentación y sus datos por sí mismo. Se le enviará un enlace a su correo electrónico.
                     </p>
-                    <p className="mt-1 text-base font-semibold text-ink">
-                      {c.email}
-                    </p>
-                    {c.isMinor && (
-                      <span className="mt-0.5 inline-block text-xs font-medium text-ink/50">
-                        Menor de edad
-                      </span>
-                    )}
                   </div>
-                  <div className="shrink-0">
-                    <span
-                      className={`inline-block rounded-full px-4 py-1.5 text-sm font-bold ${STATUS_COLORS[c.status]}`}
+                  <Input
+                    label="Correo electrónico del acompañante"
+                    type="email"
+                    tone="soft"
+                    placeholder="correo@ejemplo.com"
+                    value={comp.email}
+                    onChange={(e) => updateCompanion(comp.id, { email: e.target.value })}
+                  />
+                </div>
+              )}
+
+              {/* Companion form */}
+              {!comp.selfRegister && !comp.cantAcceptTyC && !comp.completed && (
+                <div className="mt-5 space-y-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Select
+                      label="Tipo de documento"
+                      tone="soft"
+                      placeholder="Seleccione"
+                      options={DOCUMENT_TYPES}
+                      value={comp.docType || ''}
+                      onChange={(e) => {
+                        const val = e.target.value as 'dni' | 'pasaporte' | ''
+                        updateCompanion(comp.id, {
+                          docType: val || null,
+                          docNumber: '',
+                          frontDone: false,
+                          backDone: false,
+                          passportDone: false,
+                        })
+                      }}
+                    />
+                    <Input
+                      label="Número de documento"
+                      tone="soft"
+                      placeholder="Ingrese el número"
+                      value={comp.docNumber}
+                      onChange={(e) => updateCompanion(comp.id, { docNumber: e.target.value })}
+                    />
+                  </div>
+
+                  {comp.docType === 'dni' && (
+                    <div className="space-y-3">
+                      <FileUploader
+                        tone="soft"
+                        title="Foto del frente"
+                        onFileSelected={() => updateCompanion(comp.id, { frontDone: true })}
+                      />
+                      <FileUploader
+                        tone="soft"
+                        title="Foto del reverso"
+                        onFileSelected={() => updateCompanion(comp.id, { backDone: true })}
+                      />
+                    </div>
+                  )}
+                  {comp.docType === 'pasaporte' && (
+                    <FileUploader
+                      tone="soft"
+                      title="Foto del pasaporte"
+                      onFileSelected={() => updateCompanion(comp.id, { passportDone: true })}
+                    />
+                  )}
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Input
+                      label="Nombres"
+                      tone="soft"
+                      placeholder="Ingrese los nombres"
+                      value={comp.firstName}
+                      onChange={(e) => updateCompanion(comp.id, { firstName: e.target.value })}
+                    />
+                    <Input
+                      label="Apellidos"
+                      tone="soft"
+                      placeholder="Ingrese los apellidos"
+                      value={comp.lastName}
+                      onChange={(e) => updateCompanion(comp.id, { lastName: e.target.value })}
+                    />
+                    <Input
+                      label="Teléfono"
+                      type="tel"
+                      tone="soft"
+                      placeholder="Ingrese el teléfono"
+                      value={comp.phone}
+                      onChange={(e) => updateCompanion(comp.id, { phone: e.target.value })}
+                    />
+                    <Input
+                      label="Correo electrónico"
+                      type="email"
+                      tone="soft"
+                      placeholder="correo@ejemplo.com"
+                      value={comp.email}
+                      onChange={(e) => updateCompanion(comp.id, { email: e.target.value })}
+                    />
+                  </div>
+
+                  {comp.type === 'minor' && (
+                    <div className="rounded-xl bg-gold/5 px-5 py-4">
+                      <p className="mb-3 text-sm font-semibold text-ink">
+                        Documentación de tutela requerida
+                      </p>
+                      <FileUploader
+                        tone="soft"
+                        title="Carta de potestad / tutela notarial"
+                        onFileSelected={() => updateCompanion(comp.id, { tutelaUploaded: true })}
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex justify-end pt-2">
+                    <Button
+                      type="button"
+                      onClick={() => updateCompanion(comp.id, { completed: true })}
+                      disabled={!isFormValid(comp)}
                     >
-                      {STATUS_LABELS[c.status]}
-                    </span>
+                      Completar registro
+                    </Button>
                   </div>
                 </div>
-              </Card>
-            ))}
-          </div>
-        )}
+              )}
 
+              {/* Cannot accept TyC option */}
+              {!comp.cantAcceptTyC && (comp.completed || comp.selfRegister) && (
+                <div className="mt-5 border-t border-line pt-5">
+                  <Checkbox
+                    label="Este usuario no está en capacidad de aceptar los Términos y Condiciones."
+                    checked={comp.cantAcceptTyC}
+                    onChange={(e) => updateCompanion(comp.id, { cantAcceptTyC: e.target.checked })}
+                  />
+                </div>
+              )}
+            </Card>
+          ))}
+        </div>
+
+        {/* Submit */}
         <div className="mt-10 flex justify-center border-t border-line pt-8">
           <Button
             type="button"
             className="w-full max-w-md py-3.5 text-base"
             onClick={handleSubmit}
+            disabled={!allHandled}
           >
             Enviar información
           </Button>
         </div>
       </div>
-
-      {/* Minor documentation modal */}
-      {minorModalIndex !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg rounded-card bg-white px-6 py-8 shadow-card sm:px-8">
-            <h3 className="text-lg font-bold text-ink">
-              Documentación para menor de edad
-            </h3>
-            <p className="mt-1 text-sm text-ink/60">
-              Por favor adjunta la carta de potestad o tutela notarial correspondiente.
-            </p>
-            <div className="mt-5">
-              <FileUploader
-                tone="soft"
-                title="Carta de potestad / tutela notarial"
-              />
-            </div>
-            <div className="mt-6 flex justify-end">
-              <Button type="button" onClick={closeMinorModal}>
-                Cerrar
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </MainLayout>
   )
 }

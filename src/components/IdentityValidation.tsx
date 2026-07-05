@@ -20,10 +20,9 @@ export default function IdentityValidation({
   const [frontDone, setFrontDone] = useState(false)
   const [backDone, setBackDone] = useState(false)
   const [passportDone, setPassportDone] = useState(false)
-  const [selfieDone, setSelfieDone] = useState(false)
 
   const allUploadsDone =
-    (docType === 'dni' ? frontDone && backDone : passportDone) && selfieDone
+    docType === 'dni' ? frontDone && backDone : passportDone
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -69,12 +68,6 @@ export default function IdentityValidation({
               />
             </div>
           )}
-
-          <FileUploader
-            tone="soft"
-            title="Selfie"
-            onFileSelected={() => setSelfieDone(true)}
-          />
 
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="ghost" onClick={onCancel}>

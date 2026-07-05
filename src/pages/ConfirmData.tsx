@@ -1,10 +1,7 @@
-import { useState } from 'react'
 import { useLocation, useNavigate, Navigate } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import Input from '../components/Input'
 import Select from '../components/Select'
-import Checkbox from '../components/Checkbox'
-import FileUploader from '../components/FileUploader'
 import Button from '../components/Button'
 
 const VISIT_REASONS = [
@@ -22,8 +19,6 @@ export default function ConfirmData() {
     docType?: string
     docNumber?: string
   } | null
-  const [hasMinors, setHasMinors] = useState(false)
-
   if (!data?.docType) {
     return <Navigate to="/pre-check-in" replace />
   }
@@ -86,27 +81,6 @@ export default function ConfirmData() {
                 options={VISIT_REASONS}
               />
             </div>
-          </div>
-
-          <div className="mt-6 border-t border-line pt-5">
-            <Checkbox
-              label="¿Hay menores de edad en tu grupo?"
-              checked={hasMinors}
-              onChange={(e) => setHasMinors(e.target.checked)}
-            />
-            {hasMinors && (
-              <div className="mt-4">
-                <FileUploader
-                  tone="soft"
-                  title="Carta de potestad / tutela notarial"
-                />
-              </div>
-            )}
-            {hasMinors && (
-              <p className="mt-3 text-xs text-ink/50">
-                Este caso no se procesa automáticamente, requiere aprobación manual.
-              </p>
-            )}
           </div>
 
           <div className="flex justify-center pt-6">

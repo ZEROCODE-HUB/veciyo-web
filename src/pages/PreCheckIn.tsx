@@ -35,11 +35,11 @@ export default function PreCheckIn() {
     <MainLayout header="default" bg="soft">
       <div className="mx-auto max-w-[640px] px-4 py-10 sm:px-6 lg:px-8">
         <h1 className="font-display text-2xl font-extrabold leading-snug text-ink sm:text-[40px] sm:leading-tight">
-          Bienvenido Carlos Balazo, este es el prechecking del edificio Los pinos
+          Bienvenido Carlos Balazo, este es el preregistro de seguridad del edificio Los Pinos.
         </h1>
-        <h2 className="mt-4 font-display text-xl font-bold text-ink sm:mt-6 sm:text-[28px]">
-          Registro del responsable de la reservación
-        </h2>
+        <p className="mt-4 text-base leading-relaxed text-ink/70 sm:mt-6">
+          Registro del responsable de la reservación. Ten a la mano la dirección de residencia, correos electrónicos, placas de los vehículos y los documentos de todos los huéspedes. Cada huésped recibirá por correo un enlace para aceptar sus propios Términos y Condiciones.
+        </p>
 
         {!validating ? (
           <div className="mt-8 space-y-6">
@@ -95,7 +95,7 @@ export default function PreCheckIn() {
                 onClick={handleValidate}
                 disabled={!canValidate}
               >
-                Iniciar verificación
+                Comencemos
               </Button>
             </div>
           </div>
