@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Button from './Button'
 import FileUploader from './FileUploader'
+import Loading from './Loading'
 
 interface IdentityValidationProps {
   docType: 'dni' | 'pasaporte'
@@ -9,7 +10,7 @@ interface IdentityValidationProps {
   onCancel: () => void
 }
 
-type Step = 'processing' | 'upload' | 'done'
+type Step = 'processing' | 'upload'
 
 export default function IdentityValidation({
   docType,
@@ -35,7 +36,7 @@ export default function IdentityValidation({
     <div className="rounded-card border border-line bg-white px-6 py-8 shadow-card sm:px-10 sm:py-10">
       {step === 'processing' && (
         <div className="flex flex-col items-center gap-4 py-10">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-brand border-t-transparent" />
+          <Loading />
           <p className="text-base font-semibold text-ink">Verificación en proceso...</p>
         </div>
       )}
@@ -75,33 +76,15 @@ export default function IdentityValidation({
             </Button>
             <Button
               type="button"
-              onClick={() => setStep('done')}
+              onClick={onComplete}
               disabled={!allUploadsDone}
             >
-              Verificar
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {step === 'done' && (
-        <div className="space-y-5">
-          <div className="rounded-xl bg-success/5 px-5 py-4">
-            <p className="text-sm font-semibold text-success">
-              Identidad validada exitosamente
-            </p>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="ghost" onClick={onCancel}>
-              Cancelar
-            </Button>
-            <Button type="button" onClick={onComplete}>
               Continuar
             </Button>
           </div>
         </div>
       )}
+
     </div>
   )
 }

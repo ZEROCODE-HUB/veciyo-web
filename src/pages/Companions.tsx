@@ -7,6 +7,7 @@ import Select from '../components/Select'
 import Checkbox from '../components/Checkbox'
 import FileUploader from '../components/FileUploader'
 import Button from '../components/Button'
+import Loading from '../components/Loading'
 import { CheckIcon } from '../components/icons'
 
 const DOCUMENT_TYPES = [
@@ -142,7 +143,7 @@ export default function Companions() {
                 </>
               ) : (
                 <>
-                  <div className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-gold border-t-transparent" />
+                  <Loading size="sm" />
                   <span className="text-sm font-semibold text-gold">
                     Verificación policial y judicial en proceso...
                   </span>

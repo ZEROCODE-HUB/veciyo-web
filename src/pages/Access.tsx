@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import BackgroundCarousel from '../components/BackgroundCarousel'
+import Loading from '../components/Loading'
 
 const images = import.meta.glob('../assets/Imágenes/*.jpg', {
   eager: true,
@@ -42,7 +43,7 @@ export default function Access() {
       <BackgroundCarousel images={TRAVEL_IMAGES} />
       <div className="relative z-10 flex flex-1 items-center justify-center px-4">
         <div className="flex flex-col items-center gap-4">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-white border-t-transparent" />
+          <Loading size="lg" variant="white" />
           {status === 'completed' && (
             <p className="text-lg font-semibold text-white">Redirigiendo al estado de tu reserva...</p>
           )}
