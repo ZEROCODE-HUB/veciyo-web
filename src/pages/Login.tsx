@@ -26,7 +26,7 @@ export default function Login() {
       <BackgroundCarousel images={TRAVEL_IMAGES} />
 
       <div className="flex flex-1 items-center justify-center px-4">
-        <div className="w-full max-w-[520px] rounded-2xl border border-white/20 bg-white/60 px-8 py-10 shadow-2xl shadow-black/10 backdrop-blur-2xl sm:px-12 sm:py-12">
+        <div className="w-full max-w-[520px] rounded-2xl border border-white/30 bg-white/40 px-8 py-10 shadow-2xl shadow-black/10 backdrop-blur-2xl sm:px-12 sm:py-12">
           <div className="flex justify-center">
             <span className="font-display text-3xl font-extrabold tracking-tight text-ink">
               VeciYo
