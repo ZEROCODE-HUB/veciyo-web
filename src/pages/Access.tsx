@@ -3,12 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom'
 import BackgroundCarousel from '../components/BackgroundCarousel'
 import Loading from '../components/Loading'
 
-const images = import.meta.glob('../assets/Imágenes/*.jpg', {
+const images = import.meta.glob('../assets/Imágenes/new/*.png', {
   eager: true,
   query: '?url',
   import: 'default',
 })
-const TRAVEL_IMAGES = Object.values(images) as string[]
+const TRAVEL_IMAGES = Object.entries(images)
+  .sort(([a], [b]) => {
+    const num = (p: string) => parseInt(p.match(/(\d+)/)?.[1] ?? '0', 10)
+    return num(a) - num(b)
+  })
+  .map(([, src]) => src) as string[]
 
 export default function Access() {
   const { token } = useParams<{ token: string }>()

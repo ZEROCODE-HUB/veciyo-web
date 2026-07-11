@@ -4,12 +4,17 @@ import Input from '../components/Input'
 import Button from '../components/Button'
 import BackgroundCarousel from '../components/BackgroundCarousel'
 
-const images = import.meta.glob('../assets/Imágenes/*.{jpg,png}', {
+const images = import.meta.glob('../assets/Imágenes/new/*.png', {
   eager: true,
   query: '?url',
   import: 'default',
 })
-const TRAVEL_IMAGES = Object.values(images) as string[]
+const TRAVEL_IMAGES = Object.entries(images)
+  .sort(([a], [b]) => {
+    const num = (p: string) => parseInt(p.match(/(\d+)/)?.[1] ?? '0', 10)
+    return num(a) - num(b)
+  })
+  .map(([, src]) => src) as string[]
 
 export default function Login() {
   const navigate = useNavigate()
