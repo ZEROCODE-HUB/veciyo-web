@@ -9,8 +9,9 @@ const images = import.meta.glob('../assets/Imágenes/new/*.png', {
 })
 const TRAVEL_IMAGES = Object.entries(images)
   .sort(([a], [b]) => {
+    const order = [2, 1, 3, 4, 5, 6]
     const num = (p: string) => parseInt(p.match(/(\d+)/)?.[1] ?? '0', 10)
-    return num(a) - num(b)
+    return order.indexOf(num(a)) - order.indexOf(num(b))
   })
   .map(([, src]) => src) as string[]
 
