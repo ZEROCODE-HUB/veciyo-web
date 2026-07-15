@@ -2,12 +2,27 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import Input from '../components/Input'
+import Select from '../components/Select'
 import Button from '../components/Button'
 import IdentityValidation from '../components/IdentityValidation'
 
+const DOCUMENT_TYPES = [
+  { value: 'dni', label: 'Cédula' },
+  { value: 'pasaporte', label: 'Pasaporte' },
+  { value: 'extranjero', label: 'Documento de identidad extranjero' },
+  { value: 'otro', label: 'Otro' },
+]
+
+const DOC_TYPE_LABELS: Record<string, string> = {
+  dni: 'Cédula',
+  pasaporte: 'Pasaporte',
+  extranjero: 'Documento de identidad extranjero',
+  otro: 'Otro',
+}
+
 export default function PreCheckIn() {
   const navigate = useNavigate()
-  const [docType, setDocType] = useState<'dni' | 'pasaporte' | null>(null)
+  const [docType, setDocType] = useState<string | null>(null)
   const [docNumber, setDocNumber] = useState('')
   const [lastEntryDate, setLastEntryDate] = useState('')
   const [validating, setValidating] = useState(false)
@@ -25,7 +40,7 @@ export default function PreCheckIn() {
       state: {
         docType,
         docNumber,
-        docTypeLabel: docType === 'dni' ? 'Cédula / DNI' : 'Pasaporte',
+        docTypeLabel: DOC_TYPE_LABELS[docType!] || docType,
         lastEntryDate,
       },
     })
@@ -43,32 +58,17 @@ export default function PreCheckIn() {
 
         {!validating ? (
           <div className="mt-8 space-y-6">
-            {/* Document type selector — exactly 2 options */}
-            <div>
-              <p className="mb-2 text-sm font-semibold text-ink">Tipo de documento</p>
-              <div className="flex gap-6">
-                <label className="inline-flex cursor-pointer items-center gap-2.5 select-none">
-                  <input
-                    type="radio"
-                    name="docType"
-                    checked={docType === 'dni'}
-                    onChange={() => setDocType('dni')}
-                    className="h-5 w-5 accent-brand"
-                  />
-                  <span className="text-sm text-ink">Cédula / DNI</span>
-                </label>
-                <label className="inline-flex cursor-pointer items-center gap-2.5 select-none">
-                  <input
-                    type="radio"
-                    name="docType"
-                    checked={docType === 'pasaporte'}
-                    onChange={() => setDocType('pasaporte')}
-                    className="h-5 w-5 accent-brand"
-                  />
-                  <span className="text-sm text-ink">Pasaporte</span>
-                </label>
-              </div>
-            </div>
+            <Select
+              label="Tipo de documento"
+              tone="soft"
+              placeholder="Seleccione"
+              options={DOCUMENT_TYPES}
+              value={docType || ''}
+              onChange={(e) => {
+                const val = e.target.value
+                setDocType(val || null)
+              }}
+            />
 
             <Input
               label="Número de identificación"

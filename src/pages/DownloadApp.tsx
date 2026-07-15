@@ -1,14 +1,14 @@
 import MainLayout from '../layouts/MainLayout'
 import Card from '../components/Card'
-import { CheckIcon } from '../components/icons'
+import Loading from '../components/Loading'
 
 export default function DownloadApp() {
   return (
     <MainLayout header="default" bg="page" center>
       <div className="w-full px-4 py-10 sm:px-6 lg:px-8">
         <Card className="mx-auto max-w-[640px] px-6 py-10 text-center sm:px-12 sm:py-12">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
-            <CheckIcon className="h-8 w-8 text-success" />
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gold/10">
+            <Loading size="sm" />
           </div>
 
           <h1 className="mt-6 font-display text-3xl font-extrabold text-ink sm:text-[34px]">
@@ -16,9 +16,16 @@ export default function DownloadApp() {
           </h1>
 
           <p className="mx-auto mt-4 max-w-md text-base text-ink/70">
-            Tu registro como huésped temporal ha sido completado. Descarga la aplicación para
-            gestionar tu estadía y acceder a todas las funcionalidades.
+            Tu registro como huésped temporal ha sido completado y se encuentra pendiente de
+            aceptación por parte del anfitrión. Recibirás una notificación cuando sea aprobado.
           </p>
+
+          <div className="mt-6 flex items-center justify-center gap-3 rounded-lg bg-gold/10 px-4 py-3">
+            <Loading size="sm" />
+            <span className="text-sm font-semibold text-gold">
+              Pendiente de aceptación por parte del anfitrión
+            </span>
+          </div>
 
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a

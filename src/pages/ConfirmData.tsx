@@ -25,12 +25,17 @@ export default function ConfirmData() {
 
   const handleConfirm = () => {
     navigate('/terms-and-conditions', {
-      state: { name: 'Carlos Balazo', identification: data.docNumber },
+      state: { name: 'Carlos Balazo', identification: data.docNumber, docType: data.docType, docTypeLabel },
     })
   }
 
-  const docTypeLabel =
-    data.docType === 'dni' ? 'Cédula / DNI' : data.docType === 'pasaporte' ? 'Pasaporte' : 'Cédula'
+  const DOC_TYPE_LABELS: Record<string, string> = {
+    dni: 'Cédula',
+    pasaporte: 'Pasaporte',
+    extranjero: 'Documento de identidad extranjero',
+    otro: 'Otro',
+  }
+  const docTypeLabel = DOC_TYPE_LABELS[data.docType || ''] || data.docType || 'Cédula'
 
   return (
     <MainLayout header="default" bg="soft">

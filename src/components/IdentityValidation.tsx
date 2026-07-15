@@ -4,7 +4,7 @@ import FileUploader from './FileUploader'
 import Loading from './Loading'
 
 interface IdentityValidationProps {
-  docType: 'dni' | 'pasaporte'
+  docType: string
   lastEntryDate?: string
   onComplete: () => void
   onCancel: () => void
@@ -22,8 +22,9 @@ export default function IdentityValidation({
   const [backDone, setBackDone] = useState(false)
   const [passportDone, setPassportDone] = useState(false)
 
+  const needsFrontAndBack = docType === 'dni' || docType === 'extranjero' || docType === 'otro'
   const allUploadsDone =
-    docType === 'dni' ? frontDone && backDone : passportDone
+    needsFrontAndBack ? frontDone && backDone : passportDone
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -47,7 +48,7 @@ export default function IdentityValidation({
             Sube las fotos de tu documento para continuar con la verificación.
           </p>
 
-          {docType === 'dni' ? (
+          {needsFrontAndBack ? (
             <div className="space-y-4">
               <FileUploader
                 tone="soft"

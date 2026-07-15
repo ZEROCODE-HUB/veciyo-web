@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useLocation, useNavigate, Navigate } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import Card from '../components/Card'
@@ -11,14 +11,16 @@ import Loading from '../components/Loading'
 import { CheckIcon } from '../components/icons'
 
 const DOCUMENT_TYPES = [
-  { value: 'dni', label: 'Cédula / DNI' },
+  { value: 'dni', label: 'Cédula' },
   { value: 'pasaporte', label: 'Pasaporte' },
+  { value: 'extranjero', label: 'Documento de identidad extranjero' },
+  { value: 'otro', label: 'Otro' },
 ]
 
 interface CompanionData {
   id: number
   type: 'adult' | 'minor'
-  docType: 'dni' | 'pasaporte' | null
+  docType: string | null
   docNumber: string
   frontDone: boolean
   backDone: boolean
@@ -30,7 +32,13 @@ interface CompanionData {
   selfRegister: boolean
   cantAcceptTyC: boolean
   completed: boolean
-  tutelaUploaded: boolean
+  tutelaDocs: string[]
+}
+
+interface VehicleData {
+  plate: string
+  brand: string
+  color: string
 }
 
 function createCompanion(id: number, type: 'adult' | 'minor'): CompanionData {
@@ -40,7 +48,7 @@ function createCompanion(id: number, type: 'adult' | 'minor'): CompanionData {
     frontDone: false, backDone: false, passportDone: false,
     firstName: '', lastName: '', phone: '', email: '',
     selfRegister: false, cantAcceptTyC: false,
-    completed: false, tutelaUploaded: false,
+    completed: false, tutelaDocs: [],
   }
 }
 
@@ -55,17 +63,21 @@ export default function Companions() {
   const mainGuest = location.state as {
     name?: string
     identification?: string
+    docType?: string
+    docTypeLabel?: string
+    tycAccepted?: boolean
+    hasVehicles?: boolean
+    vehicleCount?: number
   } | null
 
   const [companions, setCompanions] = useState<CompanionData[]>(() =>
     MOCK_RESERVATION_COMPANIONS.map((c) => createCompanion(c.id, c.type))
   )
-  const [policeVerified, setPoliceVerified] = useState(false)
-
-  useEffect(() => {
-    const timer = setTimeout(() => setPoliceVerified(true), 6000)
-    return () => clearTimeout(timer)
-  }, [])
+  const [vehicles, setVehicles] = useState<VehicleData[]>(() => {
+    const count = mainGuest?.vehicleCount ?? 2
+    return Array.from({ length: count }, () => ({ plate: '', brand: '', color: '' }))
+  })
+  const [submitted, setSubmitted] = useState(false)
 
   if (!mainGuest?.name) {
     return <Navigate to="/pre-check-in" replace />
@@ -75,17 +87,19 @@ export default function Companions() {
     setCompanions((prev) => prev.map((c) => (c.id === id ? { ...c, ...partial } : c)))
   }
 
+  const needsFrontAndBack = (dt: string | null) => dt === 'dni' || dt === 'extranjero' || dt === 'otro'
+
   const isFormValid = (c: CompanionData) => {
     if (c.selfRegister) return c.email.trim().length > 0
     return (
       c.docType !== null &&
       c.docNumber.trim().length > 0 &&
-      (c.docType === 'dni' ? c.frontDone && c.backDone : c.passportDone) &&
+      (needsFrontAndBack(c.docType) ? c.frontDone && c.backDone : c.passportDone) &&
       c.firstName.trim().length > 0 &&
       c.lastName.trim().length > 0 &&
       c.phone.trim().length > 0 &&
       c.email.trim().length > 0 &&
-      (c.type === 'minor' ? c.tutelaUploaded : true)
+      (c.type === 'minor' ? c.tutelaDocs.length > 0 : true)
     )
   }
 
@@ -93,7 +107,13 @@ export default function Companions() {
     (c) => c.cantAcceptTyC || c.completed || (c.selfRegister && c.email.trim().length > 0)
   )
 
+  const allVehiclesFilled = !mainGuest?.hasVehicles || vehicles.every((v) => v.plate.trim() && v.brand.trim() && v.color.trim())
+
   const handleSubmit = () => {
+    setSubmitted(true)
+  }
+
+  const handleContinueToValidation = () => {
     navigate('/validation', {
       state: {
         guests: [
@@ -121,6 +141,11 @@ export default function Companions() {
             <div className="min-w-0 flex-1">
               <p className="text-xs font-semibold uppercase tracking-wide text-ink/60">Huésped principal</p>
               <h3 className="mt-1.5 text-lg font-bold text-ink">{mainGuest.name}</h3>
+              {mainGuest.docTypeLabel && (
+                <p className="mt-1 text-sm font-semibold text-ink/70">
+                  Tipo de documento: <span className="text-ink">{mainGuest.docTypeLabel}</span>
+                </p>
+              )}
               {mainGuest.identification && (
                 <p className="mt-1 text-sm font-semibold text-ink/70">
                   Identificación: <span className="text-ink">{mainGuest.identification}</span>
@@ -128,36 +153,54 @@ export default function Companions() {
               )}
             </div>
           </div>
-          <div className="mt-5 space-y-3 border-t border-line pt-5">
-            <div className="flex items-center gap-3 rounded-lg bg-success/5 px-4 py-3">
-              <CheckIcon className="h-5 w-5 shrink-0 text-success" />
-              <span className="text-sm font-semibold text-success">TRA/SIRE verificado</span>
-            </div>
-            <div className="flex items-center gap-3 rounded-lg px-4 py-3" style={{ backgroundColor: policeVerified ? 'rgba(18,115,212,0.05)' : 'rgba(242,186,13,0.05)' }}>
-              {policeVerified ? (
-                <>
-                  <CheckIcon className="h-5 w-5 shrink-0 text-success" />
-                  <span className="text-sm font-semibold text-success">
-                    Verificación policial y judicial completada.
-                  </span>
-                </>
-              ) : (
-                <>
-                  <Loading size="sm" />
-                  <span className="text-sm font-semibold text-gold">
-                    Verificación policial y judicial en proceso...
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
         </Card>
 
-        {/* Vehicles info */}
-        <div className="mt-6 rounded-card bg-white px-6 py-5 shadow-card sm:px-10 sm:py-6">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink/60">Vehículos</p>
-          <p className="mt-1 text-base font-bold text-ink">2 vehículos incluidos en la reserva</p>
-        </div>
+        {/* Vehicles */}
+        {mainGuest?.hasVehicles && (
+          <div className="mt-6 space-y-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink/60">Vehículos</p>
+            {vehicles.map((v, i) => (
+              <Card key={i} className="px-6 py-5 sm:px-10 sm:py-6">
+                <p className="mb-3 text-sm font-bold text-ink">Vehículo {i + 1}</p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <Input
+                    label="Placa"
+                    tone="soft"
+                    placeholder="Ingrese la placa"
+                    value={v.plate}
+                    onChange={(e) => {
+                      const next = [...vehicles]
+                      next[i] = { ...next[i], plate: e.target.value }
+                      setVehicles(next)
+                    }}
+                  />
+                  <Input
+                    label="Marca"
+                    tone="soft"
+                    placeholder="Ingrese la marca"
+                    value={v.brand}
+                    onChange={(e) => {
+                      const next = [...vehicles]
+                      next[i] = { ...next[i], brand: e.target.value }
+                      setVehicles(next)
+                    }}
+                  />
+                  <Input
+                    label="Color"
+                    tone="soft"
+                    placeholder="Ingrese el color"
+                    value={v.color}
+                    onChange={(e) => {
+                      const next = [...vehicles]
+                      next[i] = { ...next[i], color: e.target.value }
+                      setVehicles(next)
+                    }}
+                  />
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* Companion cards */}
         <div className="mt-6 space-y-6">
@@ -227,7 +270,7 @@ export default function Companions() {
                       options={DOCUMENT_TYPES}
                       value={comp.docType || ''}
                       onChange={(e) => {
-                        const val = e.target.value as 'dni' | 'pasaporte' | ''
+                        const val = e.target.value
                         updateCompanion(comp.id, {
                           docType: val || null,
                           docNumber: '',
@@ -246,7 +289,7 @@ export default function Companions() {
                     />
                   </div>
 
-                  {comp.docType === 'dni' && (
+                  {needsFrontAndBack(comp.docType) && (
                     <div className="space-y-3">
                       <FileUploader
                         tone="soft"
@@ -303,13 +346,37 @@ export default function Companions() {
 
                   {comp.type === 'minor' && (
                     <div className="rounded-xl bg-gold/5 px-5 py-4">
+                      <div className="mb-4 rounded-lg bg-brand/5 px-4 py-3">
+                        <p className="text-sm font-semibold text-ink">
+                          Este condominio tiene principal interés en proteger la integridad de los menores de edad y prevenir la explotación comercial sexual de las niñas, niños y adolescentes.
+                        </p>
+                      </div>
                       <p className="mb-3 text-sm font-semibold text-ink">
                         Documentación de tutela requerida
                       </p>
+                      {comp.tutelaDocs.map((_, di) => (
+                        <div key={di} className="mb-3">
+                          <FileUploader
+                            tone="soft"
+                            title={`Carta de potestad / tutela notarial ${di + 1}`}
+                            onFileSelected={() => {
+                              /* already tracked */
+                            }}
+                          />
+                        </div>
+                      ))}
                       <FileUploader
                         tone="soft"
-                        title="Carta de potestad / tutela notarial"
-                        onFileSelected={() => updateCompanion(comp.id, { tutelaUploaded: true })}
+                        title={
+                          comp.tutelaDocs.length === 0
+                            ? 'Carta de potestad / tutela notarial'
+                            : `Documento adicional ${comp.tutelaDocs.length + 1}`
+                        }
+                        onFileSelected={() =>
+                          updateCompanion(comp.id, {
+                            tutelaDocs: [...comp.tutelaDocs, 'uploaded'],
+                          })
+                        }
                       />
                     </div>
                   )}
@@ -341,16 +408,62 @@ export default function Companions() {
         </div>
 
         {/* Submit */}
-        <div className="mt-10 flex justify-center border-t border-line pt-8">
-          <Button
-            type="button"
-            className="w-full max-w-md py-3.5 text-base"
-            onClick={handleSubmit}
-            disabled={!allHandled}
-          >
-            Enviar información
-          </Button>
-        </div>
+        {!submitted && (
+          <div className="mt-10 flex justify-center border-t border-line pt-8">
+            <Button
+              type="button"
+              className="w-full max-w-md py-3.5 text-base"
+              onClick={handleSubmit}
+              disabled={!allHandled || !allVehiclesFilled}
+            >
+              Enviar información
+            </Button>
+          </div>
+        )}
+
+        {/* Post-submission approval status */}
+        {submitted && (
+          <div className="mt-10 space-y-4 border-t border-line pt-8">
+            <h2 className="text-center text-xl font-bold text-ink">Estado del proceso de aprobación</h2>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 rounded-lg bg-success/5 px-4 py-3">
+                <CheckIcon className="h-5 w-5 shrink-0 text-success" />
+                <div>
+                  <p className="text-sm font-semibold text-success">Validación de documentos</p>
+                  <p className="text-xs text-ink/60">Documentación cargada y validada</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-lg bg-success/5 px-4 py-3">
+                <CheckIcon className="h-5 w-5 shrink-0 text-success" />
+                <div>
+                  <p className="text-sm font-semibold text-success">Términos y condiciones</p>
+                  <p className="text-xs text-ink/60">
+                    {mainGuest?.tycAccepted
+                      ? 'Aceptó los términos y condiciones.'
+                      : 'Exento de aceptación (cuando corresponda, por ejemplo, menores o personas imposibilitadas de aceptar directamente).'
+                    }
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-lg bg-gold/10 px-4 py-3">
+                <Loading size="sm" />
+                <div>
+                  <p className="text-sm font-semibold text-gold">Aceptación del anfitrión</p>
+                  <p className="text-xs text-ink/60">Pendiente de aceptación por parte del anfitrión</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-center pt-4">
+              <Button
+                type="button"
+                className="w-full max-w-md py-3.5 text-base"
+                onClick={handleContinueToValidation}
+              >
+                Ver detalle de validación
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </MainLayout>
   )

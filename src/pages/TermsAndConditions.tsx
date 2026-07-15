@@ -26,12 +26,12 @@ const SECTION_CONTENT: Record<string, string> = {
 export default function TermsAndConditions() {
   const navigate = useNavigate()
   const location = useLocation()
-  const mainGuest = (location.state as { name?: string; identification?: string }) || {}
+  const mainGuest = (location.state as { name?: string; identification?: string; docType?: string; docTypeLabel?: string }) || {}
   const [accepted, setAccepted] = useState(false)
 
   const handleConfirm = () => {
     if (accepted) {
-      navigate('/companions', { state: mainGuest })
+      navigate('/companions', { state: { ...mainGuest, tycAccepted: true } })
     }
   }
 

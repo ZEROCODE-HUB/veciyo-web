@@ -3,7 +3,8 @@ import { useLocation, useNavigate, Navigate } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import Button from '../components/Button'
 import ValidationCard, { type ValidationStatus } from '../components/ValidationCard'
-import { CrossMarkIcon } from '../components/icons'
+import Loading from '../components/Loading'
+import { CheckIcon, CrossMarkIcon } from '../components/icons'
 
 export interface GuestValidationInfo {
   name: string
@@ -36,6 +37,32 @@ export default function Validation() {
         <p className="mx-auto mt-3 max-w-lg text-center text-base text-ink/60">
           Revisa el estado de cada huésped registrado antes de continuar.
         </p>
+
+        {/* Approval process status */}
+        <div className="mt-6 space-y-3 rounded-card bg-white px-6 py-5 shadow-card sm:px-8 sm:py-6">
+          <h2 className="text-sm font-bold text-ink">Estado del proceso de aprobación</h2>
+          <div className="flex items-center gap-3 rounded-lg bg-success/5 px-4 py-3">
+            <CheckIcon className="h-5 w-5 shrink-0 text-success" />
+            <div>
+              <p className="text-sm font-semibold text-success">Validación de documentos</p>
+              <p className="text-xs text-ink/60">Documentación cargada y validada</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 rounded-lg bg-success/5 px-4 py-3">
+            <CheckIcon className="h-5 w-5 shrink-0 text-success" />
+            <div>
+              <p className="text-sm font-semibold text-success">Términos y condiciones</p>
+              <p className="text-xs text-ink/60">Aceptó los términos y condiciones.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 rounded-lg bg-gold/10 px-4 py-3">
+            <Loading size="sm" />
+            <div>
+              <p className="text-sm font-semibold text-gold">Aceptación del anfitrión</p>
+              <p className="text-xs text-ink/60">Pendiente de aceptación por parte del anfitrión</p>
+            </div>
+          </div>
+        </div>
 
         {hasRejected && (
           <div className="mt-6 flex items-start gap-3 rounded-xl border border-danger/20 bg-danger/5 px-5 py-4">
