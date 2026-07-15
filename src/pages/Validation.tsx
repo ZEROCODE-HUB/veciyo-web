@@ -11,6 +11,9 @@ export interface GuestValidationInfo {
   identification: string
   status: ValidationStatus
   isMain?: boolean
+  docsValidated?: boolean
+  tycAccepted?: boolean
+  tycExempt?: boolean
 }
 
 export default function Validation() {
@@ -38,32 +41,6 @@ export default function Validation() {
           Revisa el estado de cada huésped registrado antes de continuar.
         </p>
 
-        {/* Approval process status */}
-        <div className="mt-6 space-y-3 rounded-card bg-white px-6 py-5 shadow-card sm:px-8 sm:py-6">
-          <h2 className="text-sm font-bold text-ink">Estado del proceso de aprobación</h2>
-          <div className="flex items-center gap-3 rounded-lg bg-success/5 px-4 py-3">
-            <CheckIcon className="h-5 w-5 shrink-0 text-success" />
-            <div>
-              <p className="text-sm font-semibold text-success">Validación de documentos</p>
-              <p className="text-xs text-ink/60">Documentación cargada y validada</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 rounded-lg bg-success/5 px-4 py-3">
-            <CheckIcon className="h-5 w-5 shrink-0 text-success" />
-            <div>
-              <p className="text-sm font-semibold text-success">Términos y condiciones</p>
-              <p className="text-xs text-ink/60">Aceptó los términos y condiciones.</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 rounded-lg bg-gold/10 px-4 py-3">
-            <Loading size="sm" />
-            <div>
-              <p className="text-sm font-semibold text-gold">Aceptación del anfitrión</p>
-              <p className="text-xs text-ink/60">Pendiente de aceptación por parte del anfitrión</p>
-            </div>
-          </div>
-        </div>
-
         {hasRejected && (
           <div className="mt-6 flex items-start gap-3 rounded-xl border border-danger/20 bg-danger/5 px-5 py-4">
             <CrossMarkIcon className="mt-0.5 h-5 w-5 shrink-0 text-danger" />
@@ -73,15 +50,50 @@ export default function Validation() {
           </div>
         )}
 
-        <div className="mt-8 space-y-4">
+        <div className="mt-8 space-y-6">
           {guests.map((guest, i) => (
-            <ValidationCard
-              key={i}
-              name={guest.name}
-              identification={guest.identification}
-              status={guest.status}
-              isMain={guest.isMain}
-            />
+            <div key={i}>
+              <ValidationCard
+                name={guest.name}
+                identification={guest.identification}
+                status={guest.status}
+                isMain={guest.isMain}
+              />
+              <div className="mt-3 space-y-1.5 rounded-card bg-white px-5 py-4 shadow-card sm:px-7 sm:py-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink/60">Estado de validación</p>
+                {guest.docsValidated ? (
+                  <div className="flex items-center gap-2 rounded-lg bg-success/5 px-3 py-2">
+                    <CheckIcon className="h-4 w-4 shrink-0 text-success" />
+                    <span className="text-xs font-semibold text-success">Validación de documentos</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-lg bg-gold/10 px-3 py-2">
+                    <Loading size="sm" />
+                    <span className="text-xs font-semibold text-gold">Documentos pendientes de validación</span>
+                  </div>
+                )}
+                {guest.tycExempt ? (
+                  <div className="flex items-center gap-2 rounded-lg bg-brand/5 px-3 py-2">
+                    <CheckIcon className="h-4 w-4 shrink-0 text-brand" />
+                    <span className="text-xs font-semibold text-brand">Exento de aceptación de términos</span>
+                  </div>
+                ) : guest.tycAccepted ? (
+                  <div className="flex items-center gap-2 rounded-lg bg-success/5 px-3 py-2">
+                    <CheckIcon className="h-4 w-4 shrink-0 text-success" />
+                    <span className="text-xs font-semibold text-success">Términos y condiciones aceptados</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-lg bg-gold/10 px-3 py-2">
+                    <Loading size="sm" />
+                    <span className="text-xs font-semibold text-gold">Términos y condiciones pendientes</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 rounded-lg bg-gold/10 px-3 py-2">
+                  <Loading size="sm" />
+                  <span className="text-xs font-semibold text-gold">Aceptación del anfitrión pendiente</span>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
 

@@ -114,16 +114,28 @@ export default function Companions() {
   }
 
   const handleContinueToValidation = () => {
+    const mainGuestValidation = {
+      name: mainGuest.name!,
+      identification: mainGuest.identification || 'N/A',
+      status: 'approved' as const,
+      isMain: true,
+      docsValidated: true,
+      tycAccepted: mainGuest?.tycAccepted ?? false,
+      tycExempt: !mainGuest?.tycAccepted,
+    }
+
+    const companionValidations = companions.map((c) => ({
+      name: c.firstName ? `${c.firstName} ${c.lastName}` : `Acompañante`,
+      identification: c.docNumber || 'N/A',
+      status: 'approved' as const,
+      docsValidated: c.completed || c.cantAcceptTyC,
+      tycAccepted: c.completed && !c.cantAcceptTyC,
+      tycExempt: c.cantAcceptTyC,
+    }))
+
     navigate('/validation', {
       state: {
-        guests: [
-          {
-            name: mainGuest.name!,
-            identification: mainGuest.identification || 'N/A',
-            status: 'approved' as const,
-            isMain: true,
-          },
-        ],
+        guests: [mainGuestValidation, ...companionValidations],
       },
     })
   }
@@ -153,6 +165,25 @@ export default function Companions() {
               )}
             </div>
           </div>
+          {submitted && (
+            <div className="mt-4 space-y-2 border-t border-line pt-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-ink/60">Estado de validación</p>
+              <div className="flex items-center gap-2 rounded-lg bg-success/5 px-3 py-2">
+                <CheckIcon className="h-4 w-4 shrink-0 text-success" />
+                <span className="text-xs font-semibold text-success">Validación de documentos</span>
+              </div>
+              <div className="flex items-center gap-2 rounded-lg bg-success/5 px-3 py-2">
+                <CheckIcon className="h-4 w-4 shrink-0 text-success" />
+                <span className="text-xs font-semibold text-success">
+                  {mainGuest?.tycAccepted ? 'Términos y condiciones aceptados' : 'Exento de aceptación'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 rounded-lg bg-gold/10 px-3 py-2">
+                <Loading size="sm" />
+                <span className="text-xs font-semibold text-gold">Aceptación del anfitrión pendiente</span>
+              </div>
+            </div>
+          )}
         </Card>
 
         {/* Vehicles */}
@@ -403,6 +434,44 @@ export default function Companions() {
                   />
                 </div>
               )}
+
+              {/* Per-guest validation status */}
+              {submitted && (
+                <div className="mt-4 space-y-2 border-t border-line pt-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-ink/60">Estado de validación</p>
+                  {comp.completed || comp.cantAcceptTyC ? (
+                    <div className="flex items-center gap-2 rounded-lg bg-success/5 px-3 py-2">
+                      <CheckIcon className="h-4 w-4 shrink-0 text-success" />
+                      <span className="text-xs font-semibold text-success">Validación de documentos</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 rounded-lg bg-gold/10 px-3 py-2">
+                      <Loading size="sm" />
+                      <span className="text-xs font-semibold text-gold">Documentos pendientes de validación</span>
+                    </div>
+                  )}
+                  {comp.cantAcceptTyC ? (
+                    <div className="flex items-center gap-2 rounded-lg bg-brand/5 px-3 py-2">
+                      <CheckIcon className="h-4 w-4 shrink-0 text-brand" />
+                      <span className="text-xs font-semibold text-brand">Exento de aceptación de términos</span>
+                    </div>
+                  ) : comp.completed ? (
+                    <div className="flex items-center gap-2 rounded-lg bg-success/5 px-3 py-2">
+                      <CheckIcon className="h-4 w-4 shrink-0 text-success" />
+                      <span className="text-xs font-semibold text-success">Términos y condiciones aceptados</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 rounded-lg bg-gold/10 px-3 py-2">
+                      <Loading size="sm" />
+                      <span className="text-xs font-semibold text-gold">Términos y condiciones pendientes</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 rounded-lg bg-gold/10 px-3 py-2">
+                    <Loading size="sm" />
+                    <span className="text-xs font-semibold text-gold">Aceptación del anfitrión pendiente</span>
+                  </div>
+                </div>
+              )}
             </Card>
           ))}
         </div>
@@ -421,47 +490,16 @@ export default function Companions() {
           </div>
         )}
 
-        {/* Post-submission approval status */}
+        {/* Continue to validation */}
         {submitted && (
-          <div className="mt-10 space-y-4 border-t border-line pt-8">
-            <h2 className="text-center text-xl font-bold text-ink">Estado del proceso de aprobación</h2>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 rounded-lg bg-success/5 px-4 py-3">
-                <CheckIcon className="h-5 w-5 shrink-0 text-success" />
-                <div>
-                  <p className="text-sm font-semibold text-success">Validación de documentos</p>
-                  <p className="text-xs text-ink/60">Documentación cargada y validada</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 rounded-lg bg-success/5 px-4 py-3">
-                <CheckIcon className="h-5 w-5 shrink-0 text-success" />
-                <div>
-                  <p className="text-sm font-semibold text-success">Términos y condiciones</p>
-                  <p className="text-xs text-ink/60">
-                    {mainGuest?.tycAccepted
-                      ? 'Aceptó los términos y condiciones.'
-                      : 'Exento de aceptación (cuando corresponda, por ejemplo, menores o personas imposibilitadas de aceptar directamente).'
-                    }
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 rounded-lg bg-gold/10 px-4 py-3">
-                <Loading size="sm" />
-                <div>
-                  <p className="text-sm font-semibold text-gold">Aceptación del anfitrión</p>
-                  <p className="text-xs text-ink/60">Pendiente de aceptación por parte del anfitrión</p>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-center pt-4">
-              <Button
-                type="button"
-                className="w-full max-w-md py-3.5 text-base"
-                onClick={handleContinueToValidation}
-              >
-                Ver detalle de validación
-              </Button>
-            </div>
+          <div className="mt-10 flex justify-center border-t border-line pt-8">
+            <Button
+              type="button"
+              className="w-full max-w-md py-3.5 text-base"
+              onClick={handleContinueToValidation}
+            >
+              Ver detalle de validación
+            </Button>
           </div>
         )}
       </div>

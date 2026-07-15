@@ -31,7 +31,7 @@ export default function TermsAndConditions() {
 
   const handleConfirm = () => {
     if (accepted) {
-      navigate('/companions', { state: { ...mainGuest, tycAccepted: true } })
+      navigate('/companions', { state: { ...mainGuest, tycAccepted: true, hasVehicles: true, vehicleCount: 2 } })
     }
   }
 
