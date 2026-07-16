@@ -33,6 +33,7 @@ interface CompanionData {
   cantAcceptTyC: boolean
   completed: boolean
   tutelaDocs: string[]
+  dataExtracted: boolean
 }
 
 interface VehicleData {
@@ -49,6 +50,7 @@ function createCompanion(id: number, type: 'adult' | 'minor'): CompanionData {
     firstName: '', lastName: '', phone: '', email: '',
     selfRegister: false, cantAcceptTyC: false,
     completed: false, tutelaDocs: [],
+    dataExtracted: false,
   }
 }
 
@@ -56,6 +58,11 @@ const MOCK_RESERVATION_COMPANIONS = [
   { id: 1, type: 'adult' as const },
   { id: 2, type: 'minor' as const },
 ]
+
+const MOCK_EXTRACTED: Record<number, { firstName: string; lastName: string; docNumber: string }> = {
+  1: { firstName: 'María', lastName: 'González', docNumber: '98765432' },
+  2: { firstName: 'Luis', lastName: 'González', docNumber: '12345678' },
+}
 
 export default function Companions() {
   const navigate = useNavigate()
@@ -89,6 +96,17 @@ export default function Companions() {
 
   const needsFrontAndBack = (dt: string | null) => dt === 'dni' || dt === 'extranjero' || dt === 'otro'
 
+  const simulateExtraction = (id: number) => {
+    const extracted = MOCK_EXTRACTED[id]
+    if (!extracted) return
+    updateCompanion(id, {
+      dataExtracted: true,
+      firstName: extracted.firstName,
+      lastName: extracted.lastName,
+      docNumber: extracted.docNumber,
+    })
+  }
+
   const isFormValid = (c: CompanionData) => {
     if (c.selfRegister) return c.email.trim().length > 0
     return (
@@ -110,6 +128,7 @@ export default function Companions() {
   const allVehiclesFilled = !mainGuest?.hasVehicles || vehicles.every((v) => v.plate.trim() && v.brand.trim() && v.color.trim())
 
   const handleSubmit = () => {
+    localStorage.setItem('veciyo_registration_completed', 'true')
     setSubmitted(true)
   }
 
@@ -140,10 +159,24 @@ export default function Companions() {
     })
   }
 
+  const getCompanionLabel = (comp: CompanionData, idx: number) => {
+    if (comp.firstName && comp.lastName) {
+      return `${comp.firstName} ${comp.lastName}`
+    }
+    return `Acompañante ${idx + 1}`
+  }
+
   return (
     <MainLayout header="default" bg="soft">
       <div className="mx-auto max-w-[820px] px-4 py-10 sm:px-6 lg:px-8">
-        <h1 className="font-display text-3xl font-extrabold text-ink sm:text-[34px]">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-bold text-brand">Paso 3 de 3</span>
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-brand/20">
+            <div className="h-full w-full rounded-full bg-brand" />
+          </div>
+        </div>
+
+        <h1 className="mt-4 font-display text-3xl font-extrabold text-ink sm:text-[34px]">
           Registro de acompañantes
         </h1>
 
@@ -239,7 +272,12 @@ export default function Companions() {
             <Card key={comp.id} className="px-6 py-7 sm:px-10 sm:py-8">
               {/* Header */}
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <h3 className="text-lg font-bold text-ink">Acompañante {idx + 1}</h3>
+                <h3 className="text-lg font-bold text-ink">{getCompanionLabel(comp, idx)}</h3>
+                {comp.dataExtracted && (
+                  <span className="inline-block rounded-full bg-success/10 px-3 py-1 text-xs font-semibold text-success">
+                    Datos extraídos del documento
+                  </span>
+                )}
                 {comp.cantAcceptTyC && (
                   <span className="inline-block rounded-full bg-brand/10 px-4 py-1.5 text-sm font-bold text-brand">
                     Pendiente de aceptación por parte del propietario
@@ -255,13 +293,13 @@ export default function Companions() {
               {comp.type === 'minor' && !comp.cantAcceptTyC && (
                 <div className="mt-3">
                   <span className="inline-block rounded-full bg-gold/10 px-3 py-1 text-xs font-semibold text-gold">
-                    Menor de edad
+                    Menor de edad — registro por parte del anfitrión
                   </span>
                 </div>
               )}
 
-              {/* Self-register option */}
-              {!comp.cantAcceptTyC && !comp.completed && (
+              {/* Self-register option — only for adults */}
+              {comp.type === 'adult' && !comp.cantAcceptTyC && !comp.completed && (
                 <div className="mt-5">
                   <Checkbox
                     label="Este acompañante completará su documentación y sus datos por sí mismo."
@@ -308,6 +346,7 @@ export default function Companions() {
                           frontDone: false,
                           backDone: false,
                           passportDone: false,
+                          dataExtracted: false,
                         })
                       }}
                     />
@@ -317,6 +356,7 @@ export default function Companions() {
                       placeholder="Ingrese el número"
                       value={comp.docNumber}
                       onChange={(e) => updateCompanion(comp.id, { docNumber: e.target.value })}
+                      disabled={comp.dataExtracted}
                     />
                   </div>
 
@@ -325,12 +365,18 @@ export default function Companions() {
                       <FileUploader
                         tone="soft"
                         title="Foto del frente"
-                        onFileSelected={() => updateCompanion(comp.id, { frontDone: true })}
+                        onFileSelected={() => {
+                          updateCompanion(comp.id, { frontDone: true })
+                          simulateExtraction(comp.id)
+                        }}
                       />
                       <FileUploader
                         tone="soft"
                         title="Foto del reverso"
-                        onFileSelected={() => updateCompanion(comp.id, { backDone: true })}
+                        onFileSelected={() => {
+                          updateCompanion(comp.id, { backDone: true })
+                          simulateExtraction(comp.id)
+                        }}
                       />
                     </div>
                   )}
@@ -338,8 +384,19 @@ export default function Companions() {
                     <FileUploader
                       tone="soft"
                       title="Foto del pasaporte"
-                      onFileSelected={() => updateCompanion(comp.id, { passportDone: true })}
+                      onFileSelected={() => {
+                        updateCompanion(comp.id, { passportDone: true })
+                        simulateExtraction(comp.id)
+                      }}
                     />
+                  )}
+
+                  {comp.dataExtracted && (
+                    <div className="rounded-xl bg-success/5 px-4 py-3">
+                      <p className="text-xs font-semibold text-success">
+                        Datos extraídos automáticamente del documento. Estos datos prevalecen sobre cualquier ingreso manual.
+                      </p>
+                    </div>
                   )}
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -348,14 +405,24 @@ export default function Companions() {
                       tone="soft"
                       placeholder="Ingrese los nombres"
                       value={comp.firstName}
-                      onChange={(e) => updateCompanion(comp.id, { firstName: e.target.value })}
+                      onChange={(e) => {
+                        if (!comp.dataExtracted) {
+                          updateCompanion(comp.id, { firstName: e.target.value })
+                        }
+                      }}
+                      disabled={comp.dataExtracted}
                     />
                     <Input
                       label="Apellidos"
                       tone="soft"
                       placeholder="Ingrese los apellidos"
                       value={comp.lastName}
-                      onChange={(e) => updateCompanion(comp.id, { lastName: e.target.value })}
+                      onChange={(e) => {
+                        if (!comp.dataExtracted) {
+                          updateCompanion(comp.id, { lastName: e.target.value })
+                        }
+                      }}
+                      disabled={comp.dataExtracted}
                     />
                     <Input
                       label="Teléfono"
@@ -475,6 +542,37 @@ export default function Companions() {
             </Card>
           ))}
         </div>
+
+        {/* Individual companion links — shown after submit */}
+        {submitted && (
+          <div className="mt-6 rounded-xl border border-brand/20 bg-brand/5 px-6 py-5">
+            <p className="text-sm font-bold text-ink">Links individuales para acompañantes</p>
+            <p className="mt-1 text-xs text-ink/60">
+              Cada acompañante recibirá su propio enlace para completar su parte del proceso.
+            </p>
+            <div className="mt-3 space-y-2">
+              {companions.map((comp, idx) => (
+                <div key={comp.id} className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs">
+                  <span className="font-semibold text-ink">{getCompanionLabel(comp, idx)}:</span>
+                  <code className="flex-1 truncate text-brand">
+                    https://veciyo.app/acceso/acompanante-{comp.id}-{Date.now()}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        `https://veciyo.app/acceso/acompanante-${comp.id}-${Date.now()}`
+                      )
+                    }}
+                    className="shrink-0 text-xs font-semibold text-brand hover:text-brand-700"
+                  >
+                    Copiar
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Submit */}
         {!submitted && (

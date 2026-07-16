@@ -43,12 +43,12 @@ export default function Invitation() {
                 <p className="text-sm font-bold text-ink">Apartamento acogedor en el centro histórico</p>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-ink/70">Vehículos</p>
-                <p className="text-sm font-bold text-ink">2</p>
-              </div>
-              <div>
                 <p className="text-xs font-semibold uppercase tracking-widest text-ink/70">Cantidad de huéspedes</p>
                 <p className="text-sm font-bold text-ink">3</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-ink/70">Vehículos</p>
+                <p className="text-sm font-bold text-ink">2</p>
               </div>
               <div className="col-span-2">
                 <p className="text-xs font-semibold uppercase tracking-widest text-ink/70">Fechas de la reserva</p>

@@ -19,7 +19,48 @@ const TRAVEL_IMAGES = Object.entries(images)
 
 export default function Login() {
   const navigate = useNavigate()
-  const [view, setView] = useState<'login' | 'reset'>('login')
+  const [view, setView] = useState<'code' | 'login' | 'reset' | 'resetSent'>('code')
+  const [code, setCode] = useState('')
+
+  const handleCodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!code.trim()) return
+    const completed = localStorage.getItem('veciyo_registration_completed')
+    if (completed) {
+      navigate('/validation')
+      return
+    }
+    navigate('/pre-check-in', {
+      state: { code: code.trim(), isRecurring: false },
+    })
+  }
+
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const completed = localStorage.getItem('veciyo_registration_completed')
+    if (completed) {
+      navigate('/validation')
+      return
+    }
+    navigate('/pre-check-in', {
+      state: {
+        isRecurring: true,
+        firstName: 'Carlos',
+        lastName: 'Balazo',
+        identification: '1616516',
+        docType: 'dni',
+        docTypeLabel: 'Cédula',
+        phone: '+57 300 123 4567',
+        address: 'Calle 123 #45-67, Bogotá',
+        email: 'carlos@ejemplo.com',
+      },
+    })
+  }
+
+  const handleResetSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setView('resetSent')
+  }
 
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden">
@@ -33,26 +74,53 @@ export default function Login() {
             </span>
           </div>
 
-          {view === 'login' ? (
+          {view === 'code' && (
             <>
               <h1 className="mt-6 text-center text-2xl font-bold text-ink sm:text-[28px]">
-                Iniciar sesion
+                Acceso al preregistro
+              </h1>
+
+              <form className="mt-8 space-y-5" onSubmit={handleCodeSubmit}>
+                <Input
+                  label="Ingresa tu código de acceso"
+                  tone="soft"
+                  placeholder="Código de acceso"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                />
+                <Button type="submit" className="w-full py-3" disabled={!code.trim()}>
+                  Ingresar
+                </Button>
+              </form>
+
+              <div className="mt-6 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setView('login')}
+                  className="text-sm font-medium text-ink underline underline-offset-2 hover:text-brand"
+                >
+                  ¿Ya eres usuario? Iniciar sesión
+                </button>
+              </div>
+            </>
+          )}
+
+          {view === 'login' && (
+            <>
+              <h1 className="mt-6 text-center text-2xl font-bold text-ink sm:text-[28px]">
+                Iniciar sesión
               </h1>
 
               <form
                 className="mt-8 space-y-5"
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  navigate('/pre-check-in', {
-                    state: { name: 'Carlos Balazo', identification: '1616516' },
-                  })
-                }}
+                onSubmit={handleLoginSubmit}
               >
-                <Input label="Correo:" type="email" placeholder="Ingrese su correo electrónico" />
+                <Input label="Correo:" type="email" tone="soft" placeholder="Ingrese su correo electrónico" />
                 <Input
                   label="Contraseña"
                   type="password"
-                  placeholder="Ingrese su correo contraseña"
+                  tone="soft"
+                  placeholder="Ingrese su contraseña"
                 />
 
                 <Button type="submit" className="w-full py-3">
@@ -60,48 +128,72 @@ export default function Login() {
                 </Button>
               </form>
 
-              <div className="mt-6 flex justify-center">
+              <div className="mt-4 flex justify-center">
                 <button
                   type="button"
                   onClick={() => setView('reset')}
                   className="text-sm font-medium text-ink underline underline-offset-2 hover:text-brand"
                 >
-                  Recuperar la contraseña
+                  Recuperar contraseña
+                </button>
+              </div>
+
+              <div className="mt-3 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setView('code')}
+                  className="text-sm font-medium text-ink/60 underline underline-offset-2 hover:text-brand"
+                >
+                  Volver al código de acceso
                 </button>
               </div>
             </>
-          ) : (
+          )}
+
+          {view === 'reset' && (
             <>
               <h1 className="mt-6 text-center text-2xl font-bold text-ink sm:text-[28px]">
-                Cambio de contraseña
+                Recuperar contraseña
               </h1>
 
               <form
                 className="mt-8 space-y-5"
-                onSubmit={(e) => e.preventDefault()}
+                onSubmit={handleResetSubmit}
               >
                 <Input
-                  label="Contraseña actual:"
-                  type="password"
-                  placeholder="Ingrese la contraseña recibida en el correo electrónico"
+                  label="Correo electrónico"
+                  type="email"
+                  tone="soft"
+                  placeholder="Ingrese su correo electrónico"
                 />
-                <Input
-                  label="Contraseña nueva"
-                  type="password"
-                  placeholder="Ingrese su contraseña nueva"
-                />
-                <Input
-                  label="Repita la Contraseña:"
-                  type="password"
-                  placeholder="Ingrese su contraseña nueva"
-                />
-
                 <Button type="submit" className="w-full py-3">
-                  Cambiar contraseña
+                  Enviar enlace de recuperación
                 </Button>
               </form>
 
               <div className="mt-6 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setView('login')}
+                  className="text-sm font-medium text-ink underline underline-offset-2 hover:text-brand"
+                >
+                  Volver al inicio de sesión
+                </button>
+              </div>
+            </>
+          )}
+
+          {view === 'resetSent' && (
+            <>
+              <h1 className="mt-6 text-center text-2xl font-bold text-ink sm:text-[28px]">
+                Revisa tu correo
+              </h1>
+
+              <p className="mt-4 text-center text-base text-ink/70">
+                Te hemos enviado un enlace para recuperar tu contraseña. Revisa tu bandeja de entrada.
+              </p>
+
+              <div className="mt-8 flex justify-center">
                 <button
                   type="button"
                   onClick={() => setView('login')}

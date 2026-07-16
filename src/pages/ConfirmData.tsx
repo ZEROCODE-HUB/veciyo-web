@@ -17,46 +17,61 @@ export default function ConfirmData() {
   const location = useLocation()
   const data = location.state as {
     docType?: string
+    docTypeLabel?: string
+    firstName?: string
+    lastName?: string
     docNumber?: string
+    phone?: string
+    address?: string
+    email?: string
   } | null
+
   if (!data?.docType) {
     return <Navigate to="/pre-check-in" replace />
   }
 
   const handleConfirm = () => {
     navigate('/terms-and-conditions', {
-      state: { name: 'Carlos Balazo', identification: data.docNumber, docType: data.docType, docTypeLabel },
+      state: {
+        name: `${data.firstName || 'Carlos'} ${data.lastName || 'Balazo'}`,
+        identification: data.docNumber || 'N/A',
+        docType: data.docType,
+        docTypeLabel: data.docTypeLabel || data.docType,
+      },
     })
   }
-
-  const DOC_TYPE_LABELS: Record<string, string> = {
-    dni: 'Cédula',
-    pasaporte: 'Pasaporte',
-    extranjero: 'Documento de identidad extranjero',
-    otro: 'Otro',
-  }
-  const docTypeLabel = DOC_TYPE_LABELS[data.docType || ''] || data.docType || 'Cédula'
 
   return (
     <MainLayout header="default" bg="soft">
       <div className="mx-auto max-w-[640px] px-4 py-10 sm:px-6 lg:px-8">
-        <h1 className="text-center font-display text-3xl font-bold text-ink sm:text-[34px]">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-bold text-brand">Paso 2 de 3</span>
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-brand/20">
+            <div className="h-full w-2/3 rounded-full bg-brand" />
+          </div>
+        </div>
+
+        <h1 className="mt-6 text-center font-display text-3xl font-bold text-ink sm:text-[34px]">
           Confirma tus datos
         </h1>
+
+        <p className="mx-auto mt-3 max-w-md text-center text-base text-ink/60">
+          Los datos fueron extraídos automáticamente de tu documento. Verifica que sean correctos.
+        </p>
 
         <div className="mt-8">
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-xl bg-surface-soft px-4 py-3">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Nombre</p>
-              <p className="text-sm font-bold text-ink">Carlos</p>
+              <p className="text-sm font-bold text-ink">{data.firstName || 'Carlos'}</p>
             </div>
             <div className="rounded-xl bg-surface-soft px-4 py-3">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Apellido</p>
-              <p className="text-sm font-bold text-ink">Balazo</p>
+              <p className="text-sm font-bold text-ink">{data.lastName || 'Balazo'}</p>
             </div>
             <div className="rounded-xl bg-surface-soft px-4 py-3">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Tipo de identificación</p>
-              <p className="text-sm font-bold text-ink">{docTypeLabel}</p>
+              <p className="text-sm font-bold text-ink">{data.docTypeLabel || data.docType || 'Cédula'}</p>
             </div>
             <div className="rounded-xl bg-surface-soft px-4 py-3">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Número de identificación</p>
@@ -66,22 +81,25 @@ export default function ConfirmData() {
 
           <div className="mt-6 border-t border-line pt-5">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink/50">
-              Datos editables
+              Datos adicionales
             </p>
             <div className="space-y-3">
               <Input
                 label="Número de teléfono"
                 type="tel"
+                tone="soft"
                 placeholder="Ingrese su número de teléfono"
-                defaultValue=""
+                defaultValue={data.phone || ''}
               />
               <Input
                 label="Dirección de residencia"
+                tone="soft"
                 placeholder="Ingrese su dirección de residencia"
-                defaultValue=""
+                defaultValue={data.address || ''}
               />
               <Select
                 label="Motivo de alojamiento"
+                tone="soft"
                 placeholder="Seleccione un motivo"
                 options={VISIT_REASONS}
               />
