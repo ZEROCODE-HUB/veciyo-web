@@ -122,7 +122,7 @@ export default function Companions() {
   }
 
   const allHandled = companions.every(
-    (c) => c.cantAcceptTyC || c.completed || (c.selfRegister && c.email.trim().length > 0)
+    (c) => (c.completed) || (c.selfRegister && c.email.trim().length > 0)
   )
 
   const allVehiclesFilled = !mainGuest?.hasVehicles || vehicles.every((v) => v.plate.trim() && v.brand.trim() && v.color.trim())
@@ -306,7 +306,7 @@ export default function Companions() {
               )}
 
               {/* Companion form */}
-              {!comp.selfRegister && !comp.cantAcceptTyC && !comp.completed && (
+              {!comp.selfRegister && !comp.completed && (
                 <div className="mt-5 space-y-4">
                   <Select
                     label="Tipo de documento"
@@ -438,6 +438,15 @@ export default function Companions() {
                     </div>
                   )}
 
+                  {/* Cannot accept TyC option — dentro del formulario antes del botón */}
+                  <div className="border-t border-line pt-4">
+                    <Checkbox
+                      label="Este usuario no está en capacidad de aceptar los Términos y Condiciones."
+                      checked={comp.cantAcceptTyC}
+                      onChange={(e) => updateCompanion(comp.id, { cantAcceptTyC: e.target.checked })}
+                    />
+                  </div>
+
                   <div className="flex justify-end pt-2">
                     <Button
                       type="button"
@@ -450,14 +459,39 @@ export default function Companions() {
                 </div>
               )}
 
-              {/* Cannot accept TyC option */}
-              {!comp.cantAcceptTyC && (comp.completed || comp.selfRegister) && (
-                <div className="mt-5 border-t border-line pt-5">
-                  <Checkbox
-                    label="Este usuario no está en capacidad de aceptar los Términos y Condiciones."
-                    checked={comp.cantAcceptTyC}
-                    onChange={(e) => updateCompanion(comp.id, { cantAcceptTyC: e.target.checked })}
-                  />
+              {/* Summary view when completed */}
+              {(comp.completed || comp.cantAcceptTyC) && (
+                <div className="mt-5 space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-ink/60">Datos del acompañante</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-surface-soft px-4 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Nombres</p>
+                      <p className="text-sm font-bold text-ink">{comp.firstName || '—'}</p>
+                    </div>
+                    <div className="rounded-xl bg-surface-soft px-4 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Apellidos</p>
+                      <p className="text-sm font-bold text-ink">{comp.lastName || '—'}</p>
+                    </div>
+                    <div className="rounded-xl bg-surface-soft px-4 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Número de documento</p>
+                      <p className="text-sm font-bold text-ink">{comp.docNumber || '—'}</p>
+                    </div>
+                    <div className="rounded-xl bg-surface-soft px-4 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Teléfono</p>
+                      <p className="text-sm font-bold text-ink">{comp.phone || '—'}</p>
+                    </div>
+                    <div className="rounded-xl bg-surface-soft px-4 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Correo electrónico</p>
+                      <p className="text-sm font-bold text-ink">{comp.email || '—'}</p>
+                    </div>
+                  </div>
+                  {comp.cantAcceptTyC && (
+                    <div className="rounded-xl bg-brand/5 px-4 py-3">
+                      <p className="text-xs font-semibold text-brand">
+                        Exento de aceptación de Términos y Condiciones — el anfitrión asume la responsabilidad.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
