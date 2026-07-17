@@ -555,10 +555,9 @@ export default function Companions() {
                     <button
                       type="button"
                       onClick={() => {
-                        const name = getCompanionLabel(comp, idx)
                         const link = `https://veciyo.app/acceso/acompanante-${comp.id}-${Date.now()}`
                         const code = `ACC-${comp.id}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
-                        const message = `Hola, ${name}. Completa tu Pre-Check-in utilizando este enlace: ${link}. Desde este mismo enlace también podrás consultar el estado de tu Pre-Check-in. Recuerda que tu código de acceso es: ${code}.`
+                        const message = `Este es el enlace de tu reservación ${link}. Tu código de acceso es ${code}. Bienvenido`
                         navigator.clipboard.writeText(message)
                       }}
                       className="self-start text-xs font-semibold text-brand hover:text-brand-700"
