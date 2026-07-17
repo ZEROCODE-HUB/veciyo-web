@@ -462,6 +462,11 @@ export default function Companions() {
               {/* Summary view when completed */}
               {(comp.completed || comp.cantAcceptTyC) && (
                 <div className="mt-5 space-y-3">
+                  {comp.type === 'minor' && (
+                    <span className="inline-block rounded-full bg-gold/10 px-3 py-1 text-xs font-semibold text-gold">
+                      Menor de edad
+                    </span>
+                  )}
                   <p className="text-xs font-semibold uppercase tracking-wide text-ink/60">Datos del acompañante</p>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-xl bg-surface-soft px-4 py-3">
@@ -492,6 +497,15 @@ export default function Companions() {
                       </p>
                     </div>
                   )}
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => updateCompanion(comp.id, { completed: false })}
+                      className="text-xs font-semibold text-brand underline underline-offset-2 hover:text-brand-700"
+                    >
+                      Editar datos
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -555,9 +569,10 @@ export default function Companions() {
                     <button
                       type="button"
                       onClick={() => {
+                        const name = getCompanionLabel(comp, idx)
                         const link = `https://veciyo.app/acceso/acompanante-${comp.id}-${Date.now()}`
                         const code = `ACC-${comp.id}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
-                        const message = `Este es el enlace de tu reservación ${link}. Tu código de acceso es ${code}. Bienvenido`
+                        const message = `Hola, ${name}. Completa tu Pre-Check-in utilizando este enlace: ${link}. Desde este mismo enlace también podrás consultar el estado de tu Pre-Check-in. Recuerda que tu código de acceso es: ${code}.`
                         navigator.clipboard.writeText(message)
                       }}
                       className="self-start text-xs font-semibold text-brand hover:text-brand-700"
