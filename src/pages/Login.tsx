@@ -25,11 +25,6 @@ export default function Login() {
   const handleCodeSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!code.trim()) return
-    const completed = localStorage.getItem('veciyo_registration_completed')
-    if (completed) {
-      navigate('/validation')
-      return
-    }
     navigate('/pre-check-in', {
       state: { code: code.trim(), isRecurring: false },
     })
@@ -37,11 +32,6 @@ export default function Login() {
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const completed = localStorage.getItem('veciyo_registration_completed')
-    if (completed) {
-      navigate('/validation')
-      return
-    }
     navigate('/pre-check-in', {
       state: {
         isRecurring: true,
