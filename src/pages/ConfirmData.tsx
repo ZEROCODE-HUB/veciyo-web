@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { useLocation, useNavigate, Navigate } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import Input from '../components/Input'
 import Select from '../components/Select'
 import Button from '../components/Button'
+import Accordion from '../components/Accordion'
+import Checkbox from '../components/Checkbox'
 
 const VISIT_REASONS = [
   { value: 'turismo', label: 'Turismo' },
@@ -11,6 +14,24 @@ const VISIT_REASONS = [
   { value: 'estudios', label: 'Estudios' },
   { value: 'transito', label: 'Tránsito' },
 ]
+
+const TYC_SECTIONS = [
+  { id: 'terminos', title: 'Términos y Condiciones' },
+  { id: 'datos', title: 'Tratamiento de Datos Personales' },
+  { id: 'privacidad', title: 'Política de Privacidad' },
+  { id: 'condominio', title: 'Términos y Condiciones del Condominio' },
+]
+
+const TYC_CONTENT: Record<string, string> = {
+  terminos:
+    'Al utilizar este servicio, aceptas que los datos proporcionados sean procesados conforme a los términos establecidos. El incumplimiento de estos términos puede resultar en la suspensión del servicio.',
+  datos:
+    'Los datos personales recopilados serán tratados conforme a la normativa vigente de protección de datos. El responsable del tratamiento garantiza la confidencialidad, integridad y disponibilidad de la información proporcionada.',
+  privacidad:
+    'Esta política describe cómo recopilamos, usamos y protegemos tu información personal. Nos comprometemos a asegurar que tu privacidad esté protegida en todo momento.',
+  condominio:
+    'El huésped se compromete a cumplir con las normas internas del condominio, incluyendo horarios de acceso, uso de áreas comunes y comportamiento dentro de las instalaciones.',
+}
 
 export default function ConfirmData() {
   const navigate = useNavigate()
@@ -26,17 +47,23 @@ export default function ConfirmData() {
     email?: string
   } | null
 
+  const [tycAccepted, setTycAccepted] = useState(false)
+
   if (!data?.docType) {
     return <Navigate to="/pre-check-in" replace />
   }
 
   const handleConfirm = () => {
-    navigate('/terms-and-conditions', {
+    if (!tycAccepted) return
+    navigate('/companions', {
       state: {
         name: `${data.firstName || 'Carlos'} ${data.lastName || 'Balazo'}`,
         identification: data.docNumber || 'N/A',
         docType: data.docType,
         docTypeLabel: data.docTypeLabel || data.docType,
+        tycAccepted: true,
+        hasVehicles: true,
+        vehicleCount: 2,
       },
     })
   }
@@ -106,13 +133,35 @@ export default function ConfirmData() {
             </div>
           </div>
 
+          {/* Términos y Condiciones integrados */}
+          <div className="mt-6 border-t border-line pt-5">
+            <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-ink/50">
+              Términos y condiciones
+            </p>
+            <Accordion
+              sections={TYC_SECTIONS.map((s) => ({
+                id: s.id,
+                title: s.title,
+                content: <p>{TYC_CONTENT[s.id]}</p>,
+              }))}
+            />
+            <div className="mt-6 flex items-start gap-3">
+              <Checkbox
+                label="Acepto los términos y condiciones"
+                checked={tycAccepted}
+                onChange={(e) => setTycAccepted(e.target.checked)}
+              />
+            </div>
+          </div>
+
           <div className="flex justify-center pt-6">
             <Button
               type="button"
               className="w-full max-w-md py-3.5"
+              disabled={!tycAccepted}
               onClick={handleConfirm}
             >
-              Continuar
+              Confirmar y continuar
             </Button>
           </div>
         </div>

@@ -59,7 +59,7 @@ const MOCK_RESERVATION_COMPANIONS = [
   { id: 2, type: 'minor' as const },
 ]
 
-const MOCK_EXTRACTED: Record<number, { firstName: string; lastName: string; docNumber: string }> = {
+const MOCK_EXTRACTED: Record<number, { firstName: string; lastName: string; docNumber: string; email?: string }> = {
   1: { firstName: 'María', lastName: 'González', docNumber: '98765432' },
   2: { firstName: 'Luis', lastName: 'González', docNumber: '12345678' },
 }
