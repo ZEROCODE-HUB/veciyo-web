@@ -273,30 +273,7 @@ export default function Companions() {
               {/* Header */}
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h3 className="text-lg font-bold text-ink">{getCompanionLabel(comp, idx)}</h3>
-                {comp.dataExtracted && (
-                  <span className="inline-block rounded-full bg-success/10 px-3 py-1 text-xs font-semibold text-success">
-                    Datos extraídos del documento
-                  </span>
-                )}
-                {comp.cantAcceptTyC && (
-                  <span className="inline-block rounded-full bg-brand/10 px-4 py-1.5 text-sm font-bold text-brand">
-                    Pendiente de aceptación por parte del propietario
-                  </span>
-                )}
-                {comp.completed && !comp.cantAcceptTyC && (
-                  <span className="inline-block rounded-full bg-gold/10 px-4 py-1.5 text-sm font-bold text-gold">
-                    Pendiente de aceptación de Términos y Condiciones
-                  </span>
-                )}
               </div>
-
-              {comp.type === 'minor' && !comp.cantAcceptTyC && (
-                <div className="mt-3">
-                  <span className="inline-block rounded-full bg-gold/10 px-3 py-1 text-xs font-semibold text-gold">
-                    Menor de edad — registro por parte del anfitrión
-                  </span>
-                </div>
-              )}
 
               {/* Self-register option — only for adults */}
               {comp.type === 'adult' && !comp.cantAcceptTyC && !comp.completed && (
@@ -534,23 +511,27 @@ export default function Companions() {
             </p>
             <div className="mt-3 space-y-2">
               {companions.map((comp, idx) => (
-                <div key={comp.id} className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs">
-                  <span className="font-semibold text-ink">{getCompanionLabel(comp, idx)}:</span>
-                  <code className="flex-1 truncate text-brand">
-                    https://veciyo.app/acceso/acompanante-{comp.id}-{Date.now()}
-                  </code>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(
-                        `https://veciyo.app/acceso/acompanante-${comp.id}-${Date.now()}`
-                      )
-                    }}
-                    className="shrink-0 text-xs font-semibold text-brand hover:text-brand-700"
-                  >
-                    Copiar
-                  </button>
-                </div>
+                  <div key={comp.id} className="flex flex-col gap-1.5 rounded-lg bg-white px-3 py-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-ink">{getCompanionLabel(comp, idx)}:</span>
+                      <code className="flex-1 truncate text-brand">
+                        https://veciyo.app/acceso/acompanante-{comp.id}-{Date.now()}
+                      </code>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const name = getCompanionLabel(comp, idx)
+                        const link = `https://veciyo.app/acceso/acompanante-${comp.id}-${Date.now()}`
+                        const code = `ACC-${comp.id}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
+                        const message = `Hola, ${name}. Completa tu Pre-Check-in utilizando este enlace: ${link}. Desde este mismo enlace también podrás consultar el estado de tu Pre-Check-in. Recuerda que tu código de acceso es: ${code}.`
+                        navigator.clipboard.writeText(message)
+                      }}
+                      className="self-start text-xs font-semibold text-brand hover:text-brand-700"
+                    >
+                      Copiar mensaje completo
+                    </button>
+                  </div>
               ))}
             </div>
           </div>
