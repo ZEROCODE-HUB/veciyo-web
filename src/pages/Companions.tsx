@@ -109,12 +109,12 @@ export default function Companions() {
 
   const isFormValid = (c: CompanionData) => {
     if (c.selfRegister) return c.email.trim().length > 0
+    const docsOk = needsFrontAndBack(c.docType) ? c.frontDone && c.backDone : c.passportDone
+    const extractedOrManual = c.dataExtracted || (c.docNumber.trim().length > 0 && c.firstName.trim().length > 0 && c.lastName.trim().length > 0)
     return (
       c.docType !== null &&
-      c.docNumber.trim().length > 0 &&
-      (needsFrontAndBack(c.docType) ? c.frontDone && c.backDone : c.passportDone) &&
-      c.firstName.trim().length > 0 &&
-      c.lastName.trim().length > 0 &&
+      docsOk &&
+      extractedOrManual &&
       c.phone.trim().length > 0 &&
       c.email.trim().length > 0 &&
       (c.type === 'minor' ? c.tutelaDocs.length > 0 : true)
@@ -331,34 +331,24 @@ export default function Companions() {
               {/* Companion form */}
               {!comp.selfRegister && !comp.cantAcceptTyC && !comp.completed && (
                 <div className="mt-5 space-y-4">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <Select
-                      label="Tipo de documento"
-                      tone="soft"
-                      placeholder="Seleccione"
-                      options={DOCUMENT_TYPES}
-                      value={comp.docType || ''}
-                      onChange={(e) => {
-                        const val = e.target.value
-                        updateCompanion(comp.id, {
-                          docType: val || null,
-                          docNumber: '',
-                          frontDone: false,
-                          backDone: false,
-                          passportDone: false,
-                          dataExtracted: false,
-                        })
-                      }}
-                    />
-                    <Input
-                      label="Número de documento"
-                      tone="soft"
-                      placeholder="Ingrese el número"
-                      value={comp.docNumber}
-                      onChange={(e) => updateCompanion(comp.id, { docNumber: e.target.value })}
-                      disabled={comp.dataExtracted}
-                    />
-                  </div>
+                  <Select
+                    label="Tipo de documento"
+                    tone="soft"
+                    placeholder="Seleccione"
+                    options={DOCUMENT_TYPES}
+                    value={comp.docType || ''}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      updateCompanion(comp.id, {
+                        docType: val || null,
+                        docNumber: '',
+                        frontDone: false,
+                        backDone: false,
+                        passportDone: false,
+                        dataExtracted: false,
+                      })
+                    }}
+                  />
 
                   {needsFrontAndBack(comp.docType) && (
                     <div className="space-y-3">
@@ -392,38 +382,30 @@ export default function Companions() {
                   )}
 
                   {comp.dataExtracted && (
-                    <div className="rounded-xl bg-success/5 px-4 py-3">
-                      <p className="text-xs font-semibold text-success">
-                        Datos extraídos automáticamente del documento. Estos datos prevalecen sobre cualquier ingreso manual.
-                      </p>
+                    <div className="space-y-3">
+                      <div className="rounded-xl bg-success/5 px-4 py-3">
+                        <p className="text-xs font-semibold text-success">
+                          Datos extraídos automáticamente del documento:
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-xl bg-surface-soft px-4 py-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Nombres</p>
+                          <p className="text-sm font-bold text-ink">{comp.firstName || '—'}</p>
+                        </div>
+                        <div className="rounded-xl bg-surface-soft px-4 py-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Apellidos</p>
+                          <p className="text-sm font-bold text-ink">{comp.lastName || '—'}</p>
+                        </div>
+                        <div className="rounded-xl bg-surface-soft px-4 py-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Número de documento</p>
+                          <p className="text-sm font-bold text-ink">{comp.docNumber || '—'}</p>
+                        </div>
+                      </div>
                     </div>
                   )}
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <Input
-                      label="Nombres"
-                      tone="soft"
-                      placeholder="Ingrese los nombres"
-                      value={comp.firstName}
-                      onChange={(e) => {
-                        if (!comp.dataExtracted) {
-                          updateCompanion(comp.id, { firstName: e.target.value })
-                        }
-                      }}
-                      disabled={comp.dataExtracted}
-                    />
-                    <Input
-                      label="Apellidos"
-                      tone="soft"
-                      placeholder="Ingrese los apellidos"
-                      value={comp.lastName}
-                      onChange={(e) => {
-                        if (!comp.dataExtracted) {
-                          updateCompanion(comp.id, { lastName: e.target.value })
-                        }
-                      }}
-                      disabled={comp.dataExtracted}
-                    />
                     <Input
                       label="Teléfono"
                       type="tel"
