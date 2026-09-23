@@ -1,6 +1,14 @@
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Button from '../components/Button'
 import BackgroundCarousel from '../components/BackgroundCarousel'
+import {
+  consultarInvitacion,
+  ETIQUETA_ROL,
+  formatearFecha,
+  hayBackend,
+  type InvitacionConsultada,
+} from '../lib/supabase'
 
 const images = import.meta.glob('../assets/Imágenes/new/*.png', {
   eager: true,
@@ -15,8 +23,52 @@ const TRAVEL_IMAGES = Object.entries(images)
   })
   .map(([, src]) => src) as string[]
 
+type Estado =
+  | { tipo: 'cargando' }
+  | { tipo: 'sin-token' }
+  | { tipo: 'invalida' }
+  | { tipo: 'vencida'; datos: InvitacionConsultada }
+  | { tipo: 'lista'; datos: InvitacionConsultada }
+
+/**
+ * Lo primero que ve quien recibe una invitación.
+ *
+ * Estaba entera escrita a mano: "Carlos Balazo", "Apartamento acogedor en el
+ * centro histórico", 3 huéspedes, 2 vehículos y unas fechas de agosto. Y no
+ * leía el `?token=` del enlace, así que la aplicación generaba una invitación
+ * con nombre, vivienda y fechas reales y esta página mostraba a otra persona.
+ *
+ * Ahora pregunta por el token. `consultar_invitacion` responde sin sesión
+ * —quien llega aquí todavía no tiene cuenta— y solo a quien trae el token.
+ */
 export default function Invitation() {
   const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const token = params.get('token')
+  const [estado, setEstado] = useState<Estado>({ tipo: 'cargando' })
+
+  useEffect(() => {
+    if (!token) {
+      setEstado({ tipo: 'sin-token' })
+      return
+    }
+    if (!hayBackend) {
+      setEstado({ tipo: 'invalida' })
+      return
+    }
+    let vigente = true
+    consultarInvitacion(token)
+      .then((datos) => {
+        if (!vigente) return
+        if (!datos) setEstado({ tipo: 'invalida' })
+        else if (!datos.vigente) setEstado({ tipo: 'vencida', datos })
+        else setEstado({ tipo: 'lista', datos })
+      })
+      .catch(() => vigente && setEstado({ tipo: 'invalida' }))
+    return () => {
+      vigente = false
+    }
+  }, [token])
 
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden">
@@ -24,50 +76,121 @@ export default function Invitation() {
 
       <div className="flex flex-1 items-center justify-center px-4">
         <div className="w-full max-w-[640px] rounded-2xl border border-white/30 bg-white/40 px-8 py-12 shadow-2xl shadow-black/10 backdrop-blur-2xl sm:px-14 sm:py-14">
-          <h1 className="text-center font-display text-3xl font-extrabold text-ink sm:text-[34px]">
-            Preregistro de Seguridad del Condominio
-          </h1>
+          {estado.tipo === 'cargando' && (
+            <p className="text-center text-base text-ink/80">
+              Buscando tu invitación…
+            </p>
+          )}
 
-          <p className="mx-auto mt-4 max-w-md text-center text-base leading-relaxed text-ink/80">
-            Este condominio requiere que usted complete este preregistro de seguridad para aprobar la reservación.
-          </p>
+          {estado.tipo === 'sin-token' && (
+            <Mensaje
+              titulo="Este enlace está incompleto"
+              detalle="Abrí el enlace tal como te llegó, sin recortarlo. Si lo copiaste a mano, puede haberse perdido un trozo."
+            />
+          )}
 
-          <div className="mt-8 rounded-xl border border-white/30 bg-white/40 px-6 py-5 shadow-lg backdrop-blur-md">
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-              <div className="col-span-2">
-                <p className="text-xs font-semibold uppercase tracking-widest text-ink/70">Nombre del huésped</p>
-                <p className="text-sm font-bold text-ink">Carlos Balazo</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-xs font-semibold uppercase tracking-widest text-ink/70">Nombre de la publicación</p>
-                <p className="text-sm font-bold text-ink">Apartamento acogedor en el centro histórico</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-ink/70">Cantidad de huéspedes</p>
-                <p className="text-sm font-bold text-ink">3</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-ink/70">Vehículos</p>
-                <p className="text-sm font-bold text-ink">2</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-xs font-semibold uppercase tracking-widest text-ink/70">Fechas de la reserva</p>
-                <p className="text-sm font-bold text-ink whitespace-nowrap">
-                  Entrada: 12/08/2026&emsp;&emsp;Salida: 18/08/2026
-                </p>
-              </div>
-            </div>
-          </div>
+          {estado.tipo === 'invalida' && (
+            <Mensaje
+              titulo="No encontramos esta invitación"
+              detalle="Puede que se haya revocado o que el enlace no sea correcto. Pedile a quien te invitó que te mande uno nuevo."
+            />
+          )}
 
-          <Button
-            type="button"
-            className="mt-10 w-full py-3.5"
-            onClick={() => navigate('/login')}
-          >
-            Continuar
-          </Button>
+          {estado.tipo === 'vencida' && (
+            <Mensaje
+              titulo="Esta invitación ya venció"
+              detalle={`Se emitió para ${estado.datos.correo}. Pedile a quien te invitó que te mande una nueva.`}
+            />
+          )}
+
+          {estado.tipo === 'lista' && (
+            <Detalle datos={estado.datos} onContinuar={() => navigate('/login')} />
+          )}
         </div>
       </div>
+    </div>
+  )
+}
+
+function Mensaje({ titulo, detalle }: { titulo: string; detalle: string }) {
+  return (
+    <>
+      <h1 className="text-center font-display text-3xl font-extrabold text-ink sm:text-[34px]">
+        {titulo}
+      </h1>
+      <p className="mx-auto mt-4 max-w-md text-center text-base leading-relaxed text-ink/80">
+        {detalle}
+      </p>
+    </>
+  )
+}
+
+function Detalle({
+  datos,
+  onContinuar,
+}: {
+  datos: InvitacionConsultada
+  onContinuar: () => void
+}) {
+  const esHuesped = datos.rol === 'huesped_temporal'
+
+  return (
+    <>
+      <h1 className="text-center font-display text-3xl font-extrabold text-ink sm:text-[34px]">
+        {esHuesped ? 'Te esperan en ' : 'Te invitaron a '}
+        {datos.condominio}
+      </h1>
+      <p className="mx-auto mt-4 max-w-md text-center text-base leading-relaxed text-ink/80">
+        {esHuesped
+          ? 'Completá tu preregistro de seguridad para que la portería pueda recibirte.'
+          : 'Creá tu cuenta para entrar a la vivienda que te asignaron.'}
+      </p>
+
+      <div className="mt-8 rounded-xl border border-white/30 bg-white/40 px-6 py-5 shadow-lg backdrop-blur-md">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+          <Dato etiqueta="Nombre" valor={datos.nombre} ancho />
+          <Dato etiqueta="Correo" valor={datos.correo} ancho />
+          {datos.unidad && <Dato etiqueta="Vivienda" valor={datos.unidad} />}
+          <Dato
+            etiqueta="Rol"
+            valor={ETIQUETA_ROL[datos.rol] ?? datos.rol}
+          />
+          {esHuesped && datos.vigente_hasta && (
+            <Dato
+              etiqueta="Tu estadía"
+              ancho
+              valor={
+                datos.vigente_desde
+                  ? `Entrada: ${formatearFecha(datos.vigente_desde)}  Salida: ${formatearFecha(datos.vigente_hasta)}`
+                  : `Hasta el ${formatearFecha(datos.vigente_hasta)}`
+              }
+            />
+          )}
+        </div>
+      </div>
+
+      <Button type="button" className="mt-10 w-full py-3.5" onClick={onContinuar}>
+        Continuar
+      </Button>
+    </>
+  )
+}
+
+function Dato({
+  etiqueta,
+  valor,
+  ancho = false,
+}: {
+  etiqueta: string
+  valor: string
+  ancho?: boolean
+}) {
+  return (
+    <div className={ancho ? 'col-span-2' : undefined}>
+      <p className="text-xs font-semibold uppercase tracking-widest text-ink/70">
+        {etiqueta}
+      </p>
+      <p className="whitespace-nowrap text-sm font-bold text-ink">{valor}</p>
     </div>
   )
 }
