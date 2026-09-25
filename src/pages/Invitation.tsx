@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import Button from '../components/Button'
+import { useSearchParams } from 'react-router-dom'
 import BackgroundCarousel from '../components/BackgroundCarousel'
 import {
   consultarInvitacion,
@@ -42,7 +41,6 @@ type Estado =
  * —quien llega aquí todavía no tiene cuenta— y solo a quien trae el token.
  */
 export default function Invitation() {
-  const navigate = useNavigate()
   const [params] = useSearchParams()
   const token = params.get('token')
   const [estado, setEstado] = useState<Estado>({ tipo: 'cargando' })
@@ -103,9 +101,7 @@ export default function Invitation() {
             />
           )}
 
-          {estado.tipo === 'lista' && (
-            <Detalle datos={estado.datos} onContinuar={() => navigate('/login')} />
-          )}
+          {estado.tipo === 'lista' && <Detalle datos={estado.datos} />}
         </div>
       </div>
     </div>
@@ -125,13 +121,7 @@ function Mensaje({ titulo, detalle }: { titulo: string; detalle: string }) {
   )
 }
 
-function Detalle({
-  datos,
-  onContinuar,
-}: {
-  datos: InvitacionConsultada
-  onContinuar: () => void
-}) {
+function Detalle({ datos }: { datos: InvitacionConsultada }) {
   const esHuesped = datos.rol === 'huesped_temporal'
 
   return (
@@ -169,9 +159,31 @@ function Detalle({
         </div>
       </div>
 
-      <Button type="button" className="mt-10 w-full py-3.5" onClick={onContinuar}>
-        Continuar
-      </Button>
+      {/*
+        Aquí había un «Continuar» que llevaba a `/login`, una maqueta que pide
+        un «código de acceso» inexistente, acepta cualquier cosa y sigue sin
+        token. Era un callejón sin salida: quien llegaba ahí no tenía forma de
+        volver, y no lo descubrimos hasta intentar recorrer el flujo entero.
+
+        Lo que de verdad hay que hacer es abrir este mismo enlace desde la
+        aplicación, que sí sabe leerlo --`RootNavigator` tiene el deep link de
+        `/invitacion`--. Así que se dice, en vez de fingir un botón.
+      */}
+      <div className="mt-10 rounded-xl border border-white/30 bg-white/40 px-5 py-4 text-left backdrop-blur-md">
+        <p className="text-sm font-bold text-ink">Cómo entrar</p>
+        <ol className="mt-2 space-y-1.5 text-sm leading-relaxed text-ink/80">
+          <li>1. Instala la aplicación VeciYo si aún no la tienes.</li>
+          <li>
+            2. Crea tu cuenta con <strong>{datos.correo}</strong>, el mismo
+            correo al que se emitió esta invitación.
+          </li>
+          <li>3. Vuelve a abrir este enlace: la aplicación lo reconoce.</li>
+        </ol>
+        <p className="mt-3 text-xs text-ink/60">
+          Tiene que ser ese correo exacto. Con otro, la invitación no se puede
+          aceptar.
+        </p>
+      </div>
     </>
   )
 }

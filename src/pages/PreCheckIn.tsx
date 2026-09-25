@@ -56,9 +56,22 @@ export default function PreCheckIn() {
     }
   }, [token, navigate])
 
-  const documentosListos = tieneDosCaras(docType)
-    ? Boolean(frente && reverso)
-    : Boolean(frente)
+  /*
+    Las fotos son opcionales, y es una decision consciente y temporal.
+
+    El bucket es privado y quien hace el precheckin no tiene sesion, asi que
+    hoy no hay donde subirlas: hace falta una funcion de servidor que valide
+    el enlace y suba con permisos de servidor, y en este proyecto todavia no
+    se ha desplegado ninguna.
+
+    Exigirlas mientras tanto dejaria al huesped mirando un boton apagado sin
+    poder hacer nada. El numero de documento --que es lo que TRA/SIRE pide--
+    se guarda igual, y la porteria compara con el documento al llegar, que es
+    lo que hace de todas formas.
+  */
+  const faltanFotos = tieneDosCaras(docType)
+    ? !(frente && reverso)
+    : !frente
 
   if (cargando) {
     return (
@@ -165,11 +178,18 @@ export default function PreCheckIn() {
                 </div>
               )}
 
+              {docType && faltanFotos && (
+                <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-900">
+                  Puedes continuar sin subir las fotos. Si lo haces, ten el
+                  documento a mano al llegar: la portería te lo va a pedir.
+                </p>
+              )}
+
               <div className="flex justify-center pt-2">
                 <Button
                   type="button"
                   className="w-full max-w-md py-3.5"
-                  disabled={!docType || !documentosListos}
+                  disabled={!docType}
                   onClick={() =>
                     navigate('/confirm-data', { state: { docType } })
                   }

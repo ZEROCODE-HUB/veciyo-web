@@ -153,3 +153,89 @@ export async function aceptarTerminos(token: string): Promise<void> {
   })
   if (error) throw error
 }
+
+export interface Acompanante {
+  id: string
+  nombre: string
+  apellidos: string | null
+  tipo_documento: TipoDocumento | null
+  documento_numero: string | null
+  correo: string | null
+  telefono: string | null
+  es_menor: boolean
+}
+
+/** Quién se aloja con el titular. No lo incluye a él. */
+export async function listarAcompanantes(
+  token: string,
+): Promise<Acompanante[]> {
+  if (!supabase) return []
+  const { data, error } = await supabase.rpc('acompanantes_del_precheckin', {
+    p_token: token,
+  })
+  if (error) throw error
+  return (data as Acompanante[]) ?? []
+}
+
+export interface NuevoAcompanante {
+  id?: string
+  nombre: string
+  apellidos?: string
+  tipoDocumento?: TipoDocumento
+  documento?: string
+  telefono?: string
+  esMenor?: boolean
+}
+
+/**
+ * Añade o corrige a un acompañante.
+ *
+ * Un adulto sin documento lo rechaza la base: es justo lo que separa esta vía
+ * de la que había antes --las membresías de la vivienda no guardaban
+ * documento-- y lo que la autoridad pide. Un menor no lo necesita.
+ */
+export async function guardarAcompanante(
+  token: string,
+  persona: NuevoAcompanante,
+): Promise<string> {
+  if (!supabase) throw new Error('Sin conexión con el servidor')
+  const { data, error } = await supabase.rpc('guardar_acompanante', {
+    p_token: token,
+    p_acompanante_id: persona.id,
+    p_nombre: persona.nombre,
+    p_apellidos: persona.apellidos,
+    p_tipo_documento: persona.tipoDocumento,
+    p_documento: persona.documento,
+    p_telefono: persona.telefono,
+    p_es_menor: persona.esMenor ?? false,
+  })
+  if (error) throw error
+  return data as string
+}
+
+export async function quitarAcompanante(
+  token: string,
+  id: string,
+): Promise<void> {
+  if (!supabase) throw new Error('Sin conexión con el servidor')
+  const { error } = await supabase.rpc('quitar_acompanante', {
+    p_token: token,
+    p_acompanante_id: id,
+  })
+  if (error) throw error
+}
+
+/**
+ * Cierra el preregistro y devuelve **el acceso del huésped a la aplicación**.
+ *
+ * Aquí es donde la estancia y la cuenta dejan de ser dos cosas distintas. El
+ * enlace vuelve una sola vez: en la base solo vive su sha256.
+ */
+export async function cerrarPrecheckin(token: string): Promise<string> {
+  if (!supabase) throw new Error('Sin conexión con el servidor')
+  const { data, error } = await supabase.rpc('cerrar_precheckin', {
+    p_token: token,
+  })
+  if (error) throw error
+  return `${window.location.origin}/invitacion?token=${data as string}`
+}
