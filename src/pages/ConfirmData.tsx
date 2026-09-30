@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, Navigate } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import Input from '../components/Input'
@@ -8,6 +8,8 @@ import Accordion from '../components/Accordion'
 import Checkbox from '../components/Checkbox'
 import {
   aceptarTerminos,
+  legalesDeLaEstancia,
+  type DocumentoLegal,
   guardarFicha,
   MOTIVOS,
   TIPOS_DOCUMENTO,
@@ -16,23 +18,6 @@ import {
   type TipoDocumento,
 } from '../lib/precheckin'
 
-const TYC_SECTIONS = [
-  { id: 'terminos', title: 'Términos y Condiciones' },
-  { id: 'datos', title: 'Tratamiento de Datos Personales' },
-  { id: 'privacidad', title: 'Política de Privacidad' },
-  { id: 'condominio', title: 'Términos y Condiciones del Condominio' },
-]
-
-const TYC_CONTENT: Record<string, string> = {
-  terminos:
-    'Al utilizar este servicio, aceptas que los datos proporcionados sean procesados conforme a los términos establecidos. El incumplimiento de estos términos puede resultar en la suspensión del servicio.',
-  datos:
-    'Los datos personales recopilados serán tratados conforme a la normativa vigente de protección de datos. El responsable del tratamiento garantiza la confidencialidad, integridad y disponibilidad de la información proporcionada.',
-  privacidad:
-    'Esta política describe cómo recopilamos, usamos y protegemos tu información personal. Nos comprometemos a asegurar que tu privacidad esté protegida en todo momento.',
-  condominio:
-    'El huésped se compromete a cumplir con las normas internas del condominio, incluyendo horarios de acceso, uso de áreas comunes y comportamiento dentro de las instalaciones.',
-}
 
 /**
  * Los datos del titular.
@@ -61,7 +46,36 @@ export default function ConfirmData() {
   const [telefono, setTelefono] = useState('')
   const [direccion, setDireccion] = useState('')
   const [motivo, setMotivo] = useState<Motivo | ''>('')
+  /*
+    La RPC la acepta desde el principio y esta pantalla no la pedia: en la base
+    habia **cero** invitados con fecha de nacimiento, y el anfitrion la veia
+    siempre como «N/A» en los datos del documento. Hace falta para el reporte a
+    la autoridad y para saber si alguien es menor.
+  */
+  const [fechaNacimiento, setFechaNacimiento] = useState('')
   const [aceptados, setAceptados] = useState(false)
+  /*
+    Los términos reales, no los cuatro párrafos que había escritos aquí. Uno de
+    ellos se titulaba «Términos y Condiciones del Condominio» y en la base hay
+    un documento con ese nombre, del condominio y vigente, que no leía nadie:
+    se estaba aceptando un texto que no es el del edificio.
+  */
+  const [legales, setLegales] = useState<DocumentoLegal[]>([])
+
+  useEffect(() => {
+    if (!token) return
+    let vigente = true
+    legalesDeLaEstancia(token)
+      .then((docs) => {
+        if (vigente) setLegales(docs)
+      })
+      .catch(() => {
+        if (vigente) setLegales([])
+      })
+    return () => {
+      vigente = false
+    }
+  }, [token])
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -98,6 +112,7 @@ export default function ConfirmData() {
         telefono: telefono.trim() || undefined,
         direccion: direccion.trim() || undefined,
         motivo: motivo || undefined,
+        fechaNacimiento: fechaNacimiento || undefined,
       })
       // Dos llamadas y no una: aceptar los términos es un hecho con fecha y
       // con consecuencias legales, no un campo más de la ficha.
@@ -166,9 +181,23 @@ export default function ConfirmData() {
             value={correo}
             onChange={(e) => setCorreo(e.target.value)}
           />
+          {/*
+            Decía «A este correo te llega el acceso a la aplicación», y **no se
+            envía ningún correo**: al terminar el preregistro esta web muestra el
+            enlace en pantalla y avisa de que no se puede volver a ver. Las dos
+            frases se contradecían, y la primera dejaba a alguien esperando algo
+            que no llega --que es el incidente del 25/09/2026, cuando quien lo vio
+            cerró la pantalla sin copiarlo--.
+
+            El correo sí se envía por el otro camino, el de la aplicación
+            (`enviar-invitacion`), que en la práctica no se ejecuta. Si se quiere
+            aquí, hay que invocar esa función; está anotado en
+            `REVISAR-A-OJO.md` (63). Mientras tanto, el texto dice la verdad.
+          */}
           <p className="px-1 text-xs text-ink/60">
-            A este correo te llega el acceso a la aplicación, donde vas a ver
-            la clave del wifi y el código de la puerta.
+            Lo usamos para identificarte. Al terminar te mostramos el enlace de
+            acceso a la aplicación, donde vas a ver la clave del wifi y el código
+            de la puerta.
           </p>
         </div>
 
@@ -192,6 +221,13 @@ export default function ConfirmData() {
               value={direccion}
               onChange={(e) => setDireccion(e.target.value)}
             />
+            <Input
+              label="Fecha de nacimiento"
+              type="date"
+              tone="soft"
+              value={fechaNacimiento}
+              onChange={(e) => setFechaNacimiento(e.target.value)}
+            />
             <Select
               label="Motivo de alojamiento"
               tone="soft"
@@ -207,13 +243,24 @@ export default function ConfirmData() {
           <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-ink/50">
             Términos y condiciones
           </p>
-          <Accordion
-            sections={TYC_SECTIONS.map((s) => ({
-              id: s.id,
-              title: s.title,
-              content: <p>{TYC_CONTENT[s.id]}</p>,
-            }))}
-          />
+          {legales.length > 0 ? (
+            <Accordion
+              sections={legales.map((doc) => ({
+                id: doc.id,
+                title: doc.titulo,
+                content: <p className="whitespace-pre-line">{doc.contenido}</p>,
+              }))}
+            />
+          ) : (
+            /*
+              Se dice, en vez de enseñar un texto de relleno: aceptar unos
+              términos que no se han podido cargar no vale nada.
+            */
+            <p className="text-sm leading-relaxed text-ink/70">
+              No pudimos cargar los términos y condiciones. Inténtalo de nuevo
+              en un momento; si sigue igual, avisa a tu anfitrión.
+            </p>
+          )}
           <div className="mt-6 flex items-start gap-3">
             <Checkbox
               label="Acepto los términos y condiciones"

@@ -117,6 +117,16 @@ export interface FichaPrecheckin {
   telefono?: string
   direccion?: string
   motivo?: Motivo
+  /**
+   * Necesaria para el reporte a la autoridad y para saber si alguien es menor.
+   *
+   * Faltaba: la RPC la acepta desde el principio y esta pantalla no la pedia ni
+   * la mandaba, asi que en la base habia **cero** invitados con fecha de
+   * nacimiento y el anfitrion la veia siempre como «N/A». Lo encontro
+   * `npm run precheckin` en el otro proyecto, comparando los argumentos de las
+   * dos copias de este modulo (29/09/2026).
+   */
+  fechaNacimiento?: string
 }
 
 /**
@@ -140,6 +150,7 @@ export async function guardarFicha(
     p_telefono: ficha.telefono,
     p_direccion: ficha.direccion,
     p_motivo: ficha.motivo,
+    p_fecha_nacimiento: ficha.fechaNacimiento,
   })
   if (error) throw error
   return data as string
@@ -238,4 +249,30 @@ export async function cerrarPrecheckin(token: string): Promise<string> {
   })
   if (error) throw error
   return `${window.location.origin}/invitacion?token=${data as string}`
+}
+
+export interface DocumentoLegal {
+  id: string
+  titulo: string
+  contenido: string
+}
+
+/**
+ * Los términos que de verdad se están aceptando.
+ *
+ * Aquí había cuatro párrafos escritos a mano en este repositorio, uno de ellos
+ * titulado «Términos y Condiciones del Condominio». En la base hay un
+ * documento con ese mismo nombre, del condominio y marcado vigente, que no leía
+ * nadie: alguien aceptaba unos términos que no son los del edificio donde va a
+ * dormir, y ese «acepto» se guarda con valor legal.
+ */
+export async function legalesDeLaEstancia(
+  token: string,
+): Promise<DocumentoLegal[]> {
+  if (!supabase) return []
+  const { data, error } = await supabase.rpc('legales_de_la_estancia', {
+    p_token: token,
+  })
+  if (error) throw error
+  return (data as DocumentoLegal[]) ?? []
 }

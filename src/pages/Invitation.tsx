@@ -130,9 +130,15 @@ function Detalle({ datos }: { datos: InvitacionConsultada }) {
         {esHuesped ? 'Te esperan en ' : 'Te invitaron a '}
         {datos.condominio}
       </h1>
+      {/*
+        A esta página se llega **después** del preregistro: es el enlace que la
+        última pantalla del precheckin entrega para crear la cuenta. Decía
+        «Completá tu preregistro de seguridad», o sea pedirle a alguien que haga
+        lo que acaba de terminar.
+      */}
       <p className="mx-auto mt-4 max-w-md text-center text-base leading-relaxed text-ink/80">
         {esHuesped
-          ? 'Completá tu preregistro de seguridad para que la portería pueda recibirte.'
+          ? 'Creá tu cuenta para ver tu alojamiento durante la estadía.'
           : 'Creá tu cuenta para entrar a la vivienda que te asignaron.'}
       </p>
 
