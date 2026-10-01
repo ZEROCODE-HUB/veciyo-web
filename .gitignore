@@ -13,3 +13,5 @@ _shot.mjs
 /crops
 /shots
 dev.log
+.vercel
+.env*
