@@ -276,3 +276,58 @@ export async function legalesDeLaEstancia(
   if (error) throw error
   return (data as DocumentoLegal[]) ?? []
 }
+
+/**
+ * La foto del documento, que hasta el 02/10/2026 no iba a ninguna parte.
+ *
+ * La pantalla la pedía --y avisaba de que era opcional-- y el archivo se
+ * quedaba en la memoria de la pestaña: el bucket es privado, sus políticas
+ * derivan de quién puede ver la visita, y quien hace el preregistro **no tiene
+ * sesión**. No había a quién darle el permiso.
+ *
+ * Lo resuelve una función de servidor que comprueba el enlace antes de dejar
+ * escribir nada --`subir-documento-precheckin`--, porque un enlace no es una
+ * sesión y eso solo se puede comprobar con permisos de servidor.
+ *
+ * Se llama sin cabecera de autorización a propósito: quien llega aquí no tiene
+ * ninguna. La credencial es el token, y la función lo comprueba contra el hash
+ * guardado en la base.
+ */
+export async function subirDocumentoPrecheckin(
+  token: string,
+  archivo: File,
+  cara: 'frente' | 'reverso',
+): Promise<void> {
+  const url = import.meta.env.VITE_SUPABASE_URL
+  if (!url) throw new Error('Sin conexión con el servidor')
+
+  // `FileReader` da `data:image/png;base64,AAA...`; la función quiere solo lo
+  // de después de la coma.
+  const base64 = await new Promise<string>((listo, falla) => {
+    const lector = new FileReader()
+    lector.onload = () => listo(String(lector.result).split(',')[1] ?? '')
+    lector.onerror = () => falla(new Error('No se pudo leer la imagen'))
+    lector.readAsDataURL(archivo)
+  })
+
+  const respuesta = await fetch(
+    `${url}/functions/v1/subir-documento-precheckin`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token,
+        imagenBase64: base64,
+        contentType: archivo.type || 'image/jpeg',
+        cara,
+      }),
+    },
+  )
+
+  if (!respuesta.ok) {
+    const cuerpo = await respuesta.json().catch(() => ({}))
+    throw new Error(
+      (cuerpo as { error?: string }).error ?? 'No se pudo guardar el documento',
+    )
+  }
+}

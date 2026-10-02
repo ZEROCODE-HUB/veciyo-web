@@ -6,6 +6,7 @@ import Button from '../components/Button'
 import FileUploader from '../components/FileUploader'
 import Loading from '../components/Loading'
 import {
+  subirDocumentoPrecheckin,
   consultarPrecheckin,
   tieneDosCaras,
   tokenActual,
@@ -36,6 +37,8 @@ export default function PreCheckIn() {
   const [comenzado, setComenzado] = useState(false)
   const [frente, setFrente] = useState<File | null>(null)
   const [reverso, setReverso] = useState<File | null>(null)
+  const [subiendo, setSubiendo] = useState(false)
+  const [errorFoto, setErrorFoto] = useState('')
 
   useEffect(() => {
     if (!token) {
@@ -57,21 +60,50 @@ export default function PreCheckIn() {
   }, [token, navigate])
 
   /*
-    Las fotos son opcionales, y es una decision consciente y temporal.
+    Las fotos siguen siendo opcionales --nadie se queda fuera por no tener
+    camara-- pero **ya se guardan**.
 
-    El bucket es privado y quien hace el precheckin no tiene sesion, asi que
-    hoy no hay donde subirlas: hace falta una funcion de servidor que valide
-    el enlace y suba con permisos de servidor, y en este proyecto todavia no
-    se ha desplegado ninguna.
+    Hasta el 02/10/2026 se elegian y se quedaban en la memoria de la pestaña:
+    el bucket es privado, sus politicas derivan de quien puede ver la visita, y
+    quien hace el preregistro no tiene sesion. No habia a quien darle el
+    permiso. Lo resuelve `subir-documento-precheckin`, una funcion de servidor
+    que comprueba el enlace antes de dejar escribir nada.
 
-    Exigirlas mientras tanto dejaria al huesped mirando un boton apagado sin
-    poder hacer nada. El numero de documento --que es lo que TRA/SIRE pide--
-    se guarda igual, y la porteria compara con el documento al llegar, que es
-    lo que hace de todas formas.
+    Si la subida falla no se bloquea el paso: el numero de documento --que es
+    lo que TRA/SIRE pide-- ya esta guardado, y la porteria compara con el
+    documento fisico al llegar, que es lo que hace de todas formas. Pero se
+    dice, en vez de callar.
   */
   const faltanFotos = tieneDosCaras(docType)
     ? !(frente && reverso)
     : !frente
+
+  /**
+   * Sube lo que haya y pasa al siguiente paso.
+   *
+   * Las dos caras van por separado, que es como las saca una persona. Un fallo
+   * no detiene el preregistro: se avisa y se sigue, porque el dato que de
+   * verdad hace falta --el numero-- ya esta.
+   */
+  const continuar = async () => {
+    setErrorFoto('')
+    if (token && (frente || reverso)) {
+      setSubiendo(true)
+      try {
+        if (frente) await subirDocumentoPrecheckin(token, frente, 'frente')
+        if (reverso) await subirDocumentoPrecheckin(token, reverso, 'reverso')
+      } catch (e) {
+        setErrorFoto(
+          e instanceof Error
+            ? e.message
+            : 'No se pudo guardar la foto del documento',
+        )
+      } finally {
+        setSubiendo(false)
+      }
+    }
+    navigate('/confirm-data', { state: { docType } })
+  }
 
   if (cargando) {
     return (
@@ -185,16 +217,21 @@ export default function PreCheckIn() {
                 </p>
               )}
 
+              {errorFoto && (
+                <p className="text-center text-sm text-red-600">
+                  {errorFoto} Puedes continuar: tu documento se revisa en
+                  porteria al llegar.
+                </p>
+              )}
+
               <div className="flex justify-center pt-2">
                 <Button
                   type="button"
                   className="w-full max-w-md py-3.5"
-                  disabled={!docType}
-                  onClick={() =>
-                    navigate('/confirm-data', { state: { docType } })
-                  }
+                  disabled={!docType || subiendo}
+                  onClick={() => void continuar()}
                 >
-                  Continuar
+                  {subiendo ? 'Guardando documento...' : 'Continuar'}
                 </Button>
               </div>
             </div>
