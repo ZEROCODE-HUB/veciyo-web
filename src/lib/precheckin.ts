@@ -1,6 +1,44 @@
 import { supabase } from './supabase'
 
 /**
+ * El cliente con el que hablar con la base.
+ *
+ * Por defecto el de la web, que es quien ejecuta este flujo de verdad: el
+ * huésped lo recorre aquí, sin cuenta, con el enlace que le llegó.
+ *
+ * Se puede pasar otro, y eso es lo que hace la unificación posible. Hasta el
+ * 02/10/2026 este archivo estaba **escrito dos veces** --aquí y en
+ * `veci-yo/src/features/visitas/services/precheckin.repo.ts`-- y la copia de la
+ * aplicación no la ejecutaba nadie en producción: solo la corrían las pruebas.
+ * Dos implementaciones del mismo flujo, y la que se probaba no era la que se
+ * usaba.
+ *
+ * Ahora hay una, y los recorridos de la aplicación llaman a **esta**, pasando
+ * su propio cliente. Lo que se prueba es lo que el huésped ejecuta.
+ */
+/**
+ * Lo único que este módulo necesita de un cliente: llamar a una función.
+ *
+ * Se declara así y no como `SupabaseClient` a propósito. Los recorridos viven
+ * en el otro repositorio y traen **su propia copia** del SDK, con lo cual los
+ * dos tipos son incompatibles para TypeScript aunque en ejecución sean lo
+ * mismo. Pedir la forma que de verdad se usa quita ese problema de raíz, y
+ * además dice la verdad: de todo el SDK, aquí solo se llama a `rpc`.
+ */
+export interface ClientePrecheckin {
+  rpc: (
+    nombre: string,
+    argumentos?: Record<string, unknown>,
+  ) => PromiseLike<{ data: unknown; error: { message: string } | null }>
+}
+
+function conexion(cliente?: ClientePrecheckin | null): ClientePrecheckin {
+  const elegido = cliente ?? (supabase as ClientePrecheckin | null)
+  if (!elegido) throw new Error('Sin conexión con el servidor')
+  return elegido
+}
+
+/**
  * El precheckin del huésped, contra la base de verdad.
  *
  * Todo lo de aquí se llama **sin sesión**: quien abre el enlace todavía no
@@ -64,9 +102,9 @@ export interface EstanciaPrecheckin {
 /** Lo que se puede saber de la estancia **antes** de identificarse. */
 export async function consultarPrecheckin(
   token: string,
+  cliente?: ClientePrecheckin | null,
 ): Promise<EstanciaPrecheckin | null> {
-  if (!supabase) return null
-  const { data, error } = await supabase.rpc('consultar_precheckin', {
+  const { data, error } = await conexion(cliente).rpc('consultar_precheckin', {
     p_token: token,
   })
   if (error) throw error
@@ -138,9 +176,9 @@ export interface FichaPrecheckin {
 export async function guardarFicha(
   token: string,
   ficha: FichaPrecheckin,
+  cliente?: ClientePrecheckin | null,
 ): Promise<string> {
-  if (!supabase) throw new Error('Sin conexión con el servidor')
-  const { data, error } = await supabase.rpc('guardar_precheckin', {
+  const { data, error } = await conexion(cliente).rpc('guardar_precheckin', {
     p_token: token,
     p_nombre: ficha.nombre,
     p_apellidos: ficha.apellidos,
@@ -157,9 +195,11 @@ export async function guardarFicha(
 }
 
 /** Los acepta el propio huésped; que los apruebe el anfitrión es otra cosa. */
-export async function aceptarTerminos(token: string): Promise<void> {
-  if (!supabase) throw new Error('Sin conexión con el servidor')
-  const { error } = await supabase.rpc('aceptar_terminos_precheckin', {
+export async function aceptarTerminos(
+  token: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<void> {
+  const { error } = await conexion(cliente).rpc('aceptar_terminos_precheckin', {
     p_token: token,
   })
   if (error) throw error
@@ -242,13 +282,36 @@ export async function quitarAcompanante(
  * Aquí es donde la estancia y la cuenta dejan de ser dos cosas distintas. El
  * enlace vuelve una sola vez: en la base solo vive su sha256.
  */
-export async function cerrarPrecheckin(token: string): Promise<string> {
-  if (!supabase) throw new Error('Sin conexión con el servidor')
-  const { data, error } = await supabase.rpc('cerrar_precheckin', {
+export async function cerrarPrecheckin(
+  token: string,
+  cliente?: ClientePrecheckin | null,
+  base?: string,
+): Promise<string> {
+  const { data, error } = await conexion(cliente).rpc('cerrar_precheckin', {
     p_token: token,
   })
   if (error) throw error
-  return `${window.location.origin}/invitacion?token=${data as string}`
+
+  /*
+    De dónde sale el dominio del enlace.
+
+    Las dos copias de este módulo lo armaban distinto: la web con
+    `window.location.origin` y la de la aplicación con la URL configurada. Nadie
+    lo vio porque la de la aplicación no la ejecutaba nadie, pero eran dos
+    enlaces distintos para la misma cosa.
+
+    Ahora hay uno: el que se pase, o el del navegador cuando lo haya. Fuera del
+    navegador --los recorridos corren en Node-- hay que pasarlo, y eso obliga a
+    decir cuál es en vez de suponerlo.
+  */
+  const origen =
+    base ??
+    (typeof window !== 'undefined' ? window.location.origin : undefined)
+  if (!origen) {
+    throw new Error('Hace falta saber el dominio para armar el acceso')
+  }
+
+  return `${origen}/invitacion?token=${data as string}`
 }
 
 export interface DocumentoLegal {
