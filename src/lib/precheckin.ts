@@ -165,6 +165,22 @@ export interface FichaPrecheckin {
    * dos copias de este modulo (29/09/2026).
    */
   fechaNacimiento?: string
+  /**
+   * Lo que pide la Tarjeta de Registro de Alojamiento (Resolución 409 de 2022)
+   * y que no se preguntaba en ningún sitio.
+   *
+   * Opcionales aquí a propósito: un preregistro a medias es peor que un dato en
+   * blanco, así que se puede terminar sin ellos. Lo que falte lo dice el
+   * reporte cuando el anfitrión vaya a mandarlo, de una vez y no de uno en uno.
+   */
+  ciudadResidencia?: string
+  ciudadProcedencia?: string
+  /** ISO 3166-1 alfa-2. No la pide la TRA; la pide el SIRE. */
+  nacionalidad?: string
+  /** Lo que costó la estancia. Es de la reserva, no de la persona. */
+  costo?: number
+  /** ISO 4217. Si no viene, la base asume la del condominio. */
+  moneda?: string
 }
 
 /**
@@ -189,6 +205,11 @@ export async function guardarFicha(
     p_direccion: ficha.direccion,
     p_motivo: ficha.motivo,
     p_fecha_nacimiento: ficha.fechaNacimiento,
+    p_ciudad_residencia: ficha.ciudadResidencia,
+    p_ciudad_procedencia: ficha.ciudadProcedencia,
+    p_nacionalidad: ficha.nacionalidad,
+    p_costo: ficha.costo,
+    p_moneda: ficha.moneda,
   })
   if (error) throw error
   return data as string

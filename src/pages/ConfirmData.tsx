@@ -53,6 +53,13 @@ export default function ConfirmData() {
     la autoridad y para saber si alguien es menor.
   */
   const [fechaNacimiento, setFechaNacimiento] = useState('')
+  /*
+    Lo que pide la Tarjeta de Registro de Alojamiento del ministerio y que no
+    se preguntaba en ningún sitio. Sin estos tres, el reporte se rechaza.
+  */
+  const [ciudadResidencia, setCiudadResidencia] = useState('')
+  const [ciudadProcedencia, setCiudadProcedencia] = useState('')
+  const [costo, setCosto] = useState('')
   const [aceptados, setAceptados] = useState(false)
   /*
     Los términos reales, no los cuatro párrafos que había escritos aquí. Uno de
@@ -113,6 +120,13 @@ export default function ConfirmData() {
         direccion: direccion.trim() || undefined,
         motivo: motivo || undefined,
         fechaNacimiento: fechaNacimiento || undefined,
+        ciudadResidencia: ciudadResidencia.trim() || undefined,
+        ciudadProcedencia: ciudadProcedencia.trim() || undefined,
+        /*
+          Lo escribe el huésped y no el anfitrión: quien reserva por un portal
+          sabe lo que pagó, y el anfitrión no siempre. Decidido el 02/10/2026.
+        */
+        costo: costo.trim() ? Number(costo.replace(/[^0-9.]/g, '')) : undefined,
       })
       // Dos llamadas y no una: aceptar los términos es un hecho con fecha y
       // con consecuencias legales, no un campo más de la ficha.
@@ -220,6 +234,29 @@ export default function ConfirmData() {
               placeholder="Tu domicilio habitual, no el del alojamiento"
               value={direccion}
               onChange={(e) => setDireccion(e.target.value)}
+            />
+            <Input
+              label="Ciudad donde vives"
+              tone="soft"
+              placeholder="Medellín"
+              value={ciudadResidencia}
+              onChange={(e) => setCiudadResidencia(e.target.value)}
+            />
+            <Input
+              label="Ciudad desde la que viajas"
+              tone="soft"
+              placeholder="Lima"
+              value={ciudadProcedencia}
+              onChange={(e) => setCiudadProcedencia(e.target.value)}
+            />
+            <Input
+              label="Lo que pagaste por la estancia"
+              type="text"
+              inputMode="numeric"
+              tone="soft"
+              placeholder="850000"
+              value={costo}
+              onChange={(e) => setCosto(e.target.value)}
             />
             <Input
               label="Fecha de nacimiento"
