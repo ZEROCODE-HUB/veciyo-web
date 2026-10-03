@@ -112,6 +112,77 @@ export async function consultarPrecheckin(
   return (fila as EstanciaPrecheckin) ?? null
 }
 
+/** Lo que el titular ya habia escrito, para no pedirselo dos veces. */
+export interface FichaGuardada {
+  invitadoId: string
+  nombre: string
+  apellidos: string
+  tipoDocumento: TipoDocumento | null
+  documento: string
+  correo: string
+  telefono: string
+  direccion: string
+  motivo: Motivo | null
+  fechaNacimiento: string
+  ciudadResidencia: string
+  ciudadProcedencia: string
+  nacionalidad: string
+  terminosAceptados: boolean
+  costo: number | null
+  moneda: string
+  /** Si ya subio la foto de su documento. La ruta no viaja, a proposito. */
+  tieneDocumento: boolean
+}
+
+/**
+ * Lo que el huesped ya habia rellenado.
+ *
+ * Existe porque hasta el 03/10/2026 **el formulario salia vacio al volver**:
+ * todo estaba guardado y no habia forma de leerlo. `consultarPrecheckin`
+ * devuelve la reserva --el edificio, la vivienda, las fechas-- y no toca la
+ * tabla del invitado en ninguna linea.
+ *
+ * Para alguien que viaja, abandonar el preregistro a medias y volver mas tarde
+ * es el caso normal. Tecleaba once campos y subia dos fotos otra vez.
+ *
+ * Devuelve `null` si todavia no hay nada escrito, que es lo que pasa la primera
+ * vez: no es un error.
+ */
+export async function fichaDelPrecheckin(
+  token: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<FichaGuardada | null> {
+  const { data, error } = await conexion(cliente).rpc('mi_ficha_precheckin', {
+    p_token: token,
+  })
+  if (error) throw error
+
+  const fila = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | undefined
+  if (!fila) return null
+
+  const texto = (valor: unknown) => (typeof valor === 'string' ? valor : '')
+
+  return {
+    invitadoId: texto(fila.invitado_id),
+    nombre: texto(fila.nombre),
+    apellidos: texto(fila.apellidos),
+    tipoDocumento: (fila.tipo_documento as TipoDocumento) ?? null,
+    documento: texto(fila.documento),
+    correo: texto(fila.correo),
+    telefono: texto(fila.telefono),
+    direccion: texto(fila.direccion),
+    motivo: (fila.motivo as Motivo) ?? null,
+    fechaNacimiento: texto(fila.fecha_nacimiento),
+    ciudadResidencia: texto(fila.ciudad_residencia),
+    ciudadProcedencia: texto(fila.ciudad_procedencia),
+    nacionalidad: texto(fila.nacionalidad),
+    terminosAceptados: fila.terminos_aceptados === true,
+    costo: typeof fila.costo === 'number' ? fila.costo : null,
+    moneda: texto(fila.moneda),
+    tieneDocumento: fila.tiene_documento === true,
+  }
+}
+
 /**
  * Los tipos de documento que la base acepta.
  *

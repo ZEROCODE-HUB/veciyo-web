@@ -8,6 +8,7 @@ import Accordion from '../components/Accordion'
 import Checkbox from '../components/Checkbox'
 import {
   aceptarTerminos,
+  fichaDelPrecheckin,
   legalesDeLaEstancia,
   type DocumentoLegal,
   guardarFicha,
@@ -37,7 +38,14 @@ export default function ConfirmData() {
   const navigate = useNavigate()
   const location = useLocation()
   const token = tokenActual()
-  const docType = (location.state as { docType?: TipoDocumento } | null)?.docType
+  /*
+    El tipo de documento venia **solo** de `location.state`, asi que recargar
+    esta pantalla con el token vivo tiraba al paso 1. Ahora se recupera tambien
+    de la ficha ya guardada, que es donde de verdad vive.
+  */
+  const docTypeDelPaso = (location.state as { docType?: TipoDocumento } | null)?.docType
+  const [docTypeGuardado, setDocTypeGuardado] = useState<TipoDocumento | null>(null)
+  const docType = docTypeDelPaso ?? docTypeGuardado
 
   const [nombre, setNombre] = useState('')
   const [apellidos, setApellidos] = useState('')
@@ -69,6 +77,55 @@ export default function ConfirmData() {
   */
   const [legales, setLegales] = useState<DocumentoLegal[]>([])
 
+  /**
+   * Lo que el huesped ya habia escrito.
+   *
+   * Hasta el 03/10/2026 esta pantalla arrancaba con los once campos en blanco
+   * aunque estuvieran guardados: no habia forma de leerlos. Para alguien que
+   * viaja, abandonar el preregistro a medias y volver es el caso normal.
+   *
+   * `cargando` evita el parpadeo de un formulario vacio que se rellena solo, y
+   * sobre todo evita que alguien empiece a escribir encima de lo que esta a
+   * punto de llegar.
+   */
+  const [cargandoFicha, setCargandoFicha] = useState(true)
+
+  useEffect(() => {
+    if (!token) {
+      setCargandoFicha(false)
+      return
+    }
+    let vigente = true
+    fichaDelPrecheckin(token)
+      .then((ficha) => {
+        if (!vigente || !ficha) return
+        setNombre(ficha.nombre)
+        setApellidos(ficha.apellidos)
+        setDocumento(ficha.documento)
+        setCorreo(ficha.correo)
+        setTelefono(ficha.telefono)
+        setDireccion(ficha.direccion)
+        setMotivo(ficha.motivo ?? '')
+        setFechaNacimiento(ficha.fechaNacimiento)
+        setCiudadResidencia(ficha.ciudadResidencia)
+        setCiudadProcedencia(ficha.ciudadProcedencia)
+        setCosto(ficha.costo === null ? '' : String(ficha.costo))
+        setAceptados(ficha.terminosAceptados)
+        if (ficha.tipoDocumento) setDocTypeGuardado(ficha.tipoDocumento)
+      })
+      /*
+        Que no se pueda recuperar no impide rellenarlo a mano: es peor dejar al
+        huesped sin pantalla que sin autorrelleno.
+      */
+      .catch(() => {})
+      .finally(() => {
+        if (vigente) setCargandoFicha(false)
+      })
+    return () => {
+      vigente = false
+    }
+  }, [token])
+
   useEffect(() => {
     if (!token) return
     let vigente = true
@@ -85,6 +142,21 @@ export default function ConfirmData() {
   }, [token])
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  /*
+    Mientras se busca lo ya escrito no se decide nada: sin esto, al recargar la
+    pantalla se iria al paso 1 justo antes de que llegara el tipo de documento
+    guardado, que es lo que la mantiene aqui.
+  */
+  if (cargandoFicha) {
+    return (
+      <MainLayout header="default" bg="soft">
+        <div className="mx-auto max-w-[640px] px-4 py-10">
+          <p className="text-center text-sm text-ink/60">Recuperando tus datos...</p>
+        </div>
+      </MainLayout>
+    )
+  }
 
   if (!token || !docType) {
     return <Navigate to="/pre-check-in" replace />

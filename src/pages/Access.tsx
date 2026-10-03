@@ -5,6 +5,7 @@ import Loading from '../components/Loading'
 import { hayBackend } from '../lib/supabase'
 import {
   consultarPrecheckin,
+  fichaDelPrecheckin,
   guardarToken,
   type EstanciaPrecheckin,
 } from '../lib/precheckin'
@@ -66,7 +67,26 @@ export default function Access() {
           // navegación: son seis pantallas, y recargar en mitad no puede
           // obligar a pedirle otro enlace al anfitrión.
           guardarToken(token)
-          navigate('/pre-check-in', { replace: true })
+          /*
+            Y si ya habia empezado, se le deja donde lo dejo.
+
+            Volver al enlace es el caso normal para alguien que viaja, no la
+            excepcion. Mandarlo siempre al paso 1 --elegir tipo de documento y
+            subir las fotos otra vez-- cuando ya tenia su ficha escrita era
+            pedirle que repitiera el trabajo sin decirselo.
+
+            Se decide por el documento: es lo primero que se pide, asi que si
+            esta, el paso 1 ya paso.
+          */
+          fichaDelPrecheckin(token)
+            .then((ficha) => {
+              if (!vigente) return
+              const empezado = Boolean(ficha?.documento?.trim())
+              navigate(empezado ? '/confirm-data' : '/pre-check-in', {
+                replace: true,
+              })
+            })
+            .catch(() => vigente && navigate('/pre-check-in', { replace: true }))
         }
       })
       .catch(() => vigente && setEstado({ tipo: 'invalido' }))
