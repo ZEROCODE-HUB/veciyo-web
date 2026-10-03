@@ -319,16 +319,76 @@ export interface Acompanante {
   terminos_aceptados: boolean
   /** Si ya se le emitio su enlace propio. El token en claro no se recupera. */
   tiene_enlace: boolean
+  fecha_nacimiento: string | null
+  /** Quién responde por él, si es menor. Es otro invitado de la misma reserva. */
+  responsable_id: string | null
+  parentesco: Parentesco | null
+  /**
+   * Si ya se subió su permiso. No la ruta: el bucket es privado y quien mira
+   * esta lista no tiene sesión, así que una ruta aquí sería un dato inservible
+   * y filtrado a la vez.
+   */
+  tiene_autorizacion: boolean
+}
+
+/**
+ * Qué es el responsable del menor.
+ *
+ * Padre y madre no necesitan papel: su vínculo no se acredita con un permiso de
+ * viaje. Un tutor legal o cualquier otra persona, sí — lo pidió el cliente el
+ * 02/10/2026 con estas palabras: «Menores sin padre o madre siempre pedir
+ * documentación del responsable pues!».
+ */
+export type Parentesco = 'padre' | 'madre' | 'tutor_legal' | 'otro'
+
+/** Si este parentesco obliga a subir la autorización firmada. */
+export function necesitaPermiso(parentesco: Parentesco | null | undefined): boolean {
+  return parentesco === 'tutor_legal' || parentesco === 'otro'
+}
+
+/** Un adulto de la reserva, de los que pueden hacerse cargo de un menor. */
+export interface AdultoDeLaEstancia {
+  id: string
+  nombre: string
+  apellidos: string | null
+  es_titular: boolean
+}
+
+/**
+ * Quién puede responder por un menor de esta reserva.
+ *
+ * Lista aparte y no la de acompañantes: el **titular** también puede serlo —es
+ * el caso normal, una madre que viaja con su hijo— y no sale en aquella, que
+ * devuelve a propósito a todos menos a él.
+ */
+export async function adultosDeLaEstancia(
+  token: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<AdultoDeLaEstancia[]> {
+  const { data, error } = await conexion(cliente).rpc('adultos_de_la_estancia', {
+    p_token: token,
+  })
+  if (error) throw error
+  return (data as AdultoDeLaEstancia[]) ?? []
 }
 
 /** Quién se aloja con el titular. No lo incluye a él. */
 export async function listarAcompanantes(
   token: string,
+  cliente?: ClientePrecheckin | null,
 ): Promise<Acompanante[]> {
-  if (!supabase) return []
-  const { data, error } = await supabase.rpc('acompanantes_del_precheckin', {
-    p_token: token,
-  })
+  /*
+    `cliente` como todas sus hermanas, y no es cosmética: sin él esta función
+    hacía `if (!supabase) return []` y **fuera del navegador devolvía una lista
+    vacía en silencio**. Los recorridos corren en Node, así que una prueba que
+    la llamara daría por bueno que no hay acompañantes. Se vio escribiendo el
+    recorrido de los menores: `lista.find(...)` era `undefined` y parecía que
+    el niño no se había guardado.
+  */
+  const { data, error } = await conexion(cliente).rpc(
+    'acompanantes_del_precheckin',
+    { p_token: token },
+  )
   if (error) throw error
   return (data as Acompanante[]) ?? []
 }
@@ -346,7 +406,16 @@ export interface NuevoAcompanante {
    */
   correo?: string
   telefono?: string
+  codigoPais?: string
+  /**
+   * Si la dice, **la base decide si es menor**: hasta el 03/10/2026 la casilla
+   * era la puerta para entrar sin documento, porque a un menor no se le pide.
+   */
+  fechaNacimiento?: string
   esMenor?: boolean
+  /** Quién responde por él. Tiene que ser un adulto de esta misma reserva. */
+  responsableId?: string
+  parentesco?: Parentesco
 }
 
 /**
@@ -371,6 +440,10 @@ export async function guardarAcompanante(
     p_correo: persona.correo,
     p_telefono: persona.telefono,
     p_es_menor: persona.esMenor ?? false,
+    p_codigo_pais: persona.codigoPais,
+    p_fecha_nacimiento: persona.fechaNacimiento,
+    p_responsable_id: persona.responsableId,
+    p_parentesco: persona.parentesco,
   })
   if (error) throw error
   return data as string
@@ -536,9 +609,9 @@ export interface DocumentoLegal {
  */
 export async function legalesDeLaEstancia(
   token: string,
+  cliente?: ClientePrecheckin | null,
 ): Promise<DocumentoLegal[]> {
-  if (!supabase) return []
-  const { data, error } = await supabase.rpc('legales_de_la_estancia', {
+  const { data, error } = await conexion(cliente).rpc('legales_de_la_estancia', {
     p_token: token,
   })
   if (error) throw error
@@ -596,6 +669,54 @@ export async function subirDocumentoPrecheckin(
     const cuerpo = await respuesta.json().catch(() => ({}))
     throw new Error(
       (cuerpo as { error?: string }).error ?? 'No se pudo guardar el documento',
+    )
+  }
+}
+
+/**
+ * El permiso de quien trae a un menor sin ser su padre ni su madre.
+ *
+ * «Menores sin padre o madre siempre pedir documentación del responsable pues!»
+ * —el cliente, 02/10/2026—. Desde el 03/10 el preregistro no se cierra sin él.
+ *
+ * Va por una función de servidor, como la foto del documento y por el mismo
+ * motivo: el bucket es privado y quien hace el preregistro no tiene sesión. La
+ * credencial es el token, y la función lo comprueba contra el hash guardado.
+ *
+ * Acepta PDF además de imágenes: una autorización notarial suele llegar
+ * escaneada así, y obligar a fotografiar un PDF para poder subirlo es ponerle un
+ * obstáculo a quien ya está haciendo lo que se le pide.
+ */
+export async function subirAutorizacionMenor(
+  token: string,
+  invitadoId: string,
+  archivo: File,
+): Promise<void> {
+  const url = import.meta.env.VITE_SUPABASE_URL
+  if (!url) throw new Error('Sin conexión con el servidor')
+
+  const base64 = await new Promise<string>((listo, falla) => {
+    const lector = new FileReader()
+    lector.onload = () => listo(String(lector.result).split(',')[1] ?? '')
+    lector.onerror = () => falla(new Error('No se pudo leer el archivo'))
+    lector.readAsDataURL(archivo)
+  })
+
+  const respuesta = await fetch(`${url}/functions/v1/subir-autorizacion-menor`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      token,
+      invitadoId,
+      archivoBase64: base64,
+      contentType: archivo.type || 'application/pdf',
+    }),
+  })
+
+  if (!respuesta.ok) {
+    const cuerpo = await respuesta.json().catch(() => ({}))
+    throw new Error(
+      (cuerpo as { error?: string }).error ?? 'No se pudo guardar la autorización',
     )
   }
 }

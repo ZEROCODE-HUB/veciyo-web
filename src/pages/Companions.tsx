@@ -17,9 +17,28 @@ import {
 
   tokenActual,
   TIPOS_DOCUMENTO,
+  adultosDeLaEstancia,
+  necesitaPermiso,
+  subirAutorizacionMenor,
   type Acompanante,
+  type AdultoDeLaEstancia,
+  type Parentesco,
   type TipoDocumento,
 } from '../lib/precheckin'
+
+/**
+ * Qué puede ser el responsable de un menor.
+ *
+ * Padre y madre no necesitan papel —su vínculo no se acredita con un permiso de
+ * viaje— y los otros dos sí. Lo pidió el cliente el 02/10/2026: «Menores sin
+ * padre o madre siempre pedir documentación del responsable pues!».
+ */
+const PARENTESCOS: { value: Parentesco; label: string }[] = [
+  { value: 'madre', label: 'Su madre' },
+  { value: 'padre', label: 'Su padre' },
+  { value: 'tutor_legal', label: 'Su tutor legal' },
+  { value: 'otro', label: 'Otra persona' },
+]
 
 /**
  * Con quién viene el huésped, y el cierre del preregistro.
@@ -56,6 +75,16 @@ export default function Companions() {
   const [telefono, setTelefono] = useState('')
   const [correo, setCorreo] = useState('')
   const [esMenor, setEsMenor] = useState(false)
+  const [fechaNacimiento, setFechaNacimiento] = useState('')
+  const [responsableId, setResponsableId] = useState('')
+  const [parentesco, setParentesco] = useState<Parentesco | ''>('')
+  /*
+    Quién puede hacerse cargo. Lista aparte de la de acompañantes porque el
+    **titular** también puede serlo —es el caso normal, una madre que viaja con
+    su hijo— y aquella devuelve a propósito a todos menos a él.
+  */
+  const [adultos, setAdultos] = useState<AdultoDeLaEstancia[]>([])
+  const [subiendo, setSubiendo] = useState<string | null>(null)
   /*
     El enlace de un acompañante vuelve **una sola vez**: en la base vive solo su
     sha256. Se guarda aqui para poder enseñarlo y copiarlo; si se cierra sin
@@ -65,8 +94,11 @@ export default function Companions() {
 
   useEffect(() => {
     if (!token) return
-    listarAcompanantes(token)
-      .then(setLista)
+    Promise.all([listarAcompanantes(token), adultosDeLaEstancia(token)])
+      .then(([acompanantes, mayores]) => {
+        setLista(acompanantes)
+        setAdultos(mayores)
+      })
       .catch(() => setError('No pudimos cargar la lista'))
       .finally(() => setCargando(false))
   }, [token])
@@ -81,12 +113,21 @@ export default function Companions() {
     setTelefono('')
     setCorreo('')
     setEsMenor(false)
+    setFechaNacimiento('')
+    setResponsableId('')
+    setParentesco('')
   }
 
-  // La misma regla que aplica la base: un menor no lleva documento propio, un
-  // adulto sí. Aquí solo para poder decir qué falta antes de ir por red.
+  /*
+    Las mismas reglas que aplica la base, aquí solo para poder decir qué falta
+    antes de ir por red: un adulto lleva documento; un menor lleva quién
+    responde por él y qué es suyo.
+  */
   const puedeAnadir =
-    nombre.trim() !== '' && (esMenor || documento.trim() !== '')
+    nombre.trim() !== '' &&
+    (esMenor
+      ? responsableId !== '' && parentesco !== ''
+      : documento.trim() !== '')
 
   const anadir = async () => {
     if (!puedeAnadir) return
@@ -100,8 +141,18 @@ export default function Companions() {
         correo: correo.trim() || undefined,
         telefono: telefono.trim() || undefined,
         esMenor,
+        fechaNacimiento: fechaNacimiento || undefined,
+        responsableId: esMenor ? responsableId : undefined,
+        parentesco: esMenor ? (parentesco as Parentesco) : undefined,
       })
-      setLista(await listarAcompanantes(token))
+      const [acompanantes, mayores] = await Promise.all([
+        listarAcompanantes(token),
+        // Quien acaba de entrar como adulto pasa a poder hacerse cargo de un
+        // niño, así que la lista se vuelve a pedir y no se parchea a mano.
+        adultosDeLaEstancia(token),
+      ])
+      setLista(acompanantes)
+      setAdultos(mayores)
       limpiar()
     } catch (e) {
       setError(porQueFallo(e, 'No pudimos añadirlo'))
@@ -127,6 +178,20 @@ export default function Companions() {
       setLista(await listarAcompanantes(token))
     } catch (e) {
       setError(porQueFallo(e, 'No pudimos generar su enlace'))
+    }
+  }
+
+  /** El permiso firmado de quien no es su padre ni su madre. */
+  const subirPermiso = async (persona: Acompanante, archivo: File) => {
+    setError(null)
+    setSubiendo(persona.id)
+    try {
+      await subirAutorizacionMenor(token, persona.id, archivo)
+      setLista(await listarAcompanantes(token))
+    } catch (e) {
+      setError(porQueFallo(e, 'No pudimos guardar la autorización'))
+    } finally {
+      setSubiendo(null)
     }
   }
 
@@ -189,6 +254,63 @@ export default function Companions() {
                           ? 'Menor de edad · sin documento propio'
                           : persona.documento_numero}
                       </p>
+
+                      {/*
+                        Lo que le falta a un niño. Sin esto el titular pulsa
+                        «finalizar», recibe un error con un nombre y no tiene
+                        nada que hacer desde donde está.
+                      */}
+                      {persona.es_menor && (
+                        <>
+                          <p className="mt-1 text-xs text-ink/60">
+                            {persona.responsable_id
+                              ? `Responde por él: ${
+                                  adultos.find((a) => a.id === persona.responsable_id)
+                                    ?.nombre ?? 'alguien de la reserva'
+                                } (${
+                                  PARENTESCOS.find((x) => x.value === persona.parentesco)
+                                    ?.label ?? '—'
+                                })`
+                              : 'Falta decir quién responde por él'}
+                          </p>
+
+                          {necesitaPermiso(persona.parentesco) && (
+                            <p
+                              className={`mt-1 text-xs font-semibold ${
+                                persona.tiene_autorizacion
+                                  ? 'text-green-700'
+                                  : 'text-amber-700'
+                              }`}
+                            >
+                              {persona.tiene_autorizacion
+                                ? '✓ Autorización firmada subida'
+                                : 'Falta su autorización firmada'}
+                            </p>
+                          )}
+
+                          {necesitaPermiso(persona.parentesco) &&
+                            !persona.tiene_autorizacion && (
+                              <label className="mt-2 block text-xs font-semibold text-primary underline">
+                                {subiendo === persona.id
+                                  ? 'Subiendo…'
+                                  : 'Subir la autorización'}
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                                  disabled={subiendo === persona.id}
+                                  onChange={(e) => {
+                                    const archivo = e.target.files?.[0]
+                                    if (archivo) void subirPermiso(persona, archivo)
+                                    // Para poder volver a elegir el mismo
+                                    // archivo si la primera vez falló.
+                                    e.target.value = ''
+                                  }}
+                                />
+                              </label>
+                            )}
+                        </>
+                      )}
                       {/*
                         Quien falta por aceptar. Desde el 03/10/2026 el registro
                         no se cierra hasta que cada adulto acepte lo suyo, asi
@@ -266,10 +388,58 @@ export default function Companions() {
                 />
 
                 {/*
-                  A un menor no se le pide documento propio ni se le hace
-                  aceptar términos: los asume tu anfitrión, con un clic suyo,
-                  desde su pantalla.
+                  La fecha va fuera del `if`: a un adulto también se le pregunta
+                  --el ministerio la pide-- y además es lo que decide la casilla
+                  de arriba. Desde el 03/10/2026 `es_menor` lo calcula la base
+                  contra el día de llegada: quien la dice no elige además si es
+                  menor, que era la forma de entrar sin documento.
                 */}
+                <Input
+                  label="Fecha de nacimiento"
+                  type="date"
+                  tone="soft"
+                  value={fechaNacimiento}
+                  onChange={(e) => setFechaNacimiento(e.target.value)}
+                />
+
+                {/*
+                  A un menor no se le pide documento propio ni se le hace
+                  aceptar términos. Lo que sí se pide es **quién responde por
+                  él**: lo decidió el cliente el 02/10/2026, y sin eso un niño
+                  cruzaba la puerta sin que nadie dijera quién lo trae.
+                */}
+                {esMenor && (
+                  <>
+                    <Select
+                      label="¿Quién responde por él?"
+                      tone="soft"
+                      placeholder="Elige a un adulto de esta reserva"
+                      options={adultos.map((a) => ({
+                        value: a.id,
+                        label: `${a.nombre} ${a.apellidos ?? ''}`.trim() +
+                          (a.es_titular ? ' (tú)' : ''),
+                      }))}
+                      value={responsableId}
+                      onChange={(e) => setResponsableId(e.target.value)}
+                    />
+                    <Select
+                      label="¿Qué es suyo?"
+                      tone="soft"
+                      placeholder="Seleccione"
+                      options={PARENTESCOS as unknown as { value: string; label: string }[]}
+                      value={parentesco}
+                      onChange={(e) => setParentesco(e.target.value as Parentesco | '')}
+                    />
+                    {necesitaPermiso(parentesco || null) && (
+                      <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                        Al no ser su padre ni su madre, hará falta subir una
+                        autorización firmada. Podrás hacerlo aquí mismo en
+                        cuanto lo añadas a la reserva.
+                      </p>
+                    )}
+                  </>
+                )}
+
                 {!esMenor && (
                   <>
                     <Select
@@ -325,6 +495,12 @@ export default function Companions() {
                   <p className="px-1 text-xs text-ink/60">
                     Falta el número de documento. Es lo que la portería compara
                     cuando llegan.
+                  </p>
+                )}
+                {esMenor && nombre.trim() !== '' && !puedeAnadir && (
+                  <p className="px-1 text-xs text-ink/60">
+                    Falta decir quién responde por él y qué es suyo. Tiene que
+                    ser un adulto de esta misma reserva.
                   </p>
                 )}
               </div>
