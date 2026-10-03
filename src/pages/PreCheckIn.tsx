@@ -5,6 +5,7 @@ import Select from '../components/Select'
 import Button from '../components/Button'
 import FileUploader from '../components/FileUploader'
 import Loading from '../components/Loading'
+import { porQueFallo } from '../lib/motivo'
 import {
   subirDocumentoPrecheckin,
   consultarPrecheckin,
@@ -94,9 +95,7 @@ export default function PreCheckIn() {
         if (reverso) await subirDocumentoPrecheckin(token, reverso, 'reverso')
       } catch (e) {
         setErrorFoto(
-          e instanceof Error
-            ? e.message
-            : 'No se pudo guardar la foto del documento',
+          porQueFallo(e, 'No se pudo guardar la foto del documento'),
         )
       } finally {
         setSubiendo(false)

@@ -8,6 +8,7 @@ import Select from '../components/Select'
 import Button from '../components/Button'
 import Accordion from '../components/Accordion'
 import Checkbox from '../components/Checkbox'
+import { porQueFallo } from '../lib/motivo'
 import {
   aceptarTerminos,
   fichaDelPrecheckin,
@@ -211,7 +212,7 @@ export default function ConfirmData() {
       navigate('/companions', { state: { nombre: `${nombre} ${apellidos}` } })
     } catch (e) {
       setError(
-        e instanceof Error ? e.message : 'No pudimos guardar tus datos',
+        porQueFallo(e, 'No pudimos guardar tus datos'),
       )
       setGuardando(false)
     }

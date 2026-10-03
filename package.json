@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "build": "npm run motivos && tsc -b && vite build",
+    "preview": "vite preview",
+    "motivos": "node scripts/buscar-errores-tragados.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.0",

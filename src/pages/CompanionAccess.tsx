@@ -9,6 +9,7 @@ import Checkbox from '../components/Checkbox'
 import Accordion from '../components/Accordion'
 import CampoTelefono from '../components/CampoTelefono'
 import { PAIS_POR_DEFECTO } from '../lib/paises'
+import { porQueFallo } from '../lib/motivo'
 import {
   TIPOS_DOCUMENTO,
   aceptarMisTerminosAcompanante,
@@ -165,7 +166,7 @@ export default function CompanionAccess() {
       if (!esMenor) await aceptarMisTerminosAcompanante(token)
       setEstado('hecho')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No pudimos guardar tus datos')
+      setError(porQueFallo(e, 'No pudimos guardar tus datos'))
       setGuardando(false)
     }
   }

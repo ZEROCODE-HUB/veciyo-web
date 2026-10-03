@@ -7,6 +7,7 @@ import Select from '../components/Select'
 import Checkbox from '../components/Checkbox'
 import Button from '../components/Button'
 import Loading from '../components/Loading'
+import { porQueFallo } from '../lib/motivo'
 import {
   cerrarPrecheckin,
   guardarAcompanante,
@@ -103,7 +104,7 @@ export default function Companions() {
       setLista(await listarAcompanantes(token))
       limpiar()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No pudimos añadirlo')
+      setError(porQueFallo(e, 'No pudimos añadirlo'))
     }
   }
 
@@ -125,7 +126,7 @@ export default function Companions() {
       })
       setLista(await listarAcompanantes(token))
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No pudimos generar su enlace')
+      setError(porQueFallo(e, 'No pudimos generar su enlace'))
     }
   }
 
@@ -135,7 +136,7 @@ export default function Companions() {
       await quitarAcompanante(token, id)
       setLista(await listarAcompanantes(token))
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No pudimos quitarlo')
+      setError(porQueFallo(e, 'No pudimos quitarlo'))
     }
   }
 
@@ -146,7 +147,7 @@ export default function Companions() {
       const acceso = await cerrarPrecheckin(token)
       navigate('/download-app', { state: { acceso } })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No pudimos cerrar el registro')
+      setError(porQueFallo(e, 'No pudimos cerrar el registro'))
       setCerrando(false)
     }
   }
