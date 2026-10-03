@@ -311,6 +311,14 @@ export interface Acompanante {
   correo: string | null
   telefono: string | null
   es_menor: boolean
+  /**
+   * Si ya acepto **sus** terminos. El titular no puede hacerlo por el, asi que
+   * necesita saber a quien le falta: desde el 03/10/2026 el preregistro no se
+   * cierra hasta que todos los adultos acepten.
+   */
+  terminos_aceptados: boolean
+  /** Si ya se le emitio su enlace propio. El token en claro no se recupera. */
+  tiene_enlace: boolean
 }
 
 /** Quién se aloja con el titular. No lo incluye a él. */
@@ -331,6 +339,12 @@ export interface NuevoAcompanante {
   apellidos?: string
   tipoDocumento?: TipoDocumento
   documento?: string
+  /**
+   * Hace falta para mandarle **su propio enlace**, que es lo que le deja
+   * aceptar sus términos. La RPC lo acepta desde el principio y el formulario
+   * no lo pedía.
+   */
+  correo?: string
   telefono?: string
   esMenor?: boolean
 }
@@ -345,15 +359,16 @@ export interface NuevoAcompanante {
 export async function guardarAcompanante(
   token: string,
   persona: NuevoAcompanante,
+  cliente?: ClientePrecheckin | null,
 ): Promise<string> {
-  if (!supabase) throw new Error('Sin conexión con el servidor')
-  const { data, error } = await supabase.rpc('guardar_acompanante', {
+  const { data, error } = await conexion(cliente).rpc('guardar_acompanante', {
     p_token: token,
     p_acompanante_id: persona.id,
     p_nombre: persona.nombre,
     p_apellidos: persona.apellidos,
     p_tipo_documento: persona.tipoDocumento,
     p_documento: persona.documento,
+    p_correo: persona.correo,
     p_telefono: persona.telefono,
     p_es_menor: persona.esMenor ?? false,
   })
@@ -364,11 +379,104 @@ export async function guardarAcompanante(
 export async function quitarAcompanante(
   token: string,
   id: string,
+  cliente?: ClientePrecheckin | null,
 ): Promise<void> {
-  if (!supabase) throw new Error('Sin conexión con el servidor')
-  const { error } = await supabase.rpc('quitar_acompanante', {
+  const { error } = await conexion(cliente).rpc('quitar_acompanante', {
     p_token: token,
     p_acompanante_id: id,
+  })
+  if (error) throw error
+}
+
+/**
+ * Emite el enlace propio de un acompañante, y lo devuelve **una sola vez**.
+ *
+ * Lo pide el titular con su token. A partir de ahí esa persona llena sus datos
+ * y acepta sus términos ella misma — que es lo único que no se puede hacer por
+ * otro adulto.
+ *
+ * La ruta es `/access/acompanante/:token`, no `/:id`. Un uuid de invitado no es
+ * una credencial: quien lo adivinara podría editar la ficha de otra persona.
+ */
+export async function abrirEnlaceAcompanante(
+  token: string,
+  acompananteId: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<string> {
+  const { data, error } = await conexion(cliente).rpc(
+    'abrir_precheckin_acompanante',
+    { p_token: token, p_acompanante_id: acompananteId },
+  )
+  if (error) throw error
+  return data as string
+}
+
+/** Lo que un acompañante ve al abrir **su** enlace. */
+export async function consultarMiPrecheckin(
+  token: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<Record<string, unknown> | null> {
+  const { data, error } = await conexion(cliente).rpc(
+    'consultar_precheckin_acompanante',
+    { p_token: token },
+  )
+  if (error) throw error
+  const fila = Array.isArray(data) ? data[0] : data
+  return (fila as Record<string, unknown>) ?? null
+}
+
+/** Un acompañante escribe **sus** datos, con su propio enlace. */
+export async function guardarMiFichaAcompanante(
+  token: string,
+  ficha: {
+    nombre: string
+    apellidos?: string
+    tipoDocumento?: TipoDocumento | null
+    documento?: string
+    correo?: string
+    telefono?: string
+    codigoPais?: string
+    fechaNacimiento?: string
+    nacionalidad?: string
+    ciudadResidencia?: string
+    ciudadProcedencia?: string
+  },
+  cliente?: ClientePrecheckin | null,
+): Promise<string> {
+  const { data, error } = await conexion(cliente).rpc(
+    'guardar_mi_ficha_acompanante',
+    {
+      p_token: token,
+      p_nombre: ficha.nombre,
+      p_apellidos: ficha.apellidos,
+      p_tipo_documento: ficha.tipoDocumento,
+      p_documento: ficha.documento,
+      p_correo: ficha.correo,
+      p_telefono: ficha.telefono,
+      p_codigo_pais: ficha.codigoPais,
+      p_fecha_nacimiento: ficha.fechaNacimiento,
+      p_nacionalidad: ficha.nacionalidad,
+      p_ciudad_residencia: ficha.ciudadResidencia,
+      p_ciudad_procedencia: ficha.ciudadProcedencia,
+    },
+  )
+  if (error) throw error
+  return data as string
+}
+
+/**
+ * Un acompañante acepta **sus** términos.
+ *
+ * Que lo haga él y no el titular es el punto. El titular puede teclearle los
+ * datos —lo pidió el cliente— pero aceptar unas condiciones en nombre de otro
+ * adulto no vale.
+ */
+export async function aceptarMisTerminosAcompanante(
+  token: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<void> {
+  const { error } = await conexion(cliente).rpc('aceptar_terminos_acompanante', {
+    p_token: token,
   })
   if (error) throw error
 }

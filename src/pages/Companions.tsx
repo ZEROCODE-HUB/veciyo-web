@@ -10,6 +10,7 @@ import Loading from '../components/Loading'
 import {
   cerrarPrecheckin,
   guardarAcompanante,
+  abrirEnlaceAcompanante,
   listarAcompanantes,
   quitarAcompanante,
 
@@ -52,7 +53,14 @@ export default function Companions() {
   const [tipoDoc, setTipoDoc] = useState<TipoDocumento | ''>('')
   const [documento, setDocumento] = useState('')
   const [telefono, setTelefono] = useState('')
+  const [correo, setCorreo] = useState('')
   const [esMenor, setEsMenor] = useState(false)
+  /*
+    El enlace de un acompañante vuelve **una sola vez**: en la base vive solo su
+    sha256. Se guarda aqui para poder enseñarlo y copiarlo; si se cierra sin
+    copiarlo, hay que emitir otro y el anterior deja de valer.
+  */
+  const [enlace, setEnlace] = useState<{ nombre: string; url: string } | null>(null)
 
   useEffect(() => {
     if (!token) return
@@ -70,6 +78,7 @@ export default function Companions() {
     setTipoDoc('')
     setDocumento('')
     setTelefono('')
+    setCorreo('')
     setEsMenor(false)
   }
 
@@ -87,6 +96,7 @@ export default function Companions() {
         apellidos: apellidos.trim() || undefined,
         tipoDocumento: tipoDoc || undefined,
         documento: documento.trim() || undefined,
+        correo: correo.trim() || undefined,
         telefono: telefono.trim() || undefined,
         esMenor,
       })
@@ -94,6 +104,28 @@ export default function Companions() {
       limpiar()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No pudimos añadirlo')
+    }
+  }
+
+  /**
+   * Emite el enlace propio de un acompañante.
+   *
+   * Es lo que le deja llenar sus datos y, sobre todo, **aceptar sus propios
+   * terminos**: el titular puede teclearle la ficha, pero no puede aceptar por
+   * el. El enlace vuelve una sola vez.
+   */
+  const mandarEnlace = async (persona: Acompanante) => {
+    if (!token) return
+    setError(null)
+    try {
+      const suToken = await abrirEnlaceAcompanante(token, persona.id)
+      setEnlace({
+        nombre: persona.nombre,
+        url: `${window.location.origin}/access/acompanante/${suToken}`,
+      })
+      setLista(await listarAcompanantes(token))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No pudimos generar su enlace')
     }
   }
 
@@ -156,6 +188,36 @@ export default function Companions() {
                           ? 'Menor de edad · sin documento propio'
                           : persona.documento_numero}
                       </p>
+                      {/*
+                        Quien falta por aceptar. Desde el 03/10/2026 el registro
+                        no se cierra hasta que cada adulto acepte lo suyo, asi
+                        que decirlo aqui es lo que evita pulsar «finalizar» y
+                        recibir un error con tres nombres y nada que hacer.
+                      */}
+                      {!persona.es_menor && (
+                        <p
+                          className={`mt-1 text-xs font-semibold ${
+                            persona.terminos_aceptados
+                              ? 'text-green-700'
+                              : 'text-amber-700'
+                          }`}
+                        >
+                          {persona.terminos_aceptados
+                            ? '✓ Aceptó sus términos'
+                            : 'Le falta aceptar sus términos'}
+                        </p>
+                      )}
+                      {!persona.es_menor && !persona.terminos_aceptados && (
+                        <button
+                          type="button"
+                          onClick={() => void mandarEnlace(persona)}
+                          className="mt-2 text-xs font-semibold text-primary underline"
+                        >
+                          {persona.tiene_enlace
+                            ? 'Generar otro enlace para esta persona'
+                            : 'Darle su enlace'}
+                        </button>
+                      )}
                     </div>
                     <button
                       type="button"
@@ -224,6 +286,20 @@ export default function Companions() {
                       value={documento}
                       onChange={(e) => setDocumento(e.target.value)}
                     />
+                    {/*
+                      El correo hace falta para mandarle **su propio enlace**,
+                      que es lo unico que le deja aceptar sus terminos: nadie
+                      puede aceptarlos por el. La RPC lo acepta desde el
+                      principio y este formulario no lo pedia.
+                    */}
+                    <Input
+                      label="Correo electrónico"
+                      type="email"
+                      tone="soft"
+                      placeholder="Para mandarle su enlace"
+                      value={correo}
+                      onChange={(e) => setCorreo(e.target.value)}
+                    />
                     <Input
                       label="Teléfono (opcional)"
                       type="tel"
@@ -252,6 +328,49 @@ export default function Companions() {
                 )}
               </div>
             </div>
+
+            {/*
+              El enlace de un acompañante vuelve **una sola vez**: en la base
+              vive solo su sha256. Se dice aqui y no en una nota al pie, porque
+              cerrar esto sin copiarlo obliga a generar otro.
+            */}
+            {enlace && (
+              <div className="mt-6 rounded-2xl border border-line bg-white p-5">
+                <p className="text-sm font-bold text-ink">
+                  El enlace de {enlace.nombre}
+                </p>
+                <p className="mt-1 text-xs text-ink/60">
+                  Mandaselo. Con el llena sus datos y acepta sus terminos — eso
+                  ultimo no lo puedes hacer tu por el.
+                </p>
+                <div className="mt-3 rounded-xl bg-ink/[0.04] p-3">
+                  <p className="break-all font-mono text-xs text-ink/80">
+                    {enlace.url}
+                  </p>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="flex-1 py-2.5"
+                    onClick={() => void navigator.clipboard?.writeText(enlace.url)}
+                  >
+                    Copiar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="flex-1 py-2.5"
+                    onClick={() => setEnlace(null)}
+                  >
+                    Cerrar
+                  </Button>
+                </div>
+                <p className="mt-2 text-xs text-amber-700">
+                  Copialo ahora: no se vuelve a mostrar.
+                </p>
+              </div>
+            )}
 
             {error && (
               <p className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-700">

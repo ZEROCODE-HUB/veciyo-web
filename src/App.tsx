@@ -18,7 +18,12 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Navigate to="/invitacion" replace />} />
       <Route path="/access/:token" element={<Access />} />
-      <Route path="/access/acompanante/:id" element={<CompanionAccess />} />
+      {/*
+        `:token` y no `:id`. Un uuid de invitado **no es una credencial**: quien
+        lo viera o lo adivinara podria editar la ficha de otra persona. El token
+        vive en la base como sha256, igual que el del titular.
+      */}
+      <Route path="/access/acompanante/:token" element={<CompanionAccess />} />
       <Route path="/invitacion" element={<Invitation />} />
       <Route path="/invitación" element={<Navigate to="/invitacion" replace />} />
       <Route path="/login" element={<Login />} />
