@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, Navigate } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import Input from '../components/Input'
+import CampoTelefono from '../components/CampoTelefono'
+import { PAIS_POR_DEFECTO } from '../lib/paises'
 import Select from '../components/Select'
 import Button from '../components/Button'
 import Accordion from '../components/Accordion'
@@ -52,6 +54,7 @@ export default function ConfirmData() {
   const [documento, setDocumento] = useState('')
   const [correo, setCorreo] = useState('')
   const [telefono, setTelefono] = useState('')
+  const [codigoPais, setCodigoPais] = useState(PAIS_POR_DEFECTO)
   const [direccion, setDireccion] = useState('')
   const [motivo, setMotivo] = useState<Motivo | ''>('')
   /*
@@ -104,6 +107,7 @@ export default function ConfirmData() {
         setDocumento(ficha.documento)
         setCorreo(ficha.correo)
         setTelefono(ficha.telefono)
+        if (ficha.codigoPais) setCodigoPais(ficha.codigoPais)
         setDireccion(ficha.direccion)
         setMotivo(ficha.motivo ?? '')
         setFechaNacimiento(ficha.fechaNacimiento)
@@ -189,6 +193,7 @@ export default function ConfirmData() {
         documento: documento.trim(),
         correo: correo.trim(),
         telefono: telefono.trim() || undefined,
+        codigoPais: telefono.trim() ? codigoPais : undefined,
         direccion: direccion.trim() || undefined,
         motivo: motivo || undefined,
         fechaNacimiento: fechaNacimiento || undefined,
@@ -292,13 +297,19 @@ export default function ConfirmData() {
             Datos adicionales
           </p>
           <div className="space-y-3">
-            <Input
+            {/*
+              El huesped de un alojamiento turistico casi nunca tiene numero del
+              pais donde se aloja. Hasta el 03/10/2026 escribia un numero suelto
+              y nadie sabia de donde era: ni para llamarle, ni para WhatsApp.
+            */}
+            <CampoTelefono
               label="Número de teléfono"
-              type="tel"
               tone="soft"
+              codigoPais={codigoPais}
+              onCodigoPaisChange={setCodigoPais}
+              telefono={telefono}
+              onTelefonoChange={setTelefono}
               placeholder="Ingrese su número de teléfono"
-              value={telefono}
-              onChange={(e) => setTelefono(e.target.value)}
             />
             <Input
               label="Dirección de residencia"

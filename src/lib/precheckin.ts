@@ -121,6 +121,7 @@ export interface FichaGuardada {
   documento: string
   correo: string
   telefono: string
+  codigoPais: string
   direccion: string
   motivo: Motivo | null
   fechaNacimiento: string
@@ -170,6 +171,7 @@ export async function fichaDelPrecheckin(
     documento: texto(fila.documento),
     correo: texto(fila.correo),
     telefono: texto(fila.telefono),
+    codigoPais: texto(fila.codigo_pais),
     direccion: texto(fila.direccion),
     motivo: (fila.motivo as Motivo) ?? null,
     fechaNacimiento: texto(fila.fecha_nacimiento),
@@ -224,6 +226,8 @@ export interface FichaPrecheckin {
   documento: string
   correo: string
   telefono?: string
+  /** ISO 3166-1 alfa-2 del telefono. Sin el, el numero no se puede marcar. */
+  codigoPais?: string
   direccion?: string
   motivo?: Motivo
   /**
@@ -273,6 +277,7 @@ export async function guardarFicha(
     p_documento: ficha.documento,
     p_correo: ficha.correo,
     p_telefono: ficha.telefono,
+    p_codigo_pais: ficha.codigoPais,
     p_direccion: ficha.direccion,
     p_motivo: ficha.motivo,
     p_fecha_nacimiento: ficha.fechaNacimiento,
