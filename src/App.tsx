@@ -13,6 +13,11 @@ import DownloadApp from './pages/DownloadApp'
 import Access from './pages/Access'
 import CompanionAccess from './pages/CompanionAccess'
 import TermsAndConditions from './pages/TermsAndConditions'
+// Las dos paginas publicas que pide Google para publicar la pantalla de
+// «Entrar con Google». No confundir con `TermsAndConditions`, que es lo que el
+// huesped acepta en su preregistro, con las normas del condominio dentro.
+import Privacidad from './pages/Privacidad'
+import Terminos from './pages/Terminos'
 export default function App() {
   return (
     <Routes>
@@ -36,6 +41,8 @@ export default function App() {
       <Route path="/pre-check-in" element={<PreCheckIn />} />
       <Route path="/confirm-data" element={<ConfirmData />} />
       <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+      <Route path="/privacidad" element={<Privacidad />} />
+      <Route path="/terminos" element={<Terminos />} />
       <Route path="/companions" element={<Companions />} />
       <Route path="/validation" element={<Validation />} />
       <Route path="/download-app" element={<DownloadApp />} />

@@ -13,7 +13,7 @@ export default function Logo({ variant = 'dark', className = '' }: LogoProps) {
   return (
     <img
       src={src}
-      alt="Veciyo"
+      alt="VeciYo"
       className={`block h-9 w-auto select-none sm:h-10 ${className}`}
       draggable={false}
     />

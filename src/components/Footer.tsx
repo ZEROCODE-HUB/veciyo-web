@@ -6,9 +6,21 @@ export default function Footer() {
     <footer className="bg-brand text-ink">
       <div className="mx-auto max-w-content px-4 py-8 sm:px-6 lg:px-8">
         <ul className="flex flex-wrap items-center justify-center gap-x-12 gap-y-3 text-sm font-medium">
+          {/*
+            «Términos y condiciones» llevaba a `/login`. No era un enlace roto
+            --la página cargaba-- y por eso nadie lo notó: te mandaba a iniciar
+            sesión cuando pedías leer los términos. Corregido el 06/10/2026, al
+            añadir las dos páginas públicas que Google pide para publicar la
+            pantalla de «Entrar con Google».
+          */}
           <li>
-            <Link to="/login" className="hover:opacity-80">
-              Términos y condiciones
+            <Link to="/terminos" className="hover:opacity-80">
+              Términos de servicio
+            </Link>
+          </li>
+          <li>
+            <Link to="/privacidad" className="hover:opacity-80">
+              Privacidad
             </Link>
           </li>
           <li>
@@ -43,7 +55,7 @@ export default function Footer() {
 
         <p className="mt-6 text-center text-[11px] text-ink/80">
           {/* El año, del reloj: escrito a fuego decía 2025 en 2026. */}
-          © {new Date().getFullYear()} Veciyo. Todos los derechos reservados.
+          © {new Date().getFullYear()} VeciYo. Todos los derechos reservados.
         </p>
       </div>
     </footer>

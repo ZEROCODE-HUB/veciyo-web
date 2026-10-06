@@ -64,7 +64,7 @@ export default function Header({ variant = 'default' }: { variant?: HeaderVarian
   return (
     <header className="bg-brand">
       <div className="mx-auto flex h-[68px] max-w-content items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link to="/login" aria-label="Veciyo">
+        <Link to="/login" aria-label="VeciYo">
           <Logo variant="dark" />
         </Link>
 
