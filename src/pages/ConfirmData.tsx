@@ -9,8 +9,10 @@ import Button from '../components/Button'
 import Accordion from '../components/Accordion'
 import Checkbox from '../components/Checkbox'
 import { porQueFallo } from '../lib/motivo'
+import { esMayorDeEdadAlLlegar, hoyEnIso, naceDespuesDeLlegar } from '../lib/edad'
 import {
   aceptarTerminos,
+  consultarPrecheckin,
   fichaDelPrecheckin,
   legalesDeLaEstancia,
   type DocumentoLegal,
@@ -94,6 +96,30 @@ export default function ConfirmData() {
    */
   const [cargandoFicha, setCargandoFicha] = useState(true)
 
+  /*
+    El día de llegada, para poder decir aquí mismo si quien reserva es mayor
+    de edad. Sin él la cuenta sería contra hoy, y alguien que cumple años
+    entre la reserva y el check-in llega siendo adulto.
+  */
+  const [llegada, setLlegada] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!token) return
+    let vigente = true
+    consultarPrecheckin(token)
+      .then((estancia) => {
+        if (vigente) setLlegada(estancia?.fecha_desde ?? null)
+      })
+      .catch(() => {
+        // Sin la fecha, la comprobación de edad cuenta contra hoy. Es la
+        // respuesta prudente: la base vuelve a mirarlo con la fecha buena.
+        if (vigente) setLlegada(null)
+      })
+    return () => {
+      vigente = false
+    }
+  }, [token])
+
   useEffect(() => {
     if (!token) {
       setCargandoFicha(false)
@@ -175,11 +201,37 @@ export default function ConfirmData() {
     ir y volver por red. La base la repite de todos modos: es el límite, no
     este formulario.
   */
+  /*
+    La edad, **aquí y no al final**.
+
+    La regla es de la base --`cerrar_precheckin` rechaza un titular menor-- y
+    hasta el 09/10/2026 esta pantalla no la conocía: se podía escribir la
+    fecha de nacimiento, seguir a los acompañantes, subir el documento,
+    aceptar los términos, y recibir «Quien reserva tiene que ser mayor de
+    edad» en el último botón. El cliente lo recorrió entero así.
+
+    El dato que decide está **en este campo**, así que el aviso va debajo de
+    este campo y en el momento en que se escribe. La base lo vuelve a mirar:
+    sigue siendo ella el límite, esto es solo decirlo a tiempo.
+  */
+  const mayorDeEdad = fechaNacimiento
+    ? esMayorDeEdadAlLlegar(fechaNacimiento, llegada)
+    : null
+
+  const errorDeFecha = !fechaNacimiento
+    ? ''
+    : naceDespuesDeLlegar(fechaNacimiento, llegada)
+      ? 'Esa fecha es posterior al día de llegada. Revisala.'
+      : mayorDeEdad === false
+        ? 'Quien reserva tiene que ser mayor de edad. Si la fecha está mal corregila; si no, la reserva la tiene que cerrar un adulto.'
+        : ''
+
   const completo =
     nombre.trim() !== '' &&
     apellidos.trim() !== '' &&
     documento.trim() !== '' &&
     correo.includes('@') &&
+    errorDeFecha === '' &&
     aceptados
 
   const confirmar = async () => {
@@ -342,11 +394,14 @@ export default function ConfirmData() {
               value={costo}
               onChange={(e) => setCosto(e.target.value)}
             />
+            {/* Nadie nace mañana: el calendario no ofrece el futuro. */}
             <Input
               label="Fecha de nacimiento"
               type="date"
               tone="soft"
+              max={hoyEnIso()}
               value={fechaNacimiento}
+              error={errorDeFecha}
               onChange={(e) => setFechaNacimiento(e.target.value)}
             />
             <Select

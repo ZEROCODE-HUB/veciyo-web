@@ -29,27 +29,59 @@ import { olvidarToken } from '../lib/precheckin'
  *   · y qué gana creando su cuenta, que hasta ahora no decía en ninguna parte.
  */
 
-/** Lo que de verdad hay al otro lado de la cuenta. Nada de esto es promesa. */
-const LO_QUE_GANA = [
+/**
+ * Por qué merece la pena crear la cuenta. Va **antes** del botón.
+ *
+ * Hasta el 09/10/2026 la pantalla pedía crear la cuenta y explicaba para qué
+ * servía después, más abajo: el huésped decidía antes de saber. Lo pidió el
+ * cliente: «antes de pedirle que se cree cuenta, decirle las ventajas».
+ *
+ * La primera es la que cambia la decisión: quien se aloja más de una vez no
+ * vuelve a teclear nada.
+ */
+const POR_QUE_CREARLA = [
+  {
+    icono: '⚡',
+    texto:
+      'Tu próximo registro en un minuto: guardamos tus datos y los traemos ya puestos la próxima vez que te alojes.',
+  },
   {
     icono: '🔑',
-    texto: 'La clave del wifi y el código de la puerta, el día que llegas.',
+    texto:
+      'La clave del wifi y el código de la puerta el día que llegas, sin pedirlos por chat.',
   },
   {
     icono: '💬',
-    texto: 'Hablar con portería sin bajar ni llamar por teléfono.',
+    texto: 'Hablar con portería y reservar zonas comunes desde el teléfono.',
+  },
+]
+
+/** Lo que de verdad hay al otro lado de la cuenta. Nada de esto es promesa. */
+const LO_QUE_GANA = [
+  {
+    icono: '🏠',
+    texto: 'Ver tu estancia: fechas, vivienda y quién viene contigo.',
+  },
+  {
+    icono: '📖',
+    texto:
+      'Abrir el libro del alojamiento —wifi, puerta e instrucciones de tu anfitrión— mientras dure tu estadía.',
   },
   {
     icono: '🏊',
     texto: 'Reservar las zonas comunes que el edificio deje usar a huéspedes.',
   },
   {
+    icono: '💬',
+    texto: 'Hablar con portería sin bajar ni llamar por teléfono.',
+  },
+  {
     icono: '👋',
     texto: 'Anunciar tus propias visitas para que las dejen pasar.',
   },
   {
-    icono: '📦',
-    texto: 'Enterarte si llega un paquete a tu nombre.',
+    icono: '⚡',
+    texto: 'Volver a alojarte sin rellenar nada: tus datos quedan guardados.',
   },
 ]
 
@@ -125,7 +157,18 @@ export default function DownloadApp() {
 
           {acceso && (
             <div className="mt-6 rounded-2xl border border-line bg-surface-soft px-5 py-5">
-              <p className="text-xs font-semibold uppercase tracking-wider text-ink/60">
+              <p className="text-sm font-bold text-ink">
+                Por qué crear tu cuenta
+              </p>
+              <ul className="mt-3 space-y-2.5">
+                {POR_QUE_CREARLA.map((cosa) => (
+                  <li key={cosa.texto} className="flex gap-3 text-sm text-ink/80">
+                    <span aria-hidden="true">{cosa.icono}</span>
+                    <span>{cosa.texto}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-5 text-xs font-semibold uppercase tracking-wider text-ink/60">
                 Tu acceso a la aplicación
               </p>
               <p className="mt-2 break-all font-mono text-xs text-ink">

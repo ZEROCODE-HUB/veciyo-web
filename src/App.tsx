@@ -18,6 +18,7 @@ import TermsAndConditions from './pages/TermsAndConditions'
 // huesped acepta en su preregistro, con las normas del condominio dentro.
 import Privacidad from './pages/Privacidad'
 import Terminos from './pages/Terminos'
+import AvisoDePrevencion from './components/AvisoDePrevencion'
 export default function App() {
   return (
     <Routes>
@@ -28,7 +29,14 @@ export default function App() {
         lo viera o lo adivinara podria editar la ficha de otra persona. El token
         vive en la base como sha256, igual que el del titular.
       */}
-      <Route path="/access/acompanante/:token" element={<CompanionAccess />} />
+      <Route
+        path="/access/acompanante/:token"
+        element={
+          <AvisoDePrevencion>
+            <CompanionAccess />
+          </AvisoDePrevencion>
+        }
+      />
       <Route path="/invitacion" element={<Invitation />} />
       <Route path="/invitación" element={<Navigate to="/invitacion" replace />} />
       <Route path="/login" element={<Login />} />
@@ -38,8 +46,27 @@ export default function App() {
       */}
       <Route path="/nueva-contrasena" element={<PasswordReset />} />
       <Route path="/visit-details" element={<VisitDetails />} />
-      <Route path="/pre-check-in" element={<PreCheckIn />} />
-      <Route path="/confirm-data" element={<ConfirmData />} />
+      {/*
+        Los tres sitios donde puede caer el enlace de un huesped van detras
+        del aviso de prevencion: el paso 1, el paso 2 --si ya habia empezado,
+        `Access` lo manda directo ahi-- y la ficha de un acompañante.
+      */}
+      <Route
+        path="/pre-check-in"
+        element={
+          <AvisoDePrevencion>
+            <PreCheckIn />
+          </AvisoDePrevencion>
+        }
+      />
+      <Route
+        path="/confirm-data"
+        element={
+          <AvisoDePrevencion>
+            <ConfirmData />
+          </AvisoDePrevencion>
+        }
+      />
       <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
       <Route path="/privacidad" element={<Privacidad />} />
       <Route path="/terminos" element={<Terminos />} />

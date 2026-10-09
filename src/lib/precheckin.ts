@@ -94,9 +94,55 @@ export interface EstanciaPrecheckin {
   anfitrion: string
   fecha_desde: string | null
   fecha_hasta: string | null
+  /** El aforo del alojamiento. No cambia de una reserva a otra. */
   max_huespedes: number | null
+  /**
+   * Cuántas dijo el anfitrión que vienen en **esta** reserva, contando al
+   * titular. Nulo en lo anterior al 09/10/2026 y en lo que llega por el
+   * calendario de Airbnb, que no lo manda.
+   */
+  huespedes_previstos: number | null
+  /**
+   * Cuántos de ellos dijo el anfitrión que son menores.
+   *
+   * Es una **expectativa**, no un hecho: quién es menor lo decide la fecha de
+   * nacimiento de cada ficha. Sirve para no perder lo que el anfitrión
+   * configuró, porque la ficha de un menor sin nombre no llega a crearse.
+   */
+  menores_previstos: number | null
+  /** Cuántas hay ya, titular incluido. Lo cuenta la base, no la pantalla. */
+  personas_ya: number
   vigente: boolean
   completado: boolean
+}
+
+/**
+ * Cuántas personas caben y de quién es el límite.
+ *
+ * Son dos topes y manda el más estricto: lo que el anfitrión reservó y el
+ * aforo del alojamiento. Hace falta saber **cuál** de los dos, porque se
+ * arreglan en sitios distintos —uno lo amplía el anfitrión en un momento, el
+ * otro es la capacidad del piso— y un «no caben más» a secas deja al huésped
+ * escribiéndole a alguien sin saber qué pedirle.
+ *
+ * Es la misma cuenta que `tope_de_personas` en la base, y tiene que serlo: si
+ * la pantalla deja añadir y la base lo rechaza, se teclea para nada.
+ */
+export function topeDePersonas(estancia: EstanciaPrecheckin | null): {
+  tope: number | null
+  esDeLaReserva: boolean
+} {
+  const previstos = estancia?.huespedes_previstos ?? null
+  const aforo = estancia?.max_huespedes ?? null
+
+  if (previstos === null && aforo === null) return { tope: null, esDeLaReserva: false }
+  if (previstos === null) return { tope: aforo, esDeLaReserva: false }
+  if (aforo === null) return { tope: previstos, esDeLaReserva: true }
+
+  // Con empate se dice que es el de la reserva: es el que se puede cambiar.
+  return previstos <= aforo
+    ? { tope: previstos, esDeLaReserva: true }
+    : { tope: aforo, esDeLaReserva: false }
 }
 
 /** Lo que se puede saber de la estancia **antes** de identificarse. */
@@ -110,6 +156,35 @@ export async function consultarPrecheckin(
   if (error) throw error
   const fila = Array.isArray(data) ? data[0] : data
   return (fila as EstanciaPrecheckin) ?? null
+}
+
+/**
+ * El nombre que se pone cuando **todavia no hay ninguno**.
+ *
+ * Una estancia nace con su titular aunque el anfitrion no sepa como se llama
+ * --el preregistro entero falla con un 409 si falta esa fila-- y muchas entran
+ * por el calendario de Airbnb, que no manda el nombre. Asi que la fila lleva
+ * este texto, que es correcto **como etiqueta** en la lista del anfitrion.
+ *
+ * Lo que no es correcto es meterlo en la casilla «Nombre» del huesped: ahi la
+ * pregunta es «¿como te llamas?» y la respuesta no puede venir ya escrita por
+ * el sistema. El cliente abrio su propio enlace el 09/10/2026 y se encontro
+ * llamandose «Huesped por confirmar».
+ *
+ * Es «un centinela dentro de un campo acaba escrito en la pantalla», que en
+ * este proyecto ya paso con el `"yo"` del autor de un mensaje de chat.
+ *
+ * **Lo escriben dos sitios de la aplicacion movil** --el alta de estancias y
+ * la lectura del calendario, que le añade el codigo de la reserva detras-- asi
+ * que se compara por el principio y no por igualdad. Si alla cambia el texto,
+ * hay que cambiarlo aqui: son dos repositorios y no hay forma de compartir la
+ * constante.
+ */
+export const NOMBRE_SIN_CONFIRMAR = 'Huésped por confirmar'
+
+/** Si ese nombre lo puso el sistema porque no habia ninguno. */
+export function esNombreDeRelleno(nombre: string): boolean {
+  return nombre.trimStart().startsWith(NOMBRE_SIN_CONFIRMAR)
 }
 
 /** Lo que el titular ya habia escrito, para no pedirselo dos veces. */
@@ -163,9 +238,16 @@ export async function fichaDelPrecheckin(
 
   const texto = (valor: unknown) => (typeof valor === 'string' ? valor : '')
 
+  const nombreGuardado = texto(fila.nombre)
+
   return {
     invitadoId: texto(fila.invitado_id),
-    nombre: texto(fila.nombre),
+    /*
+      Vacio si lo puso el sistema: la casilla pregunta como se llama esta
+      persona, y un relleno ahi se lee como que ya respondio. Se limpia aqui y
+      no en la pantalla para que valga para cualquiera que lea la ficha.
+    */
+    nombre: esNombreDeRelleno(nombreGuardado) ? '' : nombreGuardado,
     apellidos: texto(fila.apellidos),
     tipoDocumento: (fila.tipo_documento as TipoDocumento) ?? null,
     documento: texto(fila.documento),
@@ -200,13 +282,32 @@ export const TIPOS_DOCUMENTO = [
   { value: 'dni', label: 'DNI' },
   { value: 'carne_extranjeria', label: 'Carné de extranjería' },
   { value: 'pep', label: 'Permiso especial de permanencia' },
+  /*
+    Los dos de un menor en Colombia. Faltaban, y se vio al decidir el
+    09/10/2026 que a un menor también se le pide su documento: la lista no
+    tenía ninguno que le sirviera, así que obligaba a marcar uno falso
+    --«cédula de ciudadanía» para un niño de siete años-- y eso viaja tal cual
+    al ministerio.
+  */
+  { value: 'registro_civil', label: 'Registro civil de nacimiento' },
+  { value: 'tarjeta_identidad', label: 'Tarjeta de identidad' },
 ] as const
 
 export type TipoDocumento = (typeof TIPOS_DOCUMENTO)[number]['value']
 
-/** Un pasaporte es una sola hoja; una cédula tiene dos caras. */
+/**
+ * Si hay que fotografiar las dos caras.
+ *
+ * Una cédula o una tarjeta de identidad tienen dos; un pasaporte y un registro
+ * civil de nacimiento son una hoja. La regla era «todo menos el pasaporte», y
+ * al añadir los documentos de los menores el 09/10/2026 eso habría pedido el
+ * reverso de un registro civil, que no lo tiene: un campo obligatorio
+ * imposible de cumplir.
+ */
+const DE_UNA_CARA: TipoDocumento[] = ['pasaporte', 'registro_civil']
+
 export function tieneDosCaras(tipo: TipoDocumento | null): boolean {
-  return tipo !== null && tipo !== 'pasaporte'
+  return tipo !== null && !DE_UNA_CARA.includes(tipo)
 }
 
 export const MOTIVOS = [
@@ -319,6 +420,14 @@ export interface Acompanante {
   terminos_aceptados: boolean
   /** Si ya se le emitio su enlace propio. El token en claro no se recupera. */
   tiene_enlace: boolean
+  /**
+   * Si ya subió la foto de su documento. **La ruta no viaja**: con ella, quien
+   * tuviera este enlace podría pedirle el archivo al Storage.
+   *
+   * La sube él desde su propio enlace, no el titular: va junto con aceptar
+   * sus términos, que es algo que nadie puede hacer por otro.
+   */
+  tiene_documento: boolean
   fecha_nacimiento: string | null
   /** Quién responde por él, si es menor. Es otro invitado de la misma reserva. */
   responsable_id: string | null
@@ -638,6 +747,16 @@ export async function subirDocumentoPrecheckin(
   token: string,
   archivo: File,
   cara: 'frente' | 'reverso',
+  /**
+   * De quién es el documento. Sin esto, del titular del enlace.
+   *
+   * Hace falta para los menores: un menor **no tiene enlace propio** —no puede
+   * aceptar términos, así que no se le emite— y hasta el 09/10/2026 no había
+   * ningún camino para subir el suyo. La función comprueba que esa persona
+   * sea de la misma estancia que el token, así que un uuid de otra reserva no
+   * sirve de nada.
+   */
+  invitadoId?: string,
 ): Promise<void> {
   const url = import.meta.env.VITE_SUPABASE_URL
   if (!url) throw new Error('Sin conexión con el servidor')
@@ -661,6 +780,7 @@ export async function subirDocumentoPrecheckin(
         imagenBase64: base64,
         contentType: archivo.type || 'image/jpeg',
         cara,
+        invitadoId,
       }),
     },
   )
@@ -720,3 +840,130 @@ export async function subirAutorizacionMenor(
     )
   }
 }
+
+/* ========================================================================== *
+ * Los menores que trae un acompañante
+ *
+ * Un menor **no tiene enlace propio**: no puede aceptar términos, así que no
+ * se le emite ninguno. Hasta el 09/10/2026 eso significaba que solo el titular
+ * podía llenar su ficha, y acababa tecleando el documento de un hijo ajeno que
+ * no tiene y declarando un parentesco que no le consta.
+ *
+ * Ahora el acompañante los trae desde su enlace. **Elige quién responde por
+ * cada uno** —decisión del cliente— con la única condición de que sea un
+ * adulto de la misma estancia.
+ * ========================================================================== */
+
+/** Un adulto de la estancia, para elegir quién responde por un menor. */
+export interface AdultoParaElegir {
+  id: string
+  nombre: string
+  apellidos: string | null
+  es_titular: boolean
+  /** Si es quien está mirando. El caso normal, así que sale marcado. */
+  soy_yo: boolean
+}
+
+export async function adultosParaAcompanante(
+  token: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<AdultoParaElegir[]> {
+  const { data, error } = await conexion(cliente).rpc(
+    'adultos_para_acompanante',
+    { p_token: token },
+  )
+  if (error) throw error
+  return (data as AdultoParaElegir[]) ?? []
+}
+
+/** Un menor del que responde quien trae este enlace. */
+export interface MenorACargo {
+  id: string
+  nombre: string
+  apellidos: string | null
+  tipo_documento: TipoDocumento | null
+  documento_numero: string | null
+  fecha_nacimiento: string | null
+  parentesco: Parentesco | null
+  /** Si ya se subió la foto de su documento. La ruta no viaja. */
+  tiene_documento: boolean
+  tiene_autorizacion: boolean
+}
+
+export async function menoresACargo(
+  token: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<MenorACargo[]> {
+  const { data, error } = await conexion(cliente).rpc('menores_a_mi_cargo', {
+    p_token: token,
+  })
+  if (error) throw error
+  return (data as MenorACargo[]) ?? []
+}
+
+export interface NuevoMenor {
+  id?: string
+  nombre: string
+  apellidos?: string
+  tipoDocumento?: TipoDocumento
+  documento?: string
+  /** Obligatoria: es lo que decide que sea menor, y contra el día de llegada. */
+  fechaNacimiento: string
+  responsableId: string
+  parentesco: Parentesco
+}
+
+/** Añade o corrige un menor desde el enlace de un acompañante. */
+export async function guardarMenorAcompanante(
+  token: string,
+  menor: NuevoMenor,
+  cliente?: ClientePrecheckin | null,
+): Promise<string> {
+  const { data, error } = await conexion(cliente).rpc(
+    'guardar_menor_acompanante',
+    {
+      p_token: token,
+      p_nombre: menor.nombre,
+      p_fecha_nacimiento: menor.fechaNacimiento,
+      p_responsable_id: menor.responsableId,
+      p_parentesco: menor.parentesco,
+      p_apellidos: menor.apellidos,
+      p_tipo_documento: menor.tipoDocumento,
+      p_documento: menor.documento,
+      p_menor_id: menor.id,
+    },
+  )
+  if (error) throw error
+  return data as string
+}
+
+export async function quitarMenorAcompanante(
+  token: string,
+  menorId: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<void> {
+  const { error } = await conexion(cliente).rpc('quitar_menor_acompanante', {
+    p_token: token,
+    p_menor_id: menorId,
+  })
+  if (error) throw error
+}
+
+/**
+ * Qué es el responsable de un menor, para los desplegables.
+ *
+ * Vivía suelto dentro de `Companions.tsx`, y el 09/10/2026 hizo falta en una
+ * segunda pantalla —la del acompañante que trae a sus hijos—. Dos listas con
+ * las mismas cuatro etiquetas se separan en silencio: ya pasó en este
+ * proyecto con el rango horario de un turno, que un sitio componía con « - »
+ * y otro leía con « a », y el borde de «está en turno» no se encendía para
+ * nadie.
+ *
+ * El orden importa poco; que sea **el mismo** en los dos sitios, mucho.
+ */
+export const PARENTESCOS: { value: Parentesco; label: string }[] = [
+  { value: 'madre', label: 'Su madre' },
+  { value: 'padre', label: 'Su padre' },
+  { value: 'tutor_legal', label: 'Su tutor legal' },
+  { value: 'otro', label: 'Otra persona' },
+]

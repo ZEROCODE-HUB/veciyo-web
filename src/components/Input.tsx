@@ -8,6 +8,16 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   tone?: Tone
   /** Render the label in bold near-black (pre-checkin/temp guest style) */
   strongLabel?: boolean
+  /**
+   * Lo que está mal en este campo, debajo y en rojo.
+   *
+   * No lo había: toda la validación de este formulario vivía en «Confirmar y
+   * continuar», así que un dato mal puesto no se sabía hasta el final y el
+   * mensaje no decía de qué campo era. En la aplicación móvil esto ya existe
+   * y lo cuenta un guarda (`npm run campos`), justo porque 73 de 104 campos
+   * no enseñaban su error.
+   */
+  error?: string
 }
 
 const fieldBase =
@@ -22,12 +32,14 @@ export default function Input({
   label,
   tone = 'default',
   strongLabel = false,
+  error,
   className = '',
   id,
   ...props
 }: InputProps) {
   const autoId = useId()
   const inputId = id ?? autoId
+  const idDelError = `${inputId}-error`
   return (
     <div className="w-full">
       {label && (
@@ -40,7 +52,26 @@ export default function Input({
           {label}
         </label>
       )}
-      <input id={inputId} className={`${fieldBase} ${tones[tone]} ${className}`} {...props} />
+      <input
+        id={inputId}
+        /*
+          El borde rojo lo ve quien lo ve; `aria-invalid` y el texto enlazado
+          con `aria-describedby` lo dicen para todos los demás.
+        */
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? idDelError : undefined}
+        className={`${fieldBase} ${
+          error
+            ? 'border border-red-400 bg-white focus:border-red-500 focus:ring-red-200'
+            : tones[tone]
+        } ${className}`}
+        {...props}
+      />
+      {error ? (
+        <p id={idDelError} role="alert" className="mt-1.5 text-xs text-red-600">
+          {error}
+        </p>
+      ) : null}
     </div>
   )
 }

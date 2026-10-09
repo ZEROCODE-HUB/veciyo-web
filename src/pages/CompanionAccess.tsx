@@ -8,8 +8,10 @@ import Button from '../components/Button'
 import Checkbox from '../components/Checkbox'
 import Accordion from '../components/Accordion'
 import CampoTelefono from '../components/CampoTelefono'
+import MenoresQueTraigo from '../components/MenoresQueTraigo'
 import { PAIS_POR_DEFECTO } from '../lib/paises'
 import { porQueFallo } from '../lib/motivo'
+import { hoyEnIso } from '../lib/edad'
 import {
   TIPOS_DOCUMENTO,
   aceptarMisTerminosAcompanante,
@@ -71,7 +73,14 @@ export default function CompanionAccess() {
   const [estado, setEstado] = useState<Estado>('cargando')
   const [ficha, setFicha] = useState<Ficha>(VACIA)
   const [esMenor, setEsMenor] = useState(false)
-  const [estancia, setEstancia] = useState({ condominio: '', unidad: '', titular: '' })
+  const [estancia, setEstancia] = useState({
+    condominio: '',
+    unidad: '',
+    titular: '',
+    // El día de llegada: es contra él contra el que se mide si alguien es
+    // menor, igual que hace la base.
+    desde: null as string | null,
+  })
   const [legales, setLegales] = useState<DocumentoLegal[]>([])
   const [aceptados, setAceptados] = useState(false)
   const [guardando, setGuardando] = useState(false)
@@ -115,6 +124,7 @@ export default function CompanionAccess() {
           condominio: texto(fila.condominio),
           unidad: texto(fila.unidad),
           titular: texto(fila.titular),
+          desde: texto(fila.fecha_desde) || null,
         })
         setEstado('listo')
       })
@@ -290,10 +300,12 @@ export default function CompanionAccess() {
               telefono={ficha.telefono}
               onTelefonoChange={campo('telefono')}
             />
+            {/* Nadie nace mañana: el calendario no ofrece el futuro. */}
             <Input
               label="Fecha de nacimiento"
               type="date"
               tone="soft"
+              max={hoyEnIso()}
               value={ficha.fechaNacimiento}
               onChange={(e) => campo('fechaNacimiento')(e.target.value)}
             />
@@ -343,6 +355,18 @@ export default function CompanionAccess() {
                 por ti.
               </p>
             </div>
+          )}
+
+          {/*
+            Los menores que trae esta persona. Va **después** de sus propios
+            datos y antes del botón: primero lo suyo, que es lo que esta
+            pantalla existe para hacer, y luego lo opcional.
+
+            Solo si es adulto: un menor no trae menores, y tampoco llega aquí
+            por su cuenta.
+          */}
+          {!esMenor && token && (
+            <MenoresQueTraigo token={token} llegada={estancia.desde} />
           )}
 
           {error && <p className="mt-4 text-sm text-red-600">{error}</p>}

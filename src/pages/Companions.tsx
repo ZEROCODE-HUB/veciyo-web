@@ -4,12 +4,15 @@ import MainLayout from '../layouts/MainLayout'
 import Card from '../components/Card'
 import Input from '../components/Input'
 import Select from '../components/Select'
-import Checkbox from '../components/Checkbox'
 import Button from '../components/Button'
 import Loading from '../components/Loading'
+import Modal from '../components/Modal'
 import { porQueFallo } from '../lib/motivo'
+import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
 import {
   cerrarPrecheckin,
+  consultarPrecheckin,
+  topeDePersonas,
   guardarAcompanante,
   abrirEnlaceAcompanante,
   listarAcompanantes,
@@ -19,7 +22,9 @@ import {
   TIPOS_DOCUMENTO,
   adultosDeLaEstancia,
   necesitaPermiso,
+  PARENTESCOS,
   subirAutorizacionMenor,
+  subirDocumentoPrecheckin,
   type Acompanante,
   type AdultoDeLaEstancia,
   type Parentesco,
@@ -33,13 +38,6 @@ import {
  * viaje— y los otros dos sí. Lo pidió el cliente el 02/10/2026: «Menores sin
  * padre o madre siempre pedir documentación del responsable pues!».
  */
-const PARENTESCOS: { value: Parentesco; label: string }[] = [
-  { value: 'madre', label: 'Su madre' },
-  { value: 'padre', label: 'Su padre' },
-  { value: 'tutor_legal', label: 'Su tutor legal' },
-  { value: 'otro', label: 'Otra persona' },
-]
-
 /**
  * Con quién viene el huésped, y el cierre del preregistro.
  *
@@ -74,7 +72,6 @@ export default function Companions() {
   const [documento, setDocumento] = useState('')
   const [telefono, setTelefono] = useState('')
   const [correo, setCorreo] = useState('')
-  const [esMenor, setEsMenor] = useState(false)
   const [fechaNacimiento, setFechaNacimiento] = useState('')
   const [responsableId, setResponsableId] = useState('')
   const [parentesco, setParentesco] = useState<Parentesco | ''>('')
@@ -91,13 +88,44 @@ export default function Companions() {
     copiarlo, hay que emitir otro y el anterior deja de valer.
   */
   const [enlace, setEnlace] = useState<{ nombre: string; url: string } | null>(null)
+  /*
+    Cuantas personas caben y de donde sale ese numero.
+
+    Hasta el 09/10/2026 esta pantalla no lo sabia: dejaba añadir sin limite
+    hasta que la base decia que no, y la base solo miraba el aforo del
+    alojamiento --cuatro en la 102-- porque **lo que el anfitrion reservo no
+    se guardaba en ninguna parte**. Asi que en una reserva para una persona se
+    podian meter tres mas. Lo vio el cliente abriendo su propio enlace.
+
+    `consultar_precheckin` devuelve ahora el tope y cuantas hay. No se cuentan
+    aqui a mano: si la pantalla suma por su cuenta, el limite vive en dos
+    sitios y uno de los dos se queda viejo.
+  */
+  const [cupo, setCupo] = useState<{
+    tope: number | null
+    esDeLaReserva: boolean
+  }>({ tope: null, esDeLaReserva: false })
+  const [menoresEsperados, setMenoresEsperados] = useState(0)
+  /*
+    El día de llegada: es contra él, y no contra hoy, contra el que la base
+    decide si alguien es menor. Quien cumple años entre la reserva y el
+    check-in llega siendo adulto.
+  */
+  const [llegada, setLlegada] = useState<string | null>(null)
 
   useEffect(() => {
     if (!token) return
-    Promise.all([listarAcompanantes(token), adultosDeLaEstancia(token)])
-      .then(([acompanantes, mayores]) => {
+    Promise.all([
+      listarAcompanantes(token),
+      adultosDeLaEstancia(token),
+      consultarPrecheckin(token),
+    ])
+      .then(([acompanantes, mayores, estancia]) => {
         setLista(acompanantes)
         setAdultos(mayores)
+        setCupo(topeDePersonas(estancia))
+        setMenoresEsperados(estancia?.menores_previstos ?? 0)
+        setLlegada(estancia?.fecha_desde ?? null)
       })
       .catch(() => setError('No pudimos cargar la lista'))
       .finally(() => setCargando(false))
@@ -112,7 +140,6 @@ export default function Companions() {
     setDocumento('')
     setTelefono('')
     setCorreo('')
-    setEsMenor(false)
     setFechaNacimiento('')
     setResponsableId('')
     setParentesco('')
@@ -123,17 +150,52 @@ export default function Companions() {
     antes de ir por red: un adulto lleva documento; un menor lleva quién
     responde por él y qué es suyo.
   */
+  /*
+    El titular cuenta: el tope es de personas, no de acompañantes. `lista` son
+    los acompañantes, asi que las personas de la reserva son una mas.
+  */
+  const personas = lista.length + 1
+  const quedanPlazas = cupo.tope === null || personas < cupo.tope
+  /*
+    Cuantos menores dijo el anfitrion y cuantos van puestos. El titular no
+    cuenta: tiene que ser mayor de edad para cerrar la reserva.
+  */
+  const menoresPuestos = lista.filter((p) => p.es_menor).length
+
+  /*
+    Si quien se está añadiendo es menor **lo dice su fecha**, igual que en la
+    base. Sin fecha todavía no se sabe, y entonces se le trata como adulto:
+    es lo prudente --se le pide el documento-- y es lo que hace la base, que
+    sin fecha se queda con lo que le manden.
+  */
+  const esMenor = fechaNacimiento
+    ? esMayorDeEdadAlLlegar(fechaNacimiento, llegada) === false
+    : false
+
+  /*
+    Un adulto se puede añadir **sin nada**: sin nombre y sin documento.
+
+    Para mandarle su enlace hay que crearlo antes, y hasta el 09/10/2026 para
+    crearlo hacían falta su nombre y su documento —que es justo lo que ese
+    enlace sirve para conseguir—. El cliente se quedó sin nada que compartir:
+    «no había cómo compartir a alguien más para que llene los suyos».
+
+    El documento se le sigue exigiendo, pero donde importa: al cerrar. Sin él
+    `cerrar_precheckin` responde «Falta el documento de: X».
+
+    Un menor sí necesita quién responde por él antes de existir: es lo que lo
+    distingue de un adulto sin fecha, y sin eso un niño entra sin que nadie
+    diga quién lo trae.
+  */
   const puedeAnadir =
-    nombre.trim() !== '' &&
-    (esMenor
-      ? responsableId !== '' && parentesco !== ''
-      : documento.trim() !== '')
+    quedanPlazas && (esMenor ? responsableId !== '' && parentesco !== '' : true)
 
   const anadir = async () => {
     if (!puedeAnadir) return
     setError(null)
     try {
       await guardarAcompanante(token, {
+        // Vacío vale: la base lo nombra «Acompañante N» hasta que él lo diga.
         nombre: nombre.trim(),
         apellidos: apellidos.trim() || undefined,
         tipoDocumento: tipoDoc || undefined,
@@ -190,6 +252,31 @@ export default function Companions() {
       setLista(await listarAcompanantes(token))
     } catch (e) {
       setError(porQueFallo(e, 'No pudimos guardar la autorización'))
+    } finally {
+      setSubiendo(null)
+    }
+  }
+
+  /**
+   * La foto del documento de un menor.
+   *
+   * La sube el titular, no el menor: un menor **no tiene enlace propio**
+   * --no puede aceptar terminos, asi que no se le emite-- y hasta el
+   * 09/10/2026 no habia ningun camino para subirla. La funcion de servidor
+   * comprueba que esa persona sea de la misma estancia que el token.
+   *
+   * Solo el frente: el reverso se pide en el documento del titular porque ahi
+   * hay una validacion de identidad detras; aqui lo que hace falta es que la
+   * porteria pueda comparar en la puerta.
+   */
+  const subirDocumentoDeMenor = async (persona: Acompanante, archivo: File) => {
+    setError(null)
+    setSubiendo(persona.id)
+    try {
+      await subirDocumentoPrecheckin(token, archivo, 'frente', persona.id)
+      setLista(await listarAcompanantes(token))
+    } catch (e) {
+      setError(porQueFallo(e, 'No pudimos guardar el documento'))
     } finally {
       setSubiendo(null)
     }
@@ -262,6 +349,44 @@ export default function Companions() {
                       */}
                       {persona.es_menor && (
                         <>
+                          {/*
+                            Su documento, igual que el de un adulto: el
+                            ministerio lo pide por cada persona. La diferencia
+                            es quien lo sube --el titular, porque un menor no
+                            tiene enlace propio-- no si hace falta.
+                          */}
+                          <p
+                            className={`mt-1 text-xs font-semibold ${
+                              persona.tiene_documento
+                                ? 'text-green-700'
+                                : 'text-amber-700'
+                            }`}
+                          >
+                            {persona.tiene_documento
+                              ? '✓ Subiste la foto de su documento'
+                              : 'Falta la foto de su documento'}
+                          </p>
+                          {!persona.tiene_documento && (
+                            <label className="mt-1 block text-xs font-semibold text-primary underline">
+                              {subiendo === persona.id
+                                ? 'Subiendo…'
+                                : 'Subir la foto de su documento'}
+                              <input
+                                type="file"
+                                className="hidden"
+                                accept="image/jpeg,image/png,image/webp"
+                                disabled={subiendo === persona.id}
+                                onChange={(e) => {
+                                  const archivo = e.target.files?.[0]
+                                  if (archivo)
+                                    void subirDocumentoDeMenor(persona, archivo)
+                                  // Para poder volver a elegir el mismo
+                                  // archivo si la primera vez falló.
+                                  e.target.value = ''
+                                }}
+                              />
+                            </label>
+                          )}
                           <p className="mt-1 text-xs text-ink/60">
                             {persona.responsable_id
                               ? `Responde por él: ${
@@ -317,30 +442,54 @@ export default function Companions() {
                         que decirlo aqui es lo que evita pulsar «finalizar» y
                         recibir un error con tres nombres y nada que hacer.
                       */}
+                      {/*
+                        Las **dos** cosas que le faltan, no una.
+
+                        Antes solo se decía lo de los términos, así que quien
+                        leía esto daba por hecho que el documento ya estaba o
+                        que lo subía el titular. Ninguna de las dos: lo sube él
+                        desde su enlace, porque va junto con aceptar lo suyo y
+                        eso nadie lo puede hacer por otro. Lo preguntó el
+                        cliente el 09/10/2026.
+                      */}
                       {!persona.es_menor && (
-                        <p
-                          className={`mt-1 text-xs font-semibold ${
-                            persona.terminos_aceptados
-                              ? 'text-green-700'
-                              : 'text-amber-700'
-                          }`}
-                        >
-                          {persona.terminos_aceptados
-                            ? '✓ Aceptó sus términos'
-                            : 'Le falta aceptar sus términos'}
-                        </p>
+                        <>
+                          <p
+                            className={`mt-1 text-xs font-semibold ${
+                              persona.tiene_documento
+                                ? 'text-green-700'
+                                : 'text-amber-700'
+                            }`}
+                          >
+                            {persona.tiene_documento
+                              ? '✓ Subió la foto de su documento'
+                              : 'Le falta la foto de su documento'}
+                          </p>
+                          <p
+                            className={`mt-1 text-xs font-semibold ${
+                              persona.terminos_aceptados
+                                ? 'text-green-700'
+                                : 'text-amber-700'
+                            }`}
+                          >
+                            {persona.terminos_aceptados
+                              ? '✓ Aceptó sus términos'
+                              : 'Le falta aceptar sus términos'}
+                          </p>
+                        </>
                       )}
-                      {!persona.es_menor && !persona.terminos_aceptados && (
-                        <button
-                          type="button"
-                          onClick={() => void mandarEnlace(persona)}
-                          className="mt-2 text-xs font-semibold text-primary underline"
-                        >
-                          {persona.tiene_enlace
-                            ? 'Generar otro enlace para esta persona'
-                            : 'Darle su enlace'}
-                        </button>
-                      )}
+                      {!persona.es_menor &&
+                        (!persona.terminos_aceptados || !persona.tiene_documento) && (
+                          <button
+                            type="button"
+                            onClick={() => void mandarEnlace(persona)}
+                            className="mt-2 text-xs font-semibold text-primary underline"
+                          >
+                            {persona.tiene_enlace
+                              ? 'Generar otro enlace para esta persona'
+                              : 'Darle su enlace para que los complete'}
+                          </button>
+                        )}
                     </div>
                     <button
                       type="button"
@@ -355,6 +504,37 @@ export default function Companions() {
               </div>
             )}
 
+            {/*
+              Cuantas caben, siempre a la vista. Un formulario que deja
+              escribir y despues dice que no hay sitio hace teclear para nada.
+            */}
+            {cupo.tope !== null && (
+              <p className="mt-6 text-center text-sm text-ink/60">
+                {personas} de {cupo.tope} personas
+                {cupo.esDeLaReserva ? ' que reservó el anfitrión' : ' que admite el alojamiento'}
+              </p>
+            )}
+
+            {/*
+              Lo que el anfitrión dijo sobre los menores.
+
+              La ficha de un menor sin nombre no llega a crearse --las rellena
+              quien lea este enlace-- así que sin decirlo aquí, «1 de los 2 es
+              menor» se perdía entre la reserva y esta pantalla. Es un aviso,
+              no una regla: quién es menor lo decide su fecha de nacimiento, y
+              si al final vienen otros, vienen otros.
+            */}
+            {menoresEsperados > 0 && menoresEsperados !== menoresPuestos && (
+              <p className="mt-1 text-center text-xs text-ink/50">
+                El anfitrión indicó que{' '}
+                {menoresEsperados === 1
+                  ? 'una de ellas es menor de edad'
+                  : `${menoresEsperados} son menores de edad`}
+                {menoresPuestos > 0 ? ` (llevás ${menoresPuestos})` : ''}.
+              </p>
+            )}
+
+            {quedanPlazas ? (
             <div className="mt-8 rounded-2xl border border-line bg-white p-5">
               <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-ink/50">
                 Añadir a alguien
@@ -375,32 +555,51 @@ export default function Companions() {
                   onChange={(e) => setApellidos(e.target.value)}
                 />
 
-                <Checkbox
-                  label="Es menor de edad"
-                  checked={esMenor}
-                  onChange={(e) => {
-                    setEsMenor(e.target.checked)
-                    if (e.target.checked) {
-                      setTipoDoc('')
-                      setDocumento('')
-                    }
-                  }}
-                />
-
                 {/*
-                  La fecha va fuera del `if`: a un adulto también se le pregunta
-                  --el ministerio la pide-- y además es lo que decide la casilla
-                  de arriba. Desde el 03/10/2026 `es_menor` lo calcula la base
-                  contra el día de llegada: quien la dice no elige además si es
-                  menor, que era la forma de entrar sin documento.
+                  **No se pregunta si es menor: lo dice su fecha.**
+
+                  Había una casilla «Es menor de edad» además de este campo, y
+                  el cliente la encontró absurda el 09/10/2026: «la anfitriona
+                  puso que 1 era menor, y a mí me sigue preguntando si es menor
+                  o no».
+
+                  Tenía dos motivos para irse. Uno, que la base ya lo decide
+                  desde el 03/10/2026 --`es_menor` se calcula contra el día de
+                  llegada y la casilla se **ignora** cuando hay fecha-- así que
+                  era un control que no decidía nada. Y dos, que era la puerta
+                  de atrás: a un menor no se le pide documento, así que
+                  marcarse menor era la forma de entrar al edificio sin
+                  identificarse.
+
+                  Es la misma familia que el interruptor de menor que se quitó
+                  el mismo día en la pantalla del anfitrión: un dato con dos
+                  sitios donde decidirse.
                 */}
+                {/* Nadie nace mañana: el calendario no ofrece el futuro. */}
                 <Input
                   label="Fecha de nacimiento"
                   type="date"
                   tone="soft"
+                  max={hoyEnIso()}
                   value={fechaNacimiento}
                   onChange={(e) => setFechaNacimiento(e.target.value)}
                 />
+
+                {/*
+                  Al quitar la casilla, el formulario cambia solo en cuanto se
+                  escribe la fecha: desaparece el documento y aparece quién
+                  responde. Eso sin decir nada se lee como un fallo, así que se
+                  dice. Es lo que la casilla hacía de explicación, y lo único
+                  suyo que valía la pena conservar.
+                */}
+                {esMenor && (
+                  <p className="rounded-xl bg-ink/[0.04] px-3 py-2 text-xs text-ink/70">
+                    Con esa fecha es <strong>menor de edad</strong> el día de
+                    llegada. Hace falta decir quién responde por él, y su
+                    documento —registro civil o tarjeta de identidad—, que es
+                    lo que pide el ministerio por cada persona.
+                  </p>
+                )}
 
                 {/*
                   A un menor no se le pide documento propio ni se le hace
@@ -411,7 +610,7 @@ export default function Companions() {
                 {esMenor && (
                   <>
                     <Select
-                      label="¿Quién responde por él?"
+                      label="Adulto responsable por el menor"
                       tone="soft"
                       placeholder="Elige a un adulto de esta reserva"
                       options={adultos.map((a) => ({
@@ -423,40 +622,69 @@ export default function Companions() {
                       onChange={(e) => setResponsableId(e.target.value)}
                     />
                     <Select
-                      label="¿Qué es suyo?"
+                      label="Parentesco"
                       tone="soft"
                       placeholder="Seleccione"
                       options={PARENTESCOS as unknown as { value: string; label: string }[]}
                       value={parentesco}
                       onChange={(e) => setParentesco(e.target.value as Parentesco | '')}
                     />
-                    {necesitaPermiso(parentesco || null) && (
-                      <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                        Al no ser su padre ni su madre, hará falta subir una
-                        autorización firmada. Podrás hacerlo aquí mismo en
-                        cuanto lo añadas a la reserva.
-                      </p>
-                    )}
+                    {/*
+                      Lo que viene **después** de pulsar «Añadir», dicho antes.
+
+                      La foto del documento no cabe en este formulario: hace
+                      falta el identificador de la persona, y ese no existe
+                      hasta guardarla. Así que se pide en su ficha, un paso más
+                      tarde, y eso sin avisar se lee como que el formulario se
+                      dejó algo: «luego de añadir al menor, recién me pidió la
+                      foto de su documento, es decir no durante el registro».
+                    */}
+                    <p className="rounded-xl bg-ink/[0.04] px-3 py-2 text-xs text-ink/70">
+                      Al añadirlo vas a poder subir la{' '}
+                      <strong>foto de su documento</strong>
+                      {necesitaPermiso(parentesco || null)
+                        ? ' y su autorización firmada, que hace falta al no ser su padre ni su madre'
+                        : ''}
+                      , desde su ficha.
+                    </p>
                   </>
                 )}
 
+                {/*
+                  El documento se pide **a todos, también a un menor**.
+
+                  Hasta el 09/10/2026 se le saltaba entero, y eso choca de
+                  frente con para lo que existe este formulario: `loQueFalta`
+                  del reporte a la TRA exige tipo y número **por cada
+                  persona**, así que una estancia con un niño no se podía
+                  declarar completa. En Colombia un menor sí tiene documento:
+                  registro civil hasta los siete, tarjeta de identidad de
+                  siete a diecisiete.
+
+                  Lo decidió el cliente el 09/10/2026. Lo que **no** se hace
+                  es comparar apellidos para adivinar parentescos: eso lo mira
+                  el anfitrión, porque una madre casi nunca comparte el primer
+                  apellido con su hijo y la regla marcaría sobre todo a
+                  familias de verdad.
+                */}
+                <Select
+                  label="Tipo de documento"
+                  tone="soft"
+                  placeholder="Seleccione"
+                  options={TIPOS_DOCUMENTO as unknown as { value: string; label: string }[]}
+                  value={tipoDoc}
+                  onChange={(e) => setTipoDoc(e.target.value as TipoDocumento | '')}
+                />
+                <Input
+                  label="Número de identificación"
+                  tone="soft"
+                  placeholder="Sin puntos ni guiones"
+                  value={documento}
+                  onChange={(e) => setDocumento(e.target.value)}
+                />
+
                 {!esMenor && (
                   <>
-                    <Select
-                      label="Tipo de documento"
-                      tone="soft"
-                      placeholder="Seleccione"
-                      options={TIPOS_DOCUMENTO as unknown as { value: string; label: string }[]}
-                      value={tipoDoc}
-                      onChange={(e) => setTipoDoc(e.target.value as TipoDocumento | '')}
-                    />
-                    <Input
-                      label="Número de identificación"
-                      tone="soft"
-                      placeholder="Sin puntos ni guiones"
-                      value={documento}
-                      onChange={(e) => setDocumento(e.target.value)}
-                    />
                     {/*
                       El correo hace falta para mandarle **su propio enlace**,
                       que es lo unico que le deja aceptar sus terminos: nadie
@@ -491,10 +719,16 @@ export default function Companions() {
                 >
                   Añadir a la reserva
                 </Button>
-                {!esMenor && nombre.trim() !== '' && documento.trim() === '' && (
+                {/*
+                  Ya no es un requisito para añadirlo, así que no se dice como
+                  si faltara algo: se dice **qué va a pasar**. Lo pide la
+                  portería en la puerta y lo exige el cierre, pero lo puede
+                  poner él desde su enlace, que es el caso normal.
+                */}
+                {!esMenor && documento.trim() === '' && (
                   <p className="px-1 text-xs text-ink/60">
-                    Falta el número de documento. Es lo que la portería compara
-                    cuando llegan.
+                    Sin su documento también se puede añadir: se lo vas a pedir
+                    con su enlace. Hace falta antes de terminar el registro.
                   </p>
                 )}
                 {esMenor && nombre.trim() !== '' && !puedeAnadir && (
@@ -505,6 +739,24 @@ export default function Companions() {
                 )}
               </div>
             </div>
+            ) : (
+              /*
+                Lleno. Se dice **a quien pedirle** mas sitio, que es distinto
+                segun cual de los dos topes se alcanzo: lo que reservo el
+                anfitrion lo cambia el en un momento; el aforo del piso es otra
+                conversacion.
+              */
+              <div className="mt-8 rounded-2xl border border-line bg-surface-soft p-5 text-center">
+                <p className="text-sm font-semibold text-ink">
+                  Ya están todas las personas de la reserva
+                </p>
+                <p className="mt-1 text-xs text-ink/60">
+                  {cupo.esDeLaReserva
+                    ? 'Si viene alguien más, pediselo al anfitrión: es él quien amplía la reserva.'
+                    : 'El alojamiento no admite más personas.'}
+                </p>
+              </div>
+            )}
 
             {/*
               El enlace de un acompañante vuelve **una sola vez**: en la base
@@ -512,27 +764,32 @@ export default function Companions() {
               cerrar esto sin copiarlo obliga a generar otro.
             */}
             {enlace && (
-              <div className="mt-6 rounded-2xl border border-line bg-white p-5">
-                <p className="text-sm font-bold text-ink">
-                  El enlace de {enlace.nombre}
+              <Modal
+                abierto
+                titulo={`El enlace de ${enlace.nombre}`}
+                onCerrar={() => setEnlace(null)}
+              >
+                <p className="text-sm text-ink/70">
+                  Mandáselo. Con él sube la foto de su documento, llena sus
+                  datos y acepta sus términos — eso último no lo podés hacer
+                  vos por él.
                 </p>
-                <p className="mt-1 text-xs text-ink/60">
-                  Mandaselo. Con el llena sus datos y acepta sus terminos — eso
-                  ultimo no lo puedes hacer tu por el.
-                </p>
-                <div className="mt-3 rounded-xl bg-ink/[0.04] p-3">
+                <div className="mt-4 rounded-xl bg-ink/[0.04] p-3">
                   <p className="break-all font-mono text-xs text-ink/80">
                     {enlace.url}
                   </p>
                 </div>
-                <div className="mt-3 flex gap-2">
+                <p className="mt-3 text-xs font-semibold text-amber-700">
+                  Copialo ahora: no se vuelve a mostrar. Si lo perdés hay que
+                  generar otro, y el de ahora deja de valer.
+                </p>
+                <div className="mt-4 flex gap-2">
                   <Button
                     type="button"
-                    variant="ghost"
                     className="flex-1 py-2.5"
                     onClick={() => void navigator.clipboard?.writeText(enlace.url)}
                   >
-                    Copiar
+                    Copiar el enlace
                   </Button>
                   <Button
                     type="button"
@@ -540,13 +797,10 @@ export default function Companions() {
                     className="flex-1 py-2.5"
                     onClick={() => setEnlace(null)}
                   >
-                    Cerrar
+                    Listo
                   </Button>
                 </div>
-                <p className="mt-2 text-xs text-amber-700">
-                  Copialo ahora: no se vuelve a mostrar.
-                </p>
-              </div>
+              </Modal>
             )}
 
             {error && (
