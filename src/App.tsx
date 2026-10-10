@@ -11,6 +11,7 @@ import Validation from './pages/Validation'
 import ConfirmData from './pages/ConfirmData'
 import DownloadApp from './pages/DownloadApp'
 import Access from './pages/Access'
+import Reserva from './pages/Reserva'
 import CompanionAccess from './pages/CompanionAccess'
 import TermsAndConditions from './pages/TermsAndConditions'
 // Las dos paginas publicas que pide Google para publicar la pantalla de
@@ -24,6 +25,12 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Navigate to="/invitacion" replace />} />
       <Route path="/access/:token" element={<Access />} />
+      {/*
+        La dirección que el anfitrión pone en su mensaje automático de Airbnb:
+        termina en el código de la reserva. Corta a propósito: va en un
+        mensaje de texto.
+      */}
+      <Route path="/r/:codigo" element={<Reserva />} />
       {/*
         `:token` y no `:id`. Un uuid de invitado **no es una credencial**: quien
         lo viera o lo adivinara podria editar la ficha de otra persona. El token

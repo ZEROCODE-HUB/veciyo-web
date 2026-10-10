@@ -1166,3 +1166,97 @@ export async function quitarVehiculo(
   })
   if (error) throw error
 }
+
+/* ========================================================================== *
+ * Entrar con el código de la reserva
+ * ========================================================================== */
+
+export type EstadoDeApertura =
+  | 'listo'
+  | 'preparando'
+  | 'ultimos4_incorrectos'
+  | 'bloqueado'
+  | 'cerrado'
+  | 'sin_telefono'
+
+/**
+ * Abre el preregistro con el código de la reserva y los últimos cuatro
+ * dígitos del teléfono con el que se reservó.
+ *
+ * Es la puerta de quien llega desde el mensaje automático de Airbnb. Si
+ * acierta devuelve un enlace de preregistro normal; el anterior deja de valer.
+ * Los intentos los cuenta la base: cinco fallos seguidos bloquean una hora.
+ */
+export async function abrirPrecheckinPorReserva(
+  codigo: string,
+  ultimos4: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<{ estado: EstadoDeApertura; token: string | null }> {
+  const { data, error } = await conexion(cliente).rpc(
+    'abrir_precheckin_por_reserva',
+    { p_codigo: codigo, p_ultimos4: ultimos4 },
+  )
+  if (error) throw error
+  const fila = (Array.isArray(data) ? data[0] : data) as
+    | { estado: EstadoDeApertura; token: string | null }
+    | undefined
+  return { estado: fila?.estado ?? 'preparando', token: fila?.token ?? null }
+}
+
+/* ========================================================================== *
+ * El titular declara por quien no puede registrarse solo
+ * ========================================================================== */
+
+/**
+ * El titular declara que un acompañante adulto no puede completar su registro.
+ *
+ * Decidido con el cliente el 09/10/2026: desde que cada adulto acepta lo suyo
+ * con su propio enlace, quien no puede —no lee, tiene una discapacidad, no
+ * tiene teléfono— se quedaba sin salida. El titular dice por qué, firma con
+ * su nombre y acepta por esa persona. La declaración la redacta la base.
+ *
+ * Solo con el enlace de la estancia: el de un acompañante no sirve.
+ */
+export async function declararIncapacidad(
+  token: string,
+  declaracion: { invitadoId: string; motivo: string; nombreDeclarante: string },
+  cliente?: ClientePrecheckin | null,
+): Promise<void> {
+  const { error } = await conexion(cliente).rpc(
+    'declarar_incapacidad_acompanante',
+    {
+      p_token: token,
+      p_invitado_id: declaracion.invitadoId,
+      p_motivo: declaracion.motivo,
+      p_nombre_declarante: declaracion.nombreDeclarante,
+    },
+  )
+  if (error) throw error
+}
+
+/** Deshace la declaración mientras el preregistro siga abierto. */
+export async function retirarIncapacidad(
+  token: string,
+  invitadoId: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<void> {
+  const { error } = await conexion(cliente).rpc(
+    'retirar_incapacidad_acompanante',
+    { p_token: token, p_invitado_id: invitadoId },
+  )
+  if (error) throw error
+}
+
+/** Por quién declaró ya el titular, con su motivo. La clave es el invitado. */
+export async function incapacidadesDelPrecheckin(
+  token: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<Record<string, string>> {
+  const { data, error } = await conexion(cliente).rpc(
+    'incapacidades_del_precheckin',
+    { p_token: token },
+  )
+  if (error) throw error
+  const filas = (data ?? []) as { invitado_id: string; motivo: string }[]
+  return Object.fromEntries(filas.map((f) => [f.invitado_id, f.motivo]))
+}

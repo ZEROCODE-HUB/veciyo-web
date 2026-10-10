@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { useLocation, useNavigate, Navigate } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import Card from '../components/Card'
 import Input from '../components/Input'
@@ -8,10 +8,13 @@ import Button from '../components/Button'
 import Loading from '../components/Loading'
 import Modal from '../components/Modal'
 import VehiculosDeLaEstancia from '../components/VehiculosDeLaEstancia'
+import DeclararIncapacidad from '../components/DeclararIncapacidad'
 import { porQueFallo } from '../lib/motivo'
 import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
 import {
   cerrarPrecheckin,
+  incapacidadesDelPrecheckin,
+  retirarIncapacidad,
   consultarPrecheckin,
   topeDePersonas,
   guardarAcompanante,
@@ -63,6 +66,15 @@ export default function Companions() {
   const token = tokenActual()
 
   const [lista, setLista] = useState<Acompanante[]>([])
+  /*
+    Por quién declaró ya el titular —«esta persona no puede registrarse
+    sola»—, con su motivo. Va aparte de la lista porque la lista la comparten
+    otras pantallas y esto solo lo ve y lo hace el titular.
+  */
+  const [incapacidades, setIncapacidades] = useState<Record<string, string>>({})
+  const [declarandoPor, setDeclarandoPor] = useState<Acompanante | null>(null)
+  const nombreDelTitular =
+    (useLocation().state as { nombre?: string } | null)?.nombre ?? ''
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [cerrando, setCerrando] = useState(false)
@@ -130,6 +142,10 @@ export default function Companions() {
       })
       .catch(() => setError('No pudimos cargar la lista'))
       .finally(() => setCargando(false))
+    // Aparte: si esto falla, la lista se sigue pudiendo usar.
+    incapacidadesDelPrecheckin(token)
+      .then(setIncapacidades)
+      .catch(() => {})
   }, [token])
 
   if (!token) return <Navigate to="/invitacion" replace />
@@ -280,6 +296,25 @@ export default function Companions() {
       setError(porQueFallo(e, 'No pudimos guardar el documento'))
     } finally {
       setSubiendo(null)
+    }
+  }
+
+  const refrescar = async () => {
+    const [acompanantes, declaradas] = await Promise.all([
+      listarAcompanantes(token),
+      incapacidadesDelPrecheckin(token),
+    ])
+    setLista(acompanantes)
+    setIncapacidades(declaradas)
+  }
+
+  const retirarDeclaracion = async (persona: Acompanante) => {
+    setError(null)
+    try {
+      await retirarIncapacidad(token, persona.id)
+      await refrescar()
+    } catch (e) {
+      setError(porQueFallo(e, 'No pudimos retirar la declaración'))
     }
   }
 
@@ -473,13 +508,65 @@ export default function Companions() {
                                 : 'text-amber-700'
                             }`}
                           >
-                            {persona.terminos_aceptados
-                              ? '✓ Aceptó sus términos'
-                              : 'Le falta aceptar sus términos'}
+                            {incapacidades[persona.id]
+                              ? '✓ Aceptaste por esta persona'
+                              : persona.terminos_aceptados
+                                ? '✓ Aceptó sus términos'
+                                : 'Le falta aceptar sus términos'}
                           </p>
                         </>
                       )}
+                      {/*
+                        Quien no puede hacerlo por sí mismo. Declarado: se dice
+                        por qué, se deja deshacer, y la foto de su documento la
+                        sube el titular —a esta persona no le llega un enlace—.
+                      */}
+                      {!persona.es_menor && incapacidades[persona.id] && (
+                        <>
+                          <p className="mt-1 text-xs text-ink/60">
+                            Declaraste que no puede registrarse sola:{' '}
+                            {incapacidades[persona.id]}
+                          </p>
+                          {!persona.tiene_documento && (
+                            <label className="mt-2 block text-xs font-semibold text-primary underline">
+                              {subiendo === persona.id
+                                ? 'Subiendo…'
+                                : 'Subir la foto de su documento'}
+                              <input
+                                type="file"
+                                className="hidden"
+                                accept="image/jpeg,image/png,image/webp"
+                                disabled={subiendo === persona.id}
+                                onChange={(e) => {
+                                  const archivo = e.target.files?.[0]
+                                  if (archivo) void subirDocumentoDeMenor(persona, archivo)
+                                  e.target.value = ''
+                                }}
+                              />
+                            </label>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => void retirarDeclaracion(persona)}
+                            className="mt-2 block text-xs font-semibold text-ink/60 underline"
+                          >
+                            Retirar la declaración
+                          </button>
+                        </>
+                      )}
                       {!persona.es_menor &&
+                        !incapacidades[persona.id] &&
+                        !persona.terminos_aceptados && (
+                          <button
+                            type="button"
+                            onClick={() => setDeclarandoPor(persona)}
+                            className="mt-2 block text-xs font-semibold text-ink/60 underline"
+                          >
+                            Esta persona no puede hacerlo por sí misma
+                          </button>
+                        )}
+                      {!persona.es_menor &&
+                        !incapacidades[persona.id] &&
                         (!persona.terminos_aceptados || !persona.tiene_documento) && (
                           <button
                             type="button"
@@ -764,6 +851,25 @@ export default function Companions() {
               vive solo su sha256. Se dice aqui y no en una nota al pie, porque
               cerrar esto sin copiarlo obliga a generar otro.
             */}
+            {declarandoPor && (
+              <Modal
+                abierto
+                titulo="Declarar por esta persona"
+                onCerrar={() => setDeclarandoPor(null)}
+              >
+                <DeclararIncapacidad
+                  token={token}
+                  persona={declarandoPor}
+                  nombreTitular={nombreDelTitular}
+                  onCancelar={() => setDeclarandoPor(null)}
+                  onHecho={() => {
+                    setDeclarandoPor(null)
+                    void refrescar().catch(() => {})
+                  }}
+                />
+              </Modal>
+            )}
+
             {enlace && (
               <Modal
                 abierto
