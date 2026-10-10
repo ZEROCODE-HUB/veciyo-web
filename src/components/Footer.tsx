@@ -23,11 +23,11 @@ export default function Footer() {
               Privacidad
             </Link>
           </li>
-          <li>
-            <Link to="/soporte" className="hover:opacity-80">
-              Soporte
-            </Link>
-          </li>
+          {/*
+            Aqui habia un enlace «Soporte» a `/soporte`, una direccion que no
+            existe: devolvia a la portada. Vuelve cuando haya a donde mandar a
+            alguien que necesita ayuda.
+          */}
         </ul>
 
         <SocialIcons className="mt-6" />

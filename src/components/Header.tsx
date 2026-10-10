@@ -1,16 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Logo from './Logo'
-import Button from './Button'
 import { HamburgerIcon, CloseIcon } from './icons'
 
 type HeaderVariant = 'default' | 'app'
-
-const NAV_LINKS = [
-  { label: 'Inicio', to: '/login' },
-  { label: 'Nosotros', to: '/login' },
-  { label: 'Contacto', to: '/login' },
-]
 
 const APP_MENU = [
   { label: 'Historial de ofertas', to: '/visit-details' },
@@ -61,27 +54,18 @@ export default function Header({ variant = 'default' }: { variant?: HeaderVarian
     )
   }
 
+  /*
+    Solo el logo. Aqui habia «Inicio», «Nosotros», «Contacto» y un boton
+    «Iniciar sesion», y los cinco --con el logo-- llevaban a `/login`, que era
+    una maqueta: quien estaba a mitad de su preregistro y pulsaba cualquiera
+    salia de el hacia una pantalla que lo dejaba «entrar» como otra persona.
+    No hay inicio, ni nosotros, ni contacto a los que ir: cuando existan, se
+    ponen.
+  */
   return (
     <header className="bg-brand">
-      <div className="mx-auto flex h-[68px] max-w-content items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link to="/login" aria-label="VeciYo">
-          <Logo variant="dark" />
-        </Link>
-
-        <nav className="flex items-center gap-5 sm:gap-7">
-          <ul className="hidden items-center gap-6 text-sm font-medium text-ink md:flex">
-            {NAV_LINKS.map((link) => (
-              <li key={link.label}>
-                <Link to={link.to} className="hover:text-ink/70">
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <Link to="/login">
-            <Button variant="cta">Iniciar sesion</Button>
-          </Link>
-        </nav>
+      <div className="mx-auto flex h-[68px] max-w-content items-center px-4 sm:px-6 lg:px-8">
+        <Logo variant="dark" />
       </div>
     </header>
   )

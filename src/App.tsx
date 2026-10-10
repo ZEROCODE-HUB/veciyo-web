@@ -1,19 +1,13 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import Login from './pages/Login'
 import PasswordReset from './pages/PasswordReset'
-import VisitDetails from './pages/VisitDetails'
 import PreCheckIn from './pages/PreCheckIn'
-import TemporaryGuestPreCheckIn from './pages/TemporaryGuestPreCheckIn'
-import AdminRegistration from './pages/AdminRegistration'
 import Invitation from './pages/Invitation'
 import Companions from './pages/Companions'
-import Validation from './pages/Validation'
 import ConfirmData from './pages/ConfirmData'
 import DownloadApp from './pages/DownloadApp'
 import Access from './pages/Access'
 import Reserva from './pages/Reserva'
 import CompanionAccess from './pages/CompanionAccess'
-import TermsAndConditions from './pages/TermsAndConditions'
 // Las dos paginas publicas que pide Google para publicar la pantalla de
 // «Entrar con Google». No confundir con `TermsAndConditions`, que es lo que el
 // huesped acepta en su preregistro, con las normas del condominio dentro.
@@ -46,13 +40,11 @@ export default function App() {
       />
       <Route path="/invitacion" element={<Invitation />} />
       <Route path="/invitación" element={<Navigate to="/invitacion" replace />} />
-      <Route path="/login" element={<Login />} />
       {/*
         Donde cae el enlace de recuperar la contraseña. Estaba la pantalla y no
         estaba la ruta, asi que no se podia llegar a ella ni escribiendola.
       */}
       <Route path="/nueva-contrasena" element={<PasswordReset />} />
-      <Route path="/visit-details" element={<VisitDetails />} />
       {/*
         Los tres sitios donde puede caer el enlace de un huesped van detras
         del aviso de prevencion: el paso 1, el paso 2 --si ya habia empezado,
@@ -74,14 +66,31 @@ export default function App() {
           </AvisoDePrevencion>
         }
       />
-      <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
       <Route path="/privacidad" element={<Privacidad />} />
       <Route path="/terminos" element={<Terminos />} />
       <Route path="/companions" element={<Companions />} />
-      <Route path="/validation" element={<Validation />} />
       <Route path="/download-app" element={<DownloadApp />} />
-      <Route path="/temporary-guest-pre-check-in" element={<TemporaryGuestPreCheckIn />} />
-      <Route path="/admin-registration" element={<AdminRegistration />} />
+      {/*
+        Aqui estaban seis rutas de la maqueta de diseño: `/login`,
+        `/visit-details`, `/validation`, `/temporary-guest-pre-check-in`,
+        `/admin-registration` y `/terms-and-conditions`. Se retiran el
+        10/10/2026.
+
+        Ninguna hablaba con la base. `/login` dejaba «entrar» a cualquiera y lo
+        mandaba al preregistro como «Carlos Balazo», con su cedula y su
+        telefono inventados; las demas enseñaban huespedes de mentira. Y no
+        eran solo direcciones escondidas: **la cabecera de todas las pantallas
+        de verdad** llevaba a `/login` desde el logo, desde «Inicio»,
+        «Nosotros», «Contacto» y desde el boton «Iniciar sesion».
+
+        Lo que aquella maqueta queria hacer ya existe en otro sitio: entrar
+        con un codigo es `/r/:codigo`, y el huesped que vuelve inicia sesion
+        dentro del preregistro.
+
+        Los archivos de esas pantallas siguen en `src/pages`, sin ruta, por si
+        el diseño sirve de referencia. Caen aqui abajo, como cualquier
+        direccion que no existe.
+      */}
       <Route path="*" element={<Navigate to="/invitacion" replace />} />
     </Routes>
   )
