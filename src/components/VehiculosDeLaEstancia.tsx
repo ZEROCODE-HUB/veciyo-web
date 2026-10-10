@@ -87,6 +87,29 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
     }
   }
 
+  /*
+    El vehículo que apuntó el anfitrión al reservar llega sin responsable: en
+    ese momento no sabía quién venía. Se completa aquí, y sin eso el
+    preregistro no se cierra.
+  */
+  const asignar = async (vehiculo: VehiculoDelPrecheckin, adultoId: string) => {
+    if (!adultoId) return
+    setError(null)
+    try {
+      await guardarVehiculo(token, {
+        id: vehiculo.id,
+        placa: vehiculo.placa,
+        tipo: vehiculo.tipo ?? undefined,
+        marca: vehiculo.marca ?? undefined,
+        color: vehiculo.color ?? undefined,
+        responsableId: adultoId,
+      })
+      setLista(await vehiculosDelPrecheckin(token))
+    } catch (e) {
+      setError(porQueFallo(e, 'No pudimos guardar quién responde'))
+    }
+  }
+
   const quitar = async (id: string) => {
     setError(null)
     try {
@@ -115,7 +138,7 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
           {lista.map((v) => (
             <li
               key={v.id}
-              className="flex items-center justify-between gap-3 rounded-xl bg-surface-soft px-4 py-3"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface-soft px-4 py-3"
             >
               <div className="min-w-0">
                 <p className="text-sm font-bold text-ink">{v.placa}</p>
@@ -135,6 +158,20 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
               >
                 Quitar
               </button>
+              {!v.responsable_invitado_id && (
+                <div className="w-full">
+                  <Select
+                    label="Falta decir quién responde por este vehículo"
+                    placeholder="Seleccione un adulto de la reserva"
+                    options={adultos.map((a) => ({
+                      value: a.id,
+                      label: `${a.nombre} ${a.apellidos ?? ''}`.trim(),
+                    }))}
+                    value=""
+                    onChange={(e) => void asignar(v, e.target.value)}
+                  />
+                </div>
+              )}
             </li>
           ))}
         </ul>
