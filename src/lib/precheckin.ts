@@ -1260,3 +1260,58 @@ export async function incapacidadesDelPrecheckin(
   const filas = (data ?? []) as { invitado_id: string; motivo: string }[]
   return Object.fromEntries(filas.map((f) => [f.invitado_id, f.motivo]))
 }
+
+/* ========================================================================== *
+ * El huésped que vuelve
+ * ========================================================================== */
+
+/** Lo que ya se sabe de alguien que se alojó antes, para no pedírselo otra vez. */
+export interface MisDatos {
+  nombre: string
+  apellidos: string
+  tipoDocumento: TipoDocumento | null
+  documento: string
+  correo: string
+  telefono: string
+  codigoPais: string
+  direccion: string
+  fechaNacimiento: string
+  ciudadResidencia: string
+  ciudadProcedencia: string
+}
+
+/**
+ * Los datos de la última estancia de quien tiene la sesión abierta.
+ *
+ * No recibe a quién mirar: la base solo mira a quien llama. Devuelve `null`
+ * si la cuenta no tiene nada guardado todavía.
+ */
+export async function misDatosParaPrecheckin(
+  cliente?: ClientePrecheckin | null,
+): Promise<MisDatos | null> {
+  const { data, error } = await conexion(cliente).rpc('mis_datos_para_precheckin')
+  if (error) throw error
+  const fila = (Array.isArray(data) ? data[0] : data) as
+    | Record<string, unknown>
+    | undefined
+  if (!fila) return null
+
+  const texto = (v: unknown) => (typeof v === 'string' ? v : '')
+  const nombre = texto(fila.nombre)
+  // Una cuenta sin nombre ni documento no tiene nada que prellenar.
+  if (!nombre && !texto(fila.documento)) return null
+
+  return {
+    nombre: esNombreDeRelleno(nombre) ? '' : nombre,
+    apellidos: texto(fila.apellidos),
+    tipoDocumento: (fila.tipo_documento as TipoDocumento) ?? null,
+    documento: texto(fila.documento),
+    correo: texto(fila.correo),
+    telefono: texto(fila.telefono),
+    codigoPais: texto(fila.codigo_pais),
+    direccion: texto(fila.direccion),
+    fechaNacimiento: texto(fila.fecha_nacimiento),
+    ciudadResidencia: texto(fila.ciudad_residencia),
+    ciudadProcedencia: texto(fila.ciudad_procedencia),
+  }
+}

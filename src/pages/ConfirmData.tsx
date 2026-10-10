@@ -9,6 +9,7 @@ import Button from '../components/Button'
 import Accordion from '../components/Accordion'
 import Checkbox from '../components/Checkbox'
 import ReglasDelEdificio from '../components/ReglasDelEdificio'
+import UsarMisDatos from '../components/UsarMisDatos'
 import { porQueFallo } from '../lib/motivo'
 import { esMayorDeEdadAlLlegar, hoyEnIso, naceDespuesDeLlegar } from '../lib/edad'
 import {
@@ -24,6 +25,7 @@ import {
   MOTIVOS,
   TIPOS_DOCUMENTO,
   tokenActual,
+  type MisDatos,
   type Motivo,
   type TipoDocumento,
 } from '../lib/precheckin'
@@ -271,6 +273,24 @@ export default function ConfirmData() {
     hayReglas !== null &&
     (!hayReglas || reglasAceptadas)
 
+  /*
+    Quien ya se alojó con Veciyo trae sus datos de la vez anterior. Se ponen
+    donde venga algo —lo que no venga no borra lo que ya había escrito— y los
+    revisa antes de confirmar: una dirección o un teléfono cambian.
+  */
+  const usarMisDatos = (d: MisDatos) => {
+    if (d.nombre) setNombre(d.nombre)
+    if (d.apellidos) setApellidos(d.apellidos)
+    if (d.documento) setDocumento(d.documento)
+    if (d.correo) setCorreo(d.correo)
+    if (d.telefono) setTelefono(d.telefono)
+    if (d.codigoPais) setCodigoPais(d.codigoPais)
+    if (d.direccion) setDireccion(d.direccion)
+    if (d.fechaNacimiento) setFechaNacimiento(d.fechaNacimiento)
+    if (d.ciudadResidencia) setCiudadResidencia(d.ciudadResidencia)
+    if (d.ciudadProcedencia) setCiudadProcedencia(d.ciudadProcedencia)
+  }
+
   const confirmar = async () => {
     if (!completo || guardando) return
     setGuardando(true)
@@ -329,6 +349,8 @@ export default function ConfirmData() {
           Escríbelos tal como figuran en tu {etiquetaDoc.toLowerCase()}. La
           portería los compara con el documento cuando llegues.
         </p>
+
+        <UsarMisDatos onDatos={usarMisDatos} />
 
         <div className="mt-8 space-y-3">
           <Input
