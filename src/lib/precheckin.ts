@@ -967,3 +967,202 @@ export const PARENTESCOS: { value: Parentesco; label: string }[] = [
   { value: 'tutor_legal', label: 'Su tutor legal' },
   { value: 'otro', label: 'Otra persona' },
 ]
+
+/* ========================================================================== *
+ * Horas previstas, reglas del edificio y vehículos
+ *
+ * Las tres las pidió el cliente el 09/10/2026 y ninguna existía en la web:
+ * las horas tenían columna desde el primer día y nadie las escribía; las
+ * reglas solo se podían leer con sesión, que el huésped no tiene; y los
+ * vehículos se anunciaban en la portada y no se pedían en ningún sitio.
+ * ========================================================================== */
+
+/** Lo que hace falta saber al volver al enlace, para no pedirlo dos veces. */
+export interface EstadoDelPrecheckin {
+  /** `HH:mm`, o vacío. */
+  horaLlegada: string
+  horaSalida: string
+  /** Si el edificio tiene reglas vigentes para huéspedes. Sin ellas no se piden. */
+  hayReglamento: boolean
+  reglamentoAceptado: boolean
+}
+
+export async function estadoDelPrecheckin(
+  token: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<EstadoDelPrecheckin> {
+  const { data, error } = await conexion(cliente).rpc('estado_del_precheckin', {
+    p_token: token,
+  })
+  if (error) throw error
+  const fila = (Array.isArray(data) ? data[0] : data) as
+    | Record<string, unknown>
+    | undefined
+  // Postgres devuelve `HH:mm:ss`; el campo de hora del navegador quiere `HH:mm`.
+  const hora = (valor: unknown) =>
+    typeof valor === 'string' ? valor.slice(0, 5) : ''
+  return {
+    horaLlegada: hora(fila?.hora_llegada),
+    horaSalida: hora(fila?.hora_salida),
+    hayReglamento: fila?.hay_reglamento === true,
+    reglamentoAceptado: fila?.reglamento_aceptado === true,
+  }
+}
+
+/**
+ * La hora aproximada de llegada y de salida.
+ *
+ * Solo con el enlace del titular: la hora es de la estancia, no de cada
+ * persona. Vacío se guarda como «no lo dijo».
+ */
+export async function guardarHoras(
+  token: string,
+  horas: { llegada: string; salida: string },
+  cliente?: ClientePrecheckin | null,
+): Promise<void> {
+  const { error } = await conexion(cliente).rpc('guardar_horas_precheckin', {
+    p_token: token,
+    p_hora_llegada: horas.llegada || null,
+    p_hora_salida: horas.salida || null,
+  })
+  if (error) throw error
+}
+
+/** Las reglas del edificio para huéspedes, por secciones. */
+export interface Reglamento {
+  id: string
+  titulo: string
+  version: number
+  secciones: { titulo: string; items: string[] }[]
+}
+
+/** `null` si el edificio no tiene unas vigentes: entonces no hay nada que aceptar. */
+export async function reglamentoDeLaEstancia(
+  token: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<Reglamento | null> {
+  const { data, error } = await conexion(cliente).rpc(
+    'reglamento_de_la_estancia',
+    { p_token: token },
+  )
+  if (error) throw error
+  const fila = (Array.isArray(data) ? data[0] : data) as
+    | { id: string; titulo: string; version: number; contenido: unknown }
+    | undefined
+  if (!fila) return null
+
+  const secciones = Array.isArray(fila.contenido)
+    ? (fila.contenido as { titulo?: string; items?: string[] }[])
+    : []
+
+  return {
+    id: fila.id,
+    titulo: fila.titulo,
+    version: fila.version,
+    secciones: secciones.map((s) => ({
+      titulo: s.titulo ?? '',
+      items: s.items ?? [],
+    })),
+  }
+}
+
+/**
+ * Quien trae el enlace acepta las reglas del edificio.
+ *
+ * Vale para el titular y para cada acompañante, cada uno con el suyo: igual
+ * que los términos, nadie las acepta por otro adulto.
+ */
+export async function aceptarReglamento(
+  token: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<void> {
+  const { error } = await conexion(cliente).rpc('aceptar_reglamento_precheckin', {
+    p_token: token,
+  })
+  if (error) throw error
+}
+
+/** Los tipos de vehículo que la base acepta. */
+export const TIPOS_VEHICULO = [
+  { value: 'auto', label: 'Automóvil' },
+  { value: 'camioneta', label: 'Camioneta' },
+  { value: 'moto', label: 'Moto' },
+  { value: 'bus', label: 'Bus' },
+  { value: 'van', label: 'Van' },
+] as const
+
+export type TipoVehiculo = (typeof TIPOS_VEHICULO)[number]['value']
+
+export interface VehiculoDelPrecheckin {
+  id: string
+  placa: string
+  tipo: TipoVehiculo | null
+  marca: string | null
+  color: string | null
+  responsable_invitado_id: string | null
+  responsable_nombre: string | null
+}
+
+/**
+ * La placa como la guarda la base: mayúsculas y sin separadores.
+ *
+ * Es la misma limpieza que hace `guardar_vehiculo_precheckin`. Se repite aquí
+ * para poder decir «falta la placa» antes de ir por red y para enseñarla ya
+ * limpia mientras se escribe: «abc-123» y «ABC 123» son el mismo vehículo, y
+ * la portería lo busca de una sola forma.
+ */
+export function normalizarPlaca(placa: string): string {
+  return placa.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+}
+
+export async function vehiculosDelPrecheckin(
+  token: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<VehiculoDelPrecheckin[]> {
+  const { data, error } = await conexion(cliente).rpc('vehiculos_del_precheckin', {
+    p_token: token,
+  })
+  if (error) throw error
+  return (data as VehiculoDelPrecheckin[]) ?? []
+}
+
+export async function guardarVehiculo(
+  token: string,
+  vehiculo: {
+    id?: string
+    placa: string
+    tipo?: TipoVehiculo
+    marca?: string
+    color?: string
+    /** Un adulto de esta misma reserva. La base lo comprueba. */
+    responsableId: string
+  },
+  cliente?: ClientePrecheckin | null,
+): Promise<string> {
+  const { data, error } = await conexion(cliente).rpc(
+    'guardar_vehiculo_precheckin',
+    {
+      p_token: token,
+      p_placa: vehiculo.placa,
+      p_responsable_invitado_id: vehiculo.responsableId,
+      p_tipo: vehiculo.tipo,
+      p_marca: vehiculo.marca,
+      p_color: vehiculo.color,
+      p_vehiculo_id: vehiculo.id,
+    },
+  )
+  if (error) throw error
+  return data as string
+}
+
+export async function quitarVehiculo(
+  token: string,
+  vehiculoId: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<void> {
+  const { error } = await conexion(cliente).rpc('quitar_vehiculo_precheckin', {
+    p_token: token,
+    p_vehiculo_id: vehiculoId,
+  })
+  if (error) throw error
+}

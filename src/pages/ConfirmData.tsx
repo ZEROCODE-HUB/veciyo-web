@@ -8,11 +8,15 @@ import Select from '../components/Select'
 import Button from '../components/Button'
 import Accordion from '../components/Accordion'
 import Checkbox from '../components/Checkbox'
+import ReglasDelEdificio from '../components/ReglasDelEdificio'
 import { porQueFallo } from '../lib/motivo'
 import { esMayorDeEdadAlLlegar, hoyEnIso, naceDespuesDeLlegar } from '../lib/edad'
 import {
+  aceptarReglamento,
   aceptarTerminos,
   consultarPrecheckin,
+  estadoDelPrecheckin,
+  guardarHoras,
   fichaDelPrecheckin,
   legalesDeLaEstancia,
   type DocumentoLegal,
@@ -75,6 +79,20 @@ export default function ConfirmData() {
   const [ciudadProcedencia, setCiudadProcedencia] = useState('')
   const [costo, setCosto] = useState('')
   const [aceptados, setAceptados] = useState(false)
+  /*
+    A qué hora llega y a qué hora se va. Son de la estancia, no de la persona:
+    la portería las lee para saber cuándo esperar a alguien. Opcionales --quien
+    todavía no tiene vuelo no lo sabe--.
+  */
+  const [horaLlegada, setHoraLlegada] = useState('')
+  const [horaSalida, setHoraSalida] = useState('')
+  /*
+    Las reglas del edificio. `hayReglas` empieza sin saberse: mientras no se
+    sepa no se deja continuar, porque si el edificio las tiene el cierre las
+    va a exigir y el huésped se enteraría en el último botón.
+  */
+  const [hayReglas, setHayReglas] = useState<boolean | null>(null)
+  const [reglasAceptadas, setReglasAceptadas] = useState(false)
   /*
     Los términos reales, no los cuatro párrafos que había escritos aquí. Uno de
     ellos se titulaba «Términos y Condiciones del Condominio» y en la base hay
@@ -160,6 +178,23 @@ export default function ConfirmData() {
   useEffect(() => {
     if (!token) return
     let vigente = true
+    estadoDelPrecheckin(token)
+      .then((estado) => {
+        if (!vigente) return
+        setHoraLlegada(estado.horaLlegada)
+        setHoraSalida(estado.horaSalida)
+        setReglasAceptadas(estado.reglamentoAceptado)
+      })
+      // Sin lo ya guardado se vuelve a pedir: es peor no dejar escribirlo.
+      .catch(() => {})
+    return () => {
+      vigente = false
+    }
+  }, [token])
+
+  useEffect(() => {
+    if (!token) return
+    let vigente = true
     legalesDeLaEstancia(token)
       .then((docs) => {
         if (vigente) setLegales(docs)
@@ -232,7 +267,9 @@ export default function ConfirmData() {
     documento.trim() !== '' &&
     correo.includes('@') &&
     errorDeFecha === '' &&
-    aceptados
+    aceptados &&
+    hayReglas !== null &&
+    (!hayReglas || reglasAceptadas)
 
   const confirmar = async () => {
     if (!completo || guardando) return
@@ -261,6 +298,10 @@ export default function ConfirmData() {
       // Dos llamadas y no una: aceptar los términos es un hecho con fecha y
       // con consecuencias legales, no un campo más de la ficha.
       await aceptarTerminos(token)
+      await guardarHoras(token, { llegada: horaLlegada, salida: horaSalida })
+      // Otro hecho con fecha, y de otro documento: las reglas no son los
+      // términos. Solo si el edificio tiene unas que aceptar.
+      if (hayReglas) await aceptarReglamento(token)
       navigate('/companions', { state: { nombre: `${nombre} ${apellidos}` } })
     } catch (e) {
       setError(
@@ -416,6 +457,32 @@ export default function ConfirmData() {
         </div>
 
         <div className="mt-6 border-t border-line pt-5">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-ink/50">
+            Llegada y salida
+          </p>
+          <p className="mb-3 text-sm text-ink/70">
+            Una hora aproximada, para que la portería sepa cuándo esperarte. Si
+            todavía no la sabes, déjalas vacías.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              label="Hora de llegada"
+              type="time"
+              tone="soft"
+              value={horaLlegada}
+              onChange={(e) => setHoraLlegada(e.target.value)}
+            />
+            <Input
+              label="Hora de salida"
+              type="time"
+              tone="soft"
+              value={horaSalida}
+              onChange={(e) => setHoraSalida(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="mt-6 border-t border-line pt-5">
           <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-ink/50">
             Términos y condiciones
           </p>
@@ -445,6 +512,13 @@ export default function ConfirmData() {
             />
           </div>
         </div>
+
+        <ReglasDelEdificio
+          token={token}
+          aceptadas={reglasAceptadas}
+          onCambiar={setReglasAceptadas}
+          onSaberSiHay={setHayReglas}
+        />
 
         {error && (
           <p className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-700">

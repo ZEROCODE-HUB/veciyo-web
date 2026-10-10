@@ -9,13 +9,16 @@ import Checkbox from '../components/Checkbox'
 import Accordion from '../components/Accordion'
 import CampoTelefono from '../components/CampoTelefono'
 import MenoresQueTraigo from '../components/MenoresQueTraigo'
+import ReglasDelEdificio from '../components/ReglasDelEdificio'
 import { PAIS_POR_DEFECTO } from '../lib/paises'
 import { porQueFallo } from '../lib/motivo'
 import { hoyEnIso } from '../lib/edad'
 import {
   TIPOS_DOCUMENTO,
   aceptarMisTerminosAcompanante,
+  aceptarReglamento,
   consultarMiPrecheckin,
+  estadoDelPrecheckin,
   guardarMiFichaAcompanante,
   legalesDeLaEstancia,
   type DocumentoLegal,
@@ -83,6 +86,9 @@ export default function CompanionAccess() {
   })
   const [legales, setLegales] = useState<DocumentoLegal[]>([])
   const [aceptados, setAceptados] = useState(false)
+  // Las reglas del edificio: igual que los términos, cada adulto las suyas.
+  const [hayReglas, setHayReglas] = useState<boolean | null>(null)
+  const [reglasAceptadas, setReglasAceptadas] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -134,6 +140,10 @@ export default function CompanionAccess() {
       .then((docs) => vigente && setLegales(docs))
       .catch(() => vigente && setLegales([]))
 
+    estadoDelPrecheckin(token)
+      .then((e) => vigente && setReglasAceptadas(e.reglamentoAceptado))
+      .catch(() => {})
+
     return () => {
       vigente = false
     }
@@ -149,7 +159,8 @@ export default function CompanionAccess() {
   const completo =
     ficha.nombre.trim() !== '' &&
     (esMenor || (ficha.documento.trim() !== '' && ficha.tipoDocumento !== '')) &&
-    (esMenor || aceptados)
+    (esMenor ||
+      (aceptados && hayReglas !== null && (!hayReglas || reglasAceptadas)))
 
   const enviar = async () => {
     if (!token || !completo || guardando) return
@@ -174,6 +185,7 @@ export default function CompanionAccess() {
         sello temporal y la versión del reglamento que se aceptó.
       */
       if (!esMenor) await aceptarMisTerminosAcompanante(token)
+      if (!esMenor && hayReglas) await aceptarReglamento(token)
       setEstado('hecho')
     } catch (e) {
       setError(porQueFallo(e, 'No pudimos guardar tus datos'))
@@ -355,6 +367,15 @@ export default function CompanionAccess() {
                 por ti.
               </p>
             </div>
+          )}
+
+          {!esMenor && token && (
+            <ReglasDelEdificio
+              token={token}
+              aceptadas={reglasAceptadas}
+              onCambiar={setReglasAceptadas}
+              onSaberSiHay={setHayReglas}
+            />
           )}
 
           {/*

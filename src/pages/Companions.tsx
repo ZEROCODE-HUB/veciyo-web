@@ -7,6 +7,7 @@ import Select from '../components/Select'
 import Button from '../components/Button'
 import Loading from '../components/Loading'
 import Modal from '../components/Modal'
+import VehiculosDeLaEstancia from '../components/VehiculosDeLaEstancia'
 import { porQueFallo } from '../lib/motivo'
 import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
 import {
@@ -802,6 +803,8 @@ export default function Companions() {
                 </div>
               </Modal>
             )}
+
+            <VehiculosDeLaEstancia token={token} adultos={adultos} />
 
             {error && (
               <p className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-700">

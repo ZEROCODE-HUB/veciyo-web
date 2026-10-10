@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   esNombreDeRelleno,
   NOMBRE_SIN_CONFIRMAR,
+  normalizarPlaca,
   topeDePersonas,
   type EstanciaPrecheckin,
 } from './precheckin'
@@ -100,5 +101,18 @@ describe('cuántas personas caben', () => {
       esDeLaReserva: false,
     })
     expect(topeDePersonas(null)).toEqual({ tope: null, esDeLaReserva: false })
+  })
+})
+
+describe('normalizarPlaca', () => {
+  it('deja la placa como la busca la porteria', () => {
+    expect(normalizarPlaca('abc-123')).toBe('ABC123')
+    expect(normalizarPlaca(' ABC 123 ')).toBe('ABC123')
+    expect(normalizarPlaca('kxz·98f')).toBe('KXZ98F')
+  })
+
+  it('lo que no tiene ni una letra ni un numero queda vacio', () => {
+    // Es lo que deja apagado el boton de guardar: «- -» no es una placa.
+    expect(normalizarPlaca(' - - ')).toBe('')
   })
 })
