@@ -1,7 +1,24 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import SocialIcons from './SocialIcons'
+import { contactoDeSoporte, enlaceDeSoporte } from '../lib/soporte'
 
 export default function Footer() {
+  const [soporte, setSoporte] = useState<string | null>(null)
+
+  useEffect(() => {
+    let vigente = true
+    // Si falla, no hay enlace: el pie no es sitio para un error.
+    contactoDeSoporte()
+      .then((c) => {
+        if (vigente) setSoporte(enlaceDeSoporte(c))
+      })
+      .catch(() => {})
+    return () => {
+      vigente = false
+    }
+  }, [])
+
   return (
     <footer className="bg-brand text-ink">
       <div className="mx-auto max-w-content px-4 py-8 sm:px-6 lg:px-8">
@@ -24,10 +41,22 @@ export default function Footer() {
             </Link>
           </li>
           {/*
-            Aqui habia un enlace «Soporte» a `/soporte`, una direccion que no
-            existe: devolvia a la portada. Vuelve cuando haya a donde mandar a
-            alguien que necesita ayuda.
+            «Soporte» llevaba a `/soporte`, una dirección que no existía. Ahora
+            sale del correo o el WhatsApp que haya **en la base**; si no hay
+            ninguno, no se enseña.
           */}
+          {soporte && (
+            <li>
+              <a
+                href={soporte}
+                target="_blank"
+                rel="noreferrer"
+                className="hover:opacity-80"
+              >
+                Soporte
+              </a>
+            </li>
+          )}
         </ul>
 
         <SocialIcons className="mt-6" />

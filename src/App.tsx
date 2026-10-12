@@ -9,8 +9,8 @@ import Access from './pages/Access'
 import Reserva from './pages/Reserva'
 import CompanionAccess from './pages/CompanionAccess'
 // Las dos paginas publicas que pide Google para publicar la pantalla de
-// «Entrar con Google». No confundir con `TermsAndConditions`, que es lo que el
-// huesped acepta en su preregistro, con las normas del condominio dentro.
+// «Entrar con Google». Lo que el huesped acepta en su preregistro es otra
+// cosa, y vive dentro del propio preregistro.
 import Privacidad from './pages/Privacidad'
 import Terminos from './pages/Terminos'
 import AvisoDePrevencion from './components/AvisoDePrevencion'
@@ -87,9 +87,7 @@ export default function App() {
         con un codigo es `/r/:codigo`, y el huesped que vuelve inicia sesion
         dentro del preregistro.
 
-        Los archivos de esas pantallas siguen en `src/pages`, sin ruta, por si
-        el diseño sirve de referencia. Caen aqui abajo, como cualquier
-        direccion que no existe.
+        Los archivos de esas pantallas se borraron el 11/10/2026.
       */}
       <Route path="*" element={<Navigate to="/invitacion" replace />} />
     </Routes>

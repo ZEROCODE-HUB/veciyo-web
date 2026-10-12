@@ -2,9 +2,9 @@
  * Términos de servicio de VeciYo.
  *
  * La otra dirección pública que pide Google para publicar la pantalla de
- * «Entrar con Google». No confundir con `TermsAndConditions.tsx`, que es otra
- * cosa: lo que el **huésped acepta** durante su preregistro, con las normas del
- * condominio dentro. Esta es la relación entre VeciYo y quien lo usa.
+ * «Entrar con Google». No es lo que el **huésped acepta** durante su
+ * preregistro, con las normas del condominio dentro: esta es la relación
+ * entre VeciYo y quien lo usa.
  *
  * **No la ha revisado un abogado.** Es un punto de partida honesto; conviene
  * que la vea uno antes de la marcha blanca.
