@@ -499,7 +499,7 @@ export default function Companions() {
                           >
                             {persona.tiene_documento
                               ? '✓ Subió la foto de su documento'
-                              : 'Le falta la foto de su documento'}
+                              : 'Sin foto de su documento (opcional, la sube desde su enlace)'}
                           </p>
                           <p
                             className={`mt-1 text-xs font-semibold ${

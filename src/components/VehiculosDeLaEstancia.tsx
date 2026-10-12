@@ -63,7 +63,13 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
     setResponsableId('')
   }
 
-  const completo = normalizarPlaca(placa) !== '' && responsableId !== ''
+  // La misma placa se podía apuntar dos veces en la misma estancia.
+  const repetida =
+    normalizarPlaca(placa) !== '' &&
+    lista.some((v) => normalizarPlaca(v.placa) === normalizarPlaca(placa))
+
+  const completo =
+    normalizarPlaca(placa) !== '' && responsableId !== '' && !repetida
 
   const anadir = async () => {
     if (!completo || guardando) return
@@ -184,6 +190,7 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
             tone="soft"
             placeholder="ABC123"
             value={placa}
+            error={repetida ? 'Ese vehículo ya está en la lista.' : ''}
             onChange={(e) => setPlaca(normalizarPlaca(e.target.value))}
           />
           <Select

@@ -13,6 +13,16 @@ import UsarMisDatos from '../components/UsarMisDatos'
 import { porQueFallo } from '../lib/motivo'
 import { esMayorDeEdadAlLlegar, hoyEnIso, naceDespuesDeLlegar } from '../lib/edad'
 import {
+  costoComoNumero,
+  errorDeCorreo,
+  errorDeCosto,
+  errorDeDocumento,
+  errorDeNacimientoImposible,
+  errorDeTelefono,
+  loQueFaltaEnLaFicha,
+} from '../lib/ficha'
+import { NACIONALIDADES } from '../lib/nacionalidades'
+import {
   aceptarReglamento,
   aceptarTerminos,
   consultarPrecheckin,
@@ -80,6 +90,11 @@ export default function ConfirmData() {
   const [ciudadResidencia, setCiudadResidencia] = useState('')
   const [ciudadProcedencia, setCiudadProcedencia] = useState('')
   const [costo, setCosto] = useState('')
+  /*
+    La pide el reporte de extranjeros y no se preguntaba en ninguna pantalla:
+    la base la aceptaba desde el principio y llegaba siempre vacía.
+  */
+  const [nacionalidad, setNacionalidad] = useState('')
   const [aceptados, setAceptados] = useState(false)
   /*
     A qué hora llega y a qué hora se va. Son de la estancia, no de la persona:
@@ -161,6 +176,7 @@ export default function ConfirmData() {
         setCiudadResidencia(ficha.ciudadResidencia)
         setCiudadProcedencia(ficha.ciudadProcedencia)
         setCosto(ficha.costo === null ? '' : String(ficha.costo))
+        setNacionalidad(ficha.nacionalidad)
         setAceptados(ficha.terminosAceptados)
         if (ficha.tipoDocumento) setDocTypeGuardado(ficha.tipoDocumento)
       })
@@ -257,21 +273,43 @@ export default function ConfirmData() {
 
   const errorDeFecha = !fechaNacimiento
     ? ''
-    : naceDespuesDeLlegar(fechaNacimiento, llegada)
-      ? 'Esa fecha es posterior al día de llegada. Revisala.'
-      : mayorDeEdad === false
-        ? 'Quien reserva tiene que ser mayor de edad. Si la fecha está mal corregila; si no, la reserva la tiene que cerrar un adulto.'
-        : ''
+    : errorDeNacimientoImposible(fechaNacimiento)
+      ? errorDeNacimientoImposible(fechaNacimiento)
+      : naceDespuesDeLlegar(fechaNacimiento, llegada)
+        ? 'Esa fecha es posterior al día de llegada. Revisala.'
+        : mayorDeEdad === false
+          ? 'Quien reserva tiene que ser mayor de edad. Si la fecha está mal corregila; si no, la reserva la tiene que cerrar un adulto.'
+          : ''
 
-  const completo =
-    nombre.trim() !== '' &&
-    apellidos.trim() !== '' &&
-    documento.trim() !== '' &&
-    correo.includes('@') &&
-    errorDeFecha === '' &&
-    aceptados &&
-    hayReglas !== null &&
-    (!hayReglas || reglasAceptadas)
+  /*
+    Lo que falta, **con nombre**. El botón se quedaba gris sin decir por qué, y
+    lo que el reporte al ministerio exige --ciudades, costo, nacionalidad-- se
+    podía dejar en blanco: el anfitrión se enteraba al reportar, con este
+    registro ya cerrado y sin dónde completarlo (12/10/2026).
+  */
+  const faltan = loQueFaltaEnLaFicha(
+    {
+      nombre,
+      apellidos,
+      tipoDocumento: docType,
+      documento,
+      correo,
+      telefono,
+      fechaNacimiento,
+      nacionalidad,
+      ciudadResidencia,
+      ciudadProcedencia,
+      costo,
+    },
+    { esTitular: true },
+  )
+  if (errorDeFecha !== '' && !faltan.includes('la fecha de nacimiento')) {
+    faltan.push('la fecha de nacimiento')
+  }
+  if (!aceptados) faltan.push('aceptar los términos y condiciones')
+  if (hayReglas && !reglasAceptadas) faltan.push('aceptar las reglas del edificio')
+
+  const completo = faltan.length === 0 && hayReglas !== null
 
   /*
     Quien ya se alojó con Veciyo trae sus datos de la vez anterior. Se ponen
@@ -309,11 +347,12 @@ export default function ConfirmData() {
         fechaNacimiento: fechaNacimiento || undefined,
         ciudadResidencia: ciudadResidencia.trim() || undefined,
         ciudadProcedencia: ciudadProcedencia.trim() || undefined,
+        nacionalidad: nacionalidad || undefined,
         /*
           Lo escribe el huésped y no el anfitrión: quien reserva por un portal
           sabe lo que pagó, y el anfitrión no siempre. Decidido el 02/10/2026.
         */
-        costo: costo.trim() ? Number(costo.replace(/[^0-9.]/g, '')) : undefined,
+        costo: costoComoNumero(costo),
       })
       // Dos llamadas y no una: aceptar los términos es un hecho con fecha y
       // con consecuencias legales, no un campo más de la ficha.
@@ -378,6 +417,7 @@ export default function ConfirmData() {
             tone="soft"
             placeholder="Sin puntos ni guiones"
             value={documento}
+            error={errorDeDocumento(docType, documento)}
             onChange={(e) => setDocumento(e.target.value)}
           />
           <Input
@@ -386,6 +426,7 @@ export default function ConfirmData() {
             tone="soft"
             placeholder="correo@ejemplo.com"
             value={correo}
+            error={errorDeCorreo(correo)}
             onChange={(e) => setCorreo(e.target.value)}
           />
           {/*
@@ -427,6 +468,11 @@ export default function ConfirmData() {
               onTelefonoChange={setTelefono}
               placeholder="Ingrese su número de teléfono"
             />
+            {errorDeTelefono(telefono) ? (
+              <p className="-mt-2 text-xs font-semibold text-red-600">
+                {errorDeTelefono(telefono)}
+              </p>
+            ) : null}
             <Input
               label="Dirección de residencia"
               tone="soft"
@@ -455,7 +501,16 @@ export default function ConfirmData() {
               tone="soft"
               placeholder="850000"
               value={costo}
+              error={errorDeCosto(costo)}
               onChange={(e) => setCosto(e.target.value)}
+            />
+            <Select
+              label="Nacionalidad"
+              tone="soft"
+              placeholder="Seleccione"
+              options={NACIONALIDADES}
+              value={nacionalidad}
+              onChange={(e) => setNacionalidad(e.target.value)}
             />
             {/* Nadie nace mañana: el calendario no ofrece el futuro. */}
             <Input
@@ -545,6 +600,15 @@ export default function ConfirmData() {
         {error && (
           <p className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-700">
             {error}
+          </p>
+        )}
+
+        {faltan.length > 0 && (
+          <p
+            role="status"
+            className="mt-6 rounded-xl bg-amber-50 px-4 py-3 text-center text-sm text-amber-800"
+          >
+            Para continuar falta: {faltan.join(', ')}.
           </p>
         )}
 

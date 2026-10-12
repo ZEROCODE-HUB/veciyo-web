@@ -22,6 +22,12 @@ const TRAVEL_IMAGES = Object.entries(images)
   })
   .map(([, src]) => src) as string[]
 
+/** Dónde vive la aplicación. Se puede cambiar por entorno sin tocar código. */
+const URL_DE_LA_APP = (
+  (import.meta.env.VITE_APP_URL as string | undefined) ??
+  'https://veciyo-app.vercel.app'
+).replace(/\/$/, '')
+
 type Estado =
   | { tipo: 'cargando' }
   | { tipo: 'sin-token' }
@@ -101,7 +107,7 @@ export default function Invitation() {
             />
           )}
 
-          {estado.tipo === 'lista' && <Detalle datos={estado.datos} />}
+          {estado.tipo === 'lista' && <Detalle datos={estado.datos} token={token} />}
         </div>
       </div>
     </div>
@@ -121,7 +127,13 @@ function Mensaje({ titulo, detalle }: { titulo: string; detalle: string }) {
   )
 }
 
-function Detalle({ datos }: { datos: InvitacionConsultada }) {
+function Detalle({
+  datos,
+  token,
+}: {
+  datos: InvitacionConsultada
+  token: string | null
+}) {
   const esHuesped = datos.rol === 'huesped_temporal'
 
   return (
@@ -178,17 +190,30 @@ function Detalle({ datos }: { datos: InvitacionConsultada }) {
       <div className="mt-10 rounded-xl border border-white/30 bg-white/40 px-5 py-4 text-left backdrop-blur-md">
         <p className="text-sm font-bold text-ink">Cómo entrar</p>
         <ol className="mt-2 space-y-1.5 text-sm leading-relaxed text-ink/80">
-          <li>1. Instala la aplicación VeciYo si aún no la tienes.</li>
+          <li>1. Abre VeciYo con el botón de abajo.</li>
           <li>
             2. Crea tu cuenta con <strong>{datos.correo}</strong>, el mismo
             correo al que se emitió esta invitación.
           </li>
-          <li>3. Vuelve a abrir este enlace: la aplicación lo reconoce.</li>
         </ol>
         <p className="mt-3 text-xs text-ink/60">
           Tiene que ser ese correo exacto. Con otro, la invitación no se puede
           aceptar.
         </p>
+        {/*
+          Decía «instala la aplicación y vuelve a abrir este enlace» y no había
+          ni un botón: quien terminaba su preregistro y pulsaba «Crear mi
+          cuenta» llegaba aquí y no tenía a dónde ir (12/10/2026). La
+          aplicación abre este mismo camino --`/invitacion?token=`--.
+        */}
+        {token && (
+          <a
+            href={`${URL_DE_LA_APP}/invitacion?token=${encodeURIComponent(token)}`}
+            className="mt-4 block rounded-xl bg-brand px-4 py-3 text-center text-sm font-bold text-white transition-opacity hover:opacity-90"
+          >
+            Abrir VeciYo y crear mi cuenta
+          </a>
+        )}
       </div>
     </>
   )

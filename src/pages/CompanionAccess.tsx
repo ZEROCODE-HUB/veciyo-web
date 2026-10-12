@@ -12,7 +12,13 @@ import MenoresQueTraigo from '../components/MenoresQueTraigo'
 import ReglasDelEdificio from '../components/ReglasDelEdificio'
 import { PAIS_POR_DEFECTO } from '../lib/paises'
 import { porQueFallo } from '../lib/motivo'
-import { hoyEnIso } from '../lib/edad'
+import {
+  errorDeDocumento,
+  errorDeNacimientoImposible,
+  loQueFaltaEnLaFicha,
+} from '../lib/ficha'
+import { NACIONALIDADES } from '../lib/nacionalidades'
+import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
 import {
   TIPOS_DOCUMENTO,
   aceptarMisTerminosAcompanante,
@@ -23,6 +29,7 @@ import {
   legalesDeLaEstancia,
   type DocumentoLegal,
   type TipoDocumento,
+  subirDocumentoPrecheckin,
 } from '../lib/precheckin'
 
 /**
@@ -54,6 +61,7 @@ interface Ficha {
   telefono: string
   codigoPais: string
   fechaNacimiento: string
+  nacionalidad: string
   ciudadResidencia: string
   ciudadProcedencia: string
 }
@@ -67,6 +75,7 @@ const VACIA: Ficha = {
   telefono: '',
   codigoPais: PAIS_POR_DEFECTO,
   fechaNacimiento: '',
+  nacionalidad: '',
   ciudadResidencia: '',
   ciudadProcedencia: '',
 }
@@ -91,6 +100,14 @@ export default function CompanionAccess() {
   const [reglasAceptadas, setReglasAceptadas] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /*
+    La foto del documento, que al titular se le reclamaba --«Le falta la foto
+    de su documento»-- y este enlace no tenía dónde subir (12/10/2026). Sigue
+    siendo opcional, como la del titular: la portería compara el número.
+  */
+  const [miId, setMiId] = useState<string | null>(null)
+  const [fotoSubida, setFotoSubida] = useState(false)
+  const [subiendoFoto, setSubiendoFoto] = useState(false)
 
   useEffect(() => {
     if (!token) {
@@ -121,10 +138,12 @@ export default function CompanionAccess() {
           telefono: texto(fila.telefono),
           codigoPais: texto(fila.codigo_pais) || PAIS_POR_DEFECTO,
           fechaNacimiento: texto(fila.fecha_nacimiento),
+          nacionalidad: texto(fila.nacionalidad),
           ciudadResidencia: texto(fila.ciudad_residencia),
           ciudadProcedencia: texto(fila.ciudad_procedencia),
         })
         setEsMenor(fila.es_menor === true)
+        setMiId(typeof fila.invitado_id === 'string' ? fila.invitado_id : null)
         setAceptados(fila.terminos_aceptados === true)
         setEstancia({
           condominio: texto(fila.condominio),
@@ -156,11 +175,48 @@ export default function CompanionAccess() {
     A un menor no se le pide documento propio ni se le hace aceptar nada: por él
     responde quien le acompaña. Es la misma regla que aplica la base al cerrar.
   */
-  const completo =
-    ficha.nombre.trim() !== '' &&
-    (esMenor || (ficha.documento.trim() !== '' && ficha.tipoDocumento !== '')) &&
-    (esMenor ||
-      (aceptados && hayReglas !== null && (!hayReglas || reglasAceptadas)))
+  /*
+    Lo que falta, con nombre, igual que al titular. Y un adulto es un adulto:
+    este enlace se podía completar con una fecha de 2012 y el acompañante
+    quedaba registrado como mayor. A un menor lo apunta quien responde por él.
+  */
+  const faltan = esMenor
+    ? ficha.nombre.trim() === ''
+      ? ['el nombre']
+      : []
+    : loQueFaltaEnLaFicha({ ...ficha, costo: '' }, { esTitular: false })
+  const errorDeFecha = esMenor
+    ? ''
+    : errorDeNacimientoImposible(ficha.fechaNacimiento) ||
+      (ficha.fechaNacimiento &&
+      !esMayorDeEdadAlLlegar(ficha.fechaNacimiento, estancia.desde)
+        ? 'Este enlace es para un adulto. A un menor lo añade quien responde por él, desde su propio registro.'
+        : '')
+  if (errorDeFecha !== '' && !faltan.includes('la fecha de nacimiento')) {
+    faltan.push('la fecha de nacimiento')
+  }
+  if (!esMenor && !aceptados) faltan.push('aceptar los términos y condiciones')
+  if (!esMenor && hayReglas && !reglasAceptadas) {
+    faltan.push('aceptar las reglas del edificio')
+  }
+
+  const completo = faltan.length === 0 && (esMenor || hayReglas !== null)
+
+  const subirMiFoto = async (archivo: File) => {
+    if (!token || !miId || subiendoFoto) return
+    setSubiendoFoto(true)
+    setError(null)
+    try {
+      // Con el uuid propio: sin él la función entiende «el titular», y la
+      // foto de este acompañante acabaría en la ficha de quien reservó.
+      await subirDocumentoPrecheckin(token, archivo, 'frente', miId)
+      setFotoSubida(true)
+    } catch (e) {
+      setError(porQueFallo(e, 'No se pudo guardar la foto del documento'))
+    } finally {
+      setSubiendoFoto(false)
+    }
+  }
 
   const enviar = async () => {
     if (!token || !completo || guardando) return
@@ -176,6 +232,7 @@ export default function CompanionAccess() {
         telefono: ficha.telefono.trim() || undefined,
         codigoPais: ficha.telefono.trim() ? ficha.codigoPais : undefined,
         fechaNacimiento: ficha.fechaNacimiento || undefined,
+        nacionalidad: ficha.nacionalidad || undefined,
         ciudadResidencia: ficha.ciudadResidencia.trim() || undefined,
         ciudadProcedencia: ficha.ciudadProcedencia.trim() || undefined,
       })
@@ -291,9 +348,46 @@ export default function CompanionAccess() {
                   tone="soft"
                   placeholder="Sin puntos ni guiones"
                   value={ficha.documento}
+                  error={errorDeDocumento(ficha.tipoDocumento, ficha.documento)}
                   onChange={(e) => campo('documento')(e.target.value)}
                 />
               </>
+            )}
+
+            {!esMenor && miId && (
+              <div className="rounded-xl border border-brand-100 bg-surface-soft px-4 py-3">
+                <p className="text-sm font-semibold text-ink">
+                  Foto de tu documento (opcional)
+                </p>
+                <p
+                  className={`mt-1 text-xs font-semibold ${
+                    fotoSubida ? 'text-green-700' : 'text-ink/60'
+                  }`}
+                >
+                  {fotoSubida
+                    ? '✓ Foto guardada'
+                    : 'Si la subes, la portería te recibe más rápido.'}
+                </p>
+                <label className="mt-2 block text-xs font-semibold text-primary underline">
+                  {subiendoFoto
+                    ? 'Subiendo…'
+                    : fotoSubida
+                      ? 'Cambiar la foto'
+                      : 'Subir la foto de mi documento'}
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={subiendoFoto}
+                    onChange={(e) => {
+                      const archivo = e.target.files?.[0]
+                      if (archivo) void subirMiFoto(archivo)
+                      // Para poder volver a elegir el mismo si falló.
+                      e.target.value = ''
+                    }}
+                  />
+                </label>
+              </div>
             )}
 
             <Input
@@ -319,8 +413,19 @@ export default function CompanionAccess() {
               tone="soft"
               max={hoyEnIso()}
               value={ficha.fechaNacimiento}
+              error={errorDeFecha}
               onChange={(e) => campo('fechaNacimiento')(e.target.value)}
             />
+            {!esMenor && (
+              <Select
+                label="Nacionalidad"
+                tone="soft"
+                placeholder="Seleccione"
+                options={NACIONALIDADES}
+                value={ficha.nacionalidad}
+                onChange={(e) => campo('nacionalidad')(e.target.value)}
+              />
+            )}
             <Input
               label="Ciudad donde vives"
               tone="soft"
@@ -391,6 +496,15 @@ export default function CompanionAccess() {
           )}
 
           {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+
+          {faltan.length > 0 && (
+            <p
+              role="status"
+              className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-center text-sm text-amber-800"
+            >
+              Para continuar falta: {faltan.join(', ')}.
+            </p>
+          )}
 
           <Button
             type="button"
