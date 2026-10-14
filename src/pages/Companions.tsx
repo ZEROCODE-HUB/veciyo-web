@@ -11,6 +11,7 @@ import VehiculosDeLaEstancia from '../components/VehiculosDeLaEstancia'
 import DeclararIncapacidad from '../components/DeclararIncapacidad'
 import { porQueFallo } from '../lib/motivo'
 import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
+import { errorDeFechaExpedicion, pideFechaExpedicion } from '../lib/ficha'
 import {
   cerrarPrecheckin,
   incapacidadesDelPrecheckin,
@@ -18,6 +19,7 @@ import {
   consultarPrecheckin,
   topeDePersonas,
   guardarAcompanante,
+  guardarFechaExpedicion,
   abrirEnlaceAcompanante,
   listarAcompanantes,
   quitarAcompanante,
@@ -83,6 +85,8 @@ export default function Companions() {
   const [apellidos, setApellidos] = useState('')
   const [tipoDoc, setTipoDoc] = useState<TipoDocumento | ''>('')
   const [documento, setDocumento] = useState('')
+  // Solo con cédula de extranjería o PPT: Tus Datos no los consulta sin ella.
+  const [fechaExpedicion, setFechaExpedicion] = useState('')
   const [telefono, setTelefono] = useState('')
   const [correo, setCorreo] = useState('')
   const [fechaNacimiento, setFechaNacimiento] = useState('')
@@ -155,6 +159,7 @@ export default function Companions() {
     setApellidos('')
     setTipoDoc('')
     setDocumento('')
+    setFechaExpedicion('')
     setTelefono('')
     setCorreo('')
     setFechaNacimiento('')
@@ -211,7 +216,7 @@ export default function Companions() {
     if (!puedeAnadir) return
     setError(null)
     try {
-      await guardarAcompanante(token, {
+      const id = await guardarAcompanante(token, {
         // Vacío vale: la base lo nombra «Acompañante N» hasta que él lo diga.
         nombre: nombre.trim(),
         apellidos: apellidos.trim() || undefined,
@@ -224,6 +229,9 @@ export default function Companions() {
         responsableId: esMenor ? responsableId : undefined,
         parentesco: esMenor ? (parentesco as Parentesco) : undefined,
       })
+      if (!esMenor && pideFechaExpedicion(tipoDoc) && fechaExpedicion) {
+        await guardarFechaExpedicion(token, fechaExpedicion, id)
+      }
       const [acompanantes, mayores] = await Promise.all([
         listarAcompanantes(token),
         // Quien acaba de entrar como adulto pasa a poder hacerse cargo de un
@@ -770,6 +778,21 @@ export default function Companions() {
                   value={documento}
                   onChange={(e) => setDocumento(e.target.value)}
                 />
+                {!esMenor && pideFechaExpedicion(tipoDoc) ? (
+                  <Input
+                    label="Fecha de expedición del documento"
+                    type="date"
+                    tone="soft"
+                    max={hoyEnIso()}
+                    value={fechaExpedicion}
+                    error={errorDeFechaExpedicion(
+                      fechaExpedicion,
+                      fechaNacimiento,
+                      hoyEnIso(),
+                    )}
+                    onChange={(e) => setFechaExpedicion(e.target.value)}
+                  />
+                ) : null}
 
                 {!esMenor && (
                   <>

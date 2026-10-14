@@ -86,6 +86,33 @@ export function costoComoNumero(costo: string): number | undefined {
   return Number(sinAdornos(costo).replace(',', '.'))
 }
 
+/**
+ * Si ese documento necesita la fecha de expedición.
+ *
+ * Tus Datos no consulta una cédula de extranjería ni un PPT sin ella (lo dice
+ * su documentación). Hasta el 14/10/2026 no se pedía, así que a esos huéspedes
+ * no se los podía consultar nunca.
+ */
+export function pideFechaExpedicion(
+  tipo: TipoDocumento | string | null | undefined,
+): boolean {
+  return tipo === 'cedula_extranjeria' || tipo === 'ppt'
+}
+
+/** Por qué esa fecha de expedición no sirve, o cadena vacía. */
+export function errorDeFechaExpedicion(
+  fecha: string,
+  fechaNacimiento: string,
+  hoy: string,
+): string {
+  if (!fecha) return ''
+  if (fecha > hoy) return 'La fecha de expedición no puede ser futura.'
+  if (fechaNacimiento && fecha < fechaNacimiento) {
+    return 'Esa fecha es anterior a tu nacimiento. Revísala.'
+  }
+  return ''
+}
+
 export interface DatosDeLaFicha {
   nombre: string
   apellidos: string
@@ -98,6 +125,8 @@ export interface DatosDeLaFicha {
   ciudadResidencia: string
   ciudadProcedencia: string
   costo: string
+  /** Solo cuenta para cédula de extranjería y PPT. */
+  fechaExpedicion?: string
 }
 
 /**
@@ -128,6 +157,17 @@ export function loQueFaltaEnLaFicha(
   if (errorDeTelefono(d.telefono)) faltan.push('el teléfono')
   if (vacio(d.fechaNacimiento) || errorDeNacimientoImposible(d.fechaNacimiento)) {
     faltan.push('la fecha de nacimiento')
+  }
+  if (
+    pideFechaExpedicion(d.tipoDocumento) &&
+    (!d.fechaExpedicion ||
+      errorDeFechaExpedicion(
+        d.fechaExpedicion,
+        d.fechaNacimiento,
+        '9999-12-31',
+      ) !== '')
+  ) {
+    faltan.push('la fecha de expedición del documento')
   }
   if (vacio(d.nacionalidad)) faltan.push('la nacionalidad')
   if (opciones.esTitular) {

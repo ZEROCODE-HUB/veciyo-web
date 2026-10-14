@@ -283,6 +283,11 @@ export const TIPOS_DOCUMENTO = [
   { value: 'carne_extranjeria', label: 'Carné de extranjería' },
   { value: 'pep', label: 'Permiso especial de permanencia' },
   /*
+    El PEP venezolano perdió validez en marzo de 2023; el que se pide hoy es
+    el PPT. La base ya lo tenía y la pantalla no lo ofrecía (14/10/2026).
+  */
+  { value: 'ppt', label: 'Permiso por protección temporal (PPT)' },
+  /*
     Los dos de un menor en Colombia. Faltaban, y se vio al decidir el
     09/10/2026 que a un menor también se le pide su documento: la lista no
     tenía ninguno que le sirviera, así que obligaba a marcar uno falso
@@ -1026,6 +1031,43 @@ export async function guardarHoras(
     p_hora_salida: horas.salida || null,
   })
   if (error) throw error
+}
+
+/**
+ * La fecha de expedición del documento.
+ *
+ * Con el enlace del titular, la de cualquiera de su reserva (sin `invitadoId`,
+ * la suya); con el de un acompañante, solo la suya. Vacía la borra.
+ */
+export async function guardarFechaExpedicion(
+  token: string,
+  fecha: string,
+  invitadoId?: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<void> {
+  const { error } = await conexion(cliente).rpc('guardar_fecha_expedicion', {
+    p_token: token,
+    p_fecha: fecha || null,
+    p_invitado_id: invitadoId ?? null,
+  })
+  if (error) throw error
+}
+
+/** Las fechas de expedición que ese enlace puede ver, por persona. */
+export async function fechasDeExpedicion(
+  token: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<Record<string, string>> {
+  const { data, error } = await conexion(cliente).rpc(
+    'fechas_expedicion_del_precheckin',
+    { p_token: token },
+  )
+  if (error) throw error
+  const fechas: Record<string, string> = {}
+  for (const fila of (data ?? []) as { invitado_id: string; fecha: string | null }[]) {
+    if (fila.fecha) fechas[fila.invitado_id] = fila.fecha
+  }
+  return fechas
 }
 
 /** Las reglas del edificio para huéspedes, por secciones. */

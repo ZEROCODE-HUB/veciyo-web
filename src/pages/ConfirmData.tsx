@@ -17,9 +17,11 @@ import {
   errorDeCorreo,
   errorDeCosto,
   errorDeDocumento,
+  errorDeFechaExpedicion,
   errorDeNacimientoImposible,
   errorDeTelefono,
   loQueFaltaEnLaFicha,
+  pideFechaExpedicion,
 } from '../lib/ficha'
 import { NACIONALIDADES } from '../lib/nacionalidades'
 import {
@@ -27,6 +29,8 @@ import {
   aceptarTerminos,
   consultarPrecheckin,
   estadoDelPrecheckin,
+  fechasDeExpedicion,
+  guardarFechaExpedicion,
   guardarHoras,
   fichaDelPrecheckin,
   legalesDeLaEstancia,
@@ -83,6 +87,8 @@ export default function ConfirmData() {
     la autoridad y para saber si alguien es menor.
   */
   const [fechaNacimiento, setFechaNacimiento] = useState('')
+  // Solo se pide con cédula de extranjería o PPT (Tus Datos la exige).
+  const [fechaExpedicion, setFechaExpedicion] = useState('')
   /*
     Lo que pide la Tarjeta de Registro de Alojamiento del ministerio y que no
     se preguntaba en ningún sitio. Sin estos tres, el reporte se rechaza.
@@ -179,6 +185,11 @@ export default function ConfirmData() {
         setNacionalidad(ficha.nacionalidad)
         setAceptados(ficha.terminosAceptados)
         if (ficha.tipoDocumento) setDocTypeGuardado(ficha.tipoDocumento)
+        fechasDeExpedicion(token)
+          .then((fechas) => {
+            if (vigente) setFechaExpedicion(fechas[ficha.invitadoId] ?? '')
+          })
+          .catch(() => {})
       })
       /*
         Que no se pueda recuperar no impide rellenarlo a mano: es peor dejar al
@@ -300,6 +311,7 @@ export default function ConfirmData() {
       ciudadResidencia,
       ciudadProcedencia,
       costo,
+      fechaExpedicion,
     },
     { esTitular: true },
   )
@@ -354,6 +366,9 @@ export default function ConfirmData() {
         */
         costo: costoComoNumero(costo),
       })
+      if (pideFechaExpedicion(docType)) {
+        await guardarFechaExpedicion(token, fechaExpedicion)
+      }
       // Dos llamadas y no una: aceptar los términos es un hecho con fecha y
       // con consecuencias legales, no un campo más de la ficha.
       await aceptarTerminos(token)
@@ -420,6 +435,21 @@ export default function ConfirmData() {
             error={errorDeDocumento(docType, documento)}
             onChange={(e) => setDocumento(e.target.value)}
           />
+          {pideFechaExpedicion(docType) ? (
+            <Input
+              label="Fecha de expedición del documento"
+              type="date"
+              tone="soft"
+              max={hoyEnIso()}
+              value={fechaExpedicion}
+              error={errorDeFechaExpedicion(
+                fechaExpedicion,
+                fechaNacimiento,
+                hoyEnIso(),
+              )}
+              onChange={(e) => setFechaExpedicion(e.target.value)}
+            />
+          ) : null}
           <Input
             label="Correo electrónico"
             type="email"

@@ -14,8 +14,10 @@ import { PAIS_POR_DEFECTO } from '../lib/paises'
 import { porQueFallo } from '../lib/motivo'
 import {
   errorDeDocumento,
+  errorDeFechaExpedicion,
   errorDeNacimientoImposible,
   loQueFaltaEnLaFicha,
+  pideFechaExpedicion,
 } from '../lib/ficha'
 import { NACIONALIDADES } from '../lib/nacionalidades'
 import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
@@ -25,6 +27,8 @@ import {
   aceptarReglamento,
   consultarMiPrecheckin,
   estadoDelPrecheckin,
+  fechasDeExpedicion,
+  guardarFechaExpedicion,
   guardarMiFichaAcompanante,
   legalesDeLaEstancia,
   type DocumentoLegal,
@@ -64,6 +68,7 @@ interface Ficha {
   nacionalidad: string
   ciudadResidencia: string
   ciudadProcedencia: string
+  fechaExpedicion: string
 }
 
 const VACIA: Ficha = {
@@ -78,6 +83,7 @@ const VACIA: Ficha = {
   nacionalidad: '',
   ciudadResidencia: '',
   ciudadProcedencia: '',
+  fechaExpedicion: '',
 }
 
 export default function CompanionAccess() {
@@ -129,7 +135,9 @@ export default function CompanionAccess() {
         }
         const texto = (v: unknown) => (typeof v === 'string' ? v : '')
         // Lo que ya hubiera, venga de quien venga: el titular pudo teclearlo.
-        setFicha({
+        setFicha((previa) => ({
+          // La fecha de expedicion llega por otra consulta y puede ganar la carrera.
+          fechaExpedicion: previa.fechaExpedicion,
           nombre: texto(fila.nombre),
           apellidos: texto(fila.apellidos),
           tipoDocumento: (fila.tipo_documento as TipoDocumento) ?? '',
@@ -141,7 +149,7 @@ export default function CompanionAccess() {
           nacionalidad: texto(fila.nacionalidad),
           ciudadResidencia: texto(fila.ciudad_residencia),
           ciudadProcedencia: texto(fila.ciudad_procedencia),
-        })
+        }))
         setEsMenor(fila.es_menor === true)
         setMiId(typeof fila.invitado_id === 'string' ? fila.invitado_id : null)
         setAceptados(fila.terminos_aceptados === true)
@@ -154,6 +162,16 @@ export default function CompanionAccess() {
         setEstado('listo')
       })
       .catch(() => vigente && setEstado('invalido'))
+
+    // Con el enlace de un acompañante solo vuelve la suya.
+    fechasDeExpedicion(token)
+      .then((fechas) => {
+        const suya = Object.values(fechas)[0]
+        if (vigente && suya) {
+          setFicha((previa) => ({ ...previa, fechaExpedicion: suya }))
+        }
+      })
+      .catch(() => {})
 
     legalesDeLaEstancia(token)
       .then((docs) => vigente && setLegales(docs))
@@ -236,6 +254,9 @@ export default function CompanionAccess() {
         ciudadResidencia: ficha.ciudadResidencia.trim() || undefined,
         ciudadProcedencia: ficha.ciudadProcedencia.trim() || undefined,
       })
+      if (!esMenor && pideFechaExpedicion(ficha.tipoDocumento)) {
+        await guardarFechaExpedicion(token, ficha.fechaExpedicion)
+      }
       /*
         Dos llamadas y no una: aceptar los términos es un hecho con fecha y con
         consecuencias legales, no un campo más de la ficha. La base le pone el
@@ -351,6 +372,21 @@ export default function CompanionAccess() {
                   error={errorDeDocumento(ficha.tipoDocumento, ficha.documento)}
                   onChange={(e) => campo('documento')(e.target.value)}
                 />
+                {pideFechaExpedicion(ficha.tipoDocumento) ? (
+                  <Input
+                    label="Fecha de expedición del documento"
+                    type="date"
+                    tone="soft"
+                    max={hoyEnIso()}
+                    value={ficha.fechaExpedicion}
+                    error={errorDeFechaExpedicion(
+                      ficha.fechaExpedicion,
+                      ficha.fechaNacimiento,
+                      hoyEnIso(),
+                    )}
+                    onChange={(e) => campo('fechaExpedicion')(e.target.value)}
+                  />
+                ) : null}
               </>
             )}
 

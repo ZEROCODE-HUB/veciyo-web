@@ -3,9 +3,11 @@ import {
   costoComoNumero,
   errorDeCorreo,
   errorDeDocumento,
+  errorDeFechaExpedicion,
   errorDeNacimientoImposible,
   errorDeTelefono,
   loQueFaltaEnLaFicha,
+  pideFechaExpedicion,
   type DatosDeLaFicha,
 } from './ficha'
 
@@ -116,5 +118,46 @@ describe('lo que falta para confirmar', () => {
       'el teléfono',
       'la fecha de nacimiento',
     ])
+  })
+})
+
+describe('fecha de expedición (14/10/2026)', () => {
+  it('solo la piden la cédula de extranjería y el PPT', () => {
+    expect(pideFechaExpedicion('cedula_extranjeria')).toBe(true)
+    expect(pideFechaExpedicion('ppt')).toBe(true)
+    expect(pideFechaExpedicion('cedula_ciudadania')).toBe(false)
+    expect(pideFechaExpedicion('pasaporte')).toBe(false)
+  })
+
+  it('sin ella, una cédula de extranjería no se puede confirmar', () => {
+    const ce = { ...BUENA, tipoDocumento: 'cedula_extranjeria' }
+    expect(loQueFaltaEnLaFicha(ce, { esTitular: true })).toEqual([
+      'la fecha de expedición del documento',
+    ])
+    expect(
+      loQueFaltaEnLaFicha({ ...ce, fechaExpedicion: '2020-05-01' }, { esTitular: true }),
+    ).toEqual([])
+  })
+
+  it('una cédula de ciudadanía no la necesita', () => {
+    expect(loQueFaltaEnLaFicha(BUENA, { esTitular: true })).toEqual([])
+  })
+
+  it('no puede ser futura ni anterior al nacimiento', () => {
+    expect(errorDeFechaExpedicion('2030-01-01', '', '2026-10-14')).not.toBe('')
+    expect(errorDeFechaExpedicion('1980-01-01', '1990-01-01', '2026-10-14')).not.toBe('')
+    expect(errorDeFechaExpedicion('2015-01-01', '1990-01-01', '2026-10-14')).toBe('')
+  })
+
+  it('anterior al nacimiento cuenta como que falta', () => {
+    const mala = {
+      ...BUENA,
+      tipoDocumento: 'ppt',
+      fechaNacimiento: '1990-01-01',
+      fechaExpedicion: '1980-01-01',
+    }
+    expect(loQueFaltaEnLaFicha(mala, { esTitular: true })).toContain(
+      'la fecha de expedición del documento',
+    )
   })
 })
