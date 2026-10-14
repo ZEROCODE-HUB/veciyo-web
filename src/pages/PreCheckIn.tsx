@@ -9,6 +9,8 @@ import { porQueFallo } from '../lib/motivo'
 import {
   subirDocumentoPrecheckin,
   consultarPrecheckin,
+  estadoDeLaReserva,
+  textoDeLaCuentaAtras,
   tieneDosCaras,
   tokenActual,
   TIPOS_DOCUMENTO,
@@ -40,6 +42,8 @@ export default function PreCheckIn() {
   const [reverso, setReverso] = useState<File | null>(null)
   const [subiendo, setSubiendo] = useState(false)
   const [errorFoto, setErrorFoto] = useState('')
+  // «Faltan 3 días»: lo pidió la responsable de producto (14/10/2026).
+  const [dias, setDias] = useState<number | null>(null)
 
   useEffect(() => {
     if (!token) {
@@ -55,6 +59,9 @@ export default function PreCheckIn() {
       })
       .catch(() => vigente && navigate('/invitacion', { replace: true }))
       .finally(() => vigente && setCargando(false))
+    estadoDeLaReserva(token)
+      .then((r) => vigente && r?.estado === 'proxima' && setDias(r.diasParaLlegar))
+      .catch(() => {})
     return () => {
       vigente = false
     }
@@ -117,6 +124,11 @@ export default function PreCheckIn() {
   return (
     <MainLayout header="default" bg="soft">
       <div className="mx-auto max-w-[640px] px-4 py-10 sm:px-6 lg:px-8">
+        {dias !== null ? (
+          <p className="mb-3 inline-block rounded-full bg-brand/15 px-3 py-1 text-sm font-bold text-brand">
+            {textoDeLaCuentaAtras(dias)}
+          </p>
+        ) : null}
         <h1 className="font-display text-2xl font-extrabold leading-snug text-ink sm:text-[40px] sm:leading-tight">
           Este es el preregistro de seguridad de {estancia?.condominio}.
         </h1>

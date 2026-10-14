@@ -1070,6 +1070,45 @@ export async function fechasDeExpedicion(
   return fechas
 }
 
+/** En qué quedó la reserva de un enlace, con el reloj del edificio. */
+export interface EstadoDeLaReserva {
+  estado: 'cancelada' | 'terminada' | 'en_curso' | 'proxima'
+  diasParaLlegar: number
+  completado: boolean
+  condominio: string
+  unidad: string
+}
+
+/**
+ * Sirve al enlace del titular y al de un acompañante, aunque ya haya vencido:
+ * es lo que deja decir «esta reserva terminó» en vez de «el enlace no vale».
+ */
+export async function estadoDeLaReserva(
+  token: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<EstadoDeLaReserva | null> {
+  const { data, error } = await conexion(cliente).rpc('estado_de_la_reserva', {
+    p_token: token,
+  })
+  if (error) throw error
+  const fila = ((data ?? []) as Record<string, unknown>[])[0]
+  if (!fila) return null
+  return {
+    estado: fila.estado as EstadoDeLaReserva['estado'],
+    diasParaLlegar: Number(fila.dias_para_llegar ?? 0),
+    completado: fila.completado === true,
+    condominio: typeof fila.condominio === 'string' ? fila.condominio : '',
+    unidad: typeof fila.unidad === 'string' ? fila.unidad : '',
+  }
+}
+
+/** «Faltan 3 días», «Mañana llegas», «Hoy llegas». */
+export function textoDeLaCuentaAtras(dias: number): string {
+  if (dias <= 0) return 'Hoy llegas'
+  if (dias === 1) return 'Mañana llegas'
+  return `Faltan ${dias} días para tu llegada`
+}
+
 /** Las reglas del edificio para huéspedes, por secciones. */
 export interface Reglamento {
   id: string

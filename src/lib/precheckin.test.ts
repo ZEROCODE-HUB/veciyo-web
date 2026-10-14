@@ -3,6 +3,7 @@ import {
   esNombreDeRelleno,
   NOMBRE_SIN_CONFIRMAR,
   normalizarPlaca,
+  textoDeLaCuentaAtras,
   topeDePersonas,
   type EstanciaPrecheckin,
 } from './precheckin'
@@ -114,5 +115,13 @@ describe('normalizarPlaca', () => {
   it('lo que no tiene ni una letra ni un numero queda vacio', () => {
     // Es lo que deja apagado el boton de guardar: «- -» no es una placa.
     expect(normalizarPlaca(' - - ')).toBe('')
+  })
+})
+
+describe('la cuenta atrás (14/10/2026)', () => {
+  it('dice cuántos días faltan, y mañana y hoy con palabras', () => {
+    expect(textoDeLaCuentaAtras(3)).toBe('Faltan 3 días para tu llegada')
+    expect(textoDeLaCuentaAtras(1)).toBe('Mañana llegas')
+    expect(textoDeLaCuentaAtras(0)).toBe('Hoy llegas')
   })
 })

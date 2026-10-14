@@ -5,8 +5,10 @@ import Loading from '../components/Loading'
 import { hayBackend } from '../lib/supabase'
 import {
   consultarPrecheckin,
+  estadoDeLaReserva,
   fichaDelPrecheckin,
   guardarToken,
+  textoDeLaCuentaAtras,
   type EstanciaPrecheckin,
 } from '../lib/precheckin'
 
@@ -27,7 +29,9 @@ type Estado =
   | { tipo: 'cargando' }
   | { tipo: 'invalido' }
   | { tipo: 'vencido' }
-  | { tipo: 'completado'; datos: EstanciaPrecheckin }
+  | { tipo: 'completado'; datos: EstanciaPrecheckin; dias: number | null }
+  | { tipo: 'cancelada' }
+  | { tipo: 'terminada'; completado: boolean; condominio: string }
 
 /**
  * La puerta de entrada del huésped: el enlace que le mandó su anfitrión.
@@ -53,15 +57,35 @@ export default function Access() {
     }
 
     let vigente = true
-    consultarPrecheckin(token)
-      .then((datos) => {
+    /*
+      Primero, en qué quedó la reserva (14/10/2026). Una cancelada o una que ya
+      terminó no son un enlace «que no vale»: son cosas distintas, y la
+      responsable de producto pidió que la terminada diga que quedó completa.
+    */
+    Promise.all([
+      consultarPrecheckin(token),
+      estadoDeLaReserva(token).catch(() => null),
+    ])
+      .then(([datos, reserva]) => {
         if (!vigente) return
-        if (!datos) {
+        if (reserva?.estado === 'cancelada') {
+          setEstado({ tipo: 'cancelada' })
+        } else if (reserva?.estado === 'terminada') {
+          setEstado({
+            tipo: 'terminada',
+            completado: reserva.completado,
+            condominio: reserva.condominio,
+          })
+        } else if (!datos) {
           setEstado({ tipo: 'invalido' })
         } else if (!datos.vigente) {
           setEstado({ tipo: 'vencido' })
         } else if (datos.completado) {
-          setEstado({ tipo: 'completado', datos })
+          setEstado({
+            tipo: 'completado',
+            datos,
+            dias: reserva?.estado === 'proxima' ? reserva.diasParaLlegar : null,
+          })
         } else {
           // El token viaja en `sessionStorage` y no en el estado de
           // navegación: son seis pantallas, y recargar en mitad no puede
@@ -124,7 +148,23 @@ export default function Access() {
             {estado.tipo === 'completado' && (
               <Aviso
                 titulo="Tu preregistro ya está hecho"
-                detalle={`Te esperamos en ${estado.datos.condominio}, vivienda ${estado.datos.unidad}. No hace falta que hagas nada más: al llegar, la portería te recibe con esto ya listo.`}
+                detalle={`${estado.dias !== null ? `${textoDeLaCuentaAtras(estado.dias)}. ` : ''}Te esperamos en ${estado.datos.condominio}, vivienda ${estado.datos.unidad}. No hace falta que hagas nada más: al llegar, la portería te recibe con esto ya listo.`}
+              />
+            )}
+            {estado.tipo === 'cancelada' && (
+              <Aviso
+                titulo="Esta reserva fue cancelada"
+                detalle="Ya no hace falta el preregistro. Si crees que es un error, escríbele a tu anfitrión."
+              />
+            )}
+            {estado.tipo === 'terminada' && (
+              <Aviso
+                titulo="Esta reservación ya terminó"
+                detalle={
+                  estado.completado
+                    ? `Su registro quedó completo. Gracias por alojarte en ${estado.condominio}.`
+                    : `La estancia en ${estado.condominio} ya terminó, así que este preregistro ya no se puede completar.`
+                }
               />
             )}
           </div>
