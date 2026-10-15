@@ -6,6 +6,7 @@ import {
   subirLoElegido,
   avisoDeLoQueNoSubio,
   textoDeLaCuentaAtras,
+  avisoDeLlegada,
   topeDePersonas,
   type EstanciaPrecheckin,
 } from './precheckin'
@@ -168,5 +169,18 @@ describe('lo elegido en el formulario de alta', () => {
     const contar = async () => void llamadas++
     await subirLoElegido('t', 'p1', {}, { documento: contar, autorizacion: contar })
     expect(llamadas).toBe(0)
+  })
+})
+
+describe('la etiqueta de llegada', () => {
+  it('cuenta los días mientras falta', () => {
+    expect(avisoDeLlegada('proxima', 3)).toBe('Faltan 3 días para tu llegada')
+  })
+  it('con la llegada hoy, la reserva está en curso y lo dice', () => {
+    expect(avisoDeLlegada('en_curso', 0)).toBe('Tu estancia ya empezó')
+  })
+  it('terminada o cancelada no lleva etiqueta: eso lo dice la página', () => {
+    expect(avisoDeLlegada('terminada', 0)).toBeNull()
+    expect(avisoDeLlegada('cancelada', 0)).toBeNull()
   })
 })

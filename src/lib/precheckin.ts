@@ -1145,6 +1145,20 @@ export async function estadoDeLaReserva(
 }
 
 /** «Faltan 3 días», «Mañana llegas», «Hoy llegas». */
+/**
+ * Lo que dice la etiqueta de arriba del preregistro según en qué quedó la
+ * reserva (15/10/2026). Con la llegada hoy la reserva ya cuenta como «en
+ * curso», y la etiqueta no decía nada: se vio con una estancia de hoy.
+ */
+export function avisoDeLlegada(
+  estado: EstadoDeLaReserva['estado'] | undefined,
+  dias: number,
+): string | null {
+  if (estado === 'proxima') return textoDeLaCuentaAtras(dias)
+  if (estado === 'en_curso') return 'Tu estancia ya empezó'
+  return null
+}
+
 export function textoDeLaCuentaAtras(dias: number): string {
   if (dias <= 0) return 'Hoy llegas'
   if (dias === 1) return 'Mañana llegas'

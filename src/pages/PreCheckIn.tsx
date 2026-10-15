@@ -10,7 +10,7 @@ import {
   subirDocumentoPrecheckin,
   consultarPrecheckin,
   estadoDeLaReserva,
-  textoDeLaCuentaAtras,
+  avisoDeLlegada,
   tieneDosCaras,
   tokenActual,
   TIPOS_DOCUMENTO,
@@ -43,7 +43,7 @@ export default function PreCheckIn() {
   const [subiendo, setSubiendo] = useState(false)
   const [errorFoto, setErrorFoto] = useState('')
   // «Faltan 3 días»: lo pidió la responsable de producto (14/10/2026).
-  const [dias, setDias] = useState<number | null>(null)
+  const [aviso, setAviso] = useState<string | null>(null)
 
   useEffect(() => {
     if (!token) {
@@ -60,7 +60,7 @@ export default function PreCheckIn() {
       .catch(() => vigente && navigate('/invitacion', { replace: true }))
       .finally(() => vigente && setCargando(false))
     estadoDeLaReserva(token)
-      .then((r) => vigente && r?.estado === 'proxima' && setDias(r.diasParaLlegar))
+      .then((r) => vigente && setAviso(avisoDeLlegada(r?.estado, r?.diasParaLlegar ?? 0)))
       .catch(() => {})
     return () => {
       vigente = false
@@ -124,9 +124,9 @@ export default function PreCheckIn() {
   return (
     <MainLayout header="default" bg="soft">
       <div className="mx-auto max-w-[640px] px-4 py-10 sm:px-6 lg:px-8">
-        {dias !== null ? (
+        {aviso ? (
           <p className="mb-3 inline-block rounded-full bg-brand/15 px-3 py-1 text-sm font-bold text-brand">
-            {textoDeLaCuentaAtras(dias)}
+            {aviso}
           </p>
         ) : null}
         <h1 className="font-display text-2xl font-extrabold leading-snug text-ink sm:text-[40px] sm:leading-tight">
