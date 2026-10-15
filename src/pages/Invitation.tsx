@@ -89,7 +89,7 @@ export default function Invitation() {
           {estado.tipo === 'sin-token' && (
             <Mensaje
               titulo="Este enlace está incompleto"
-              detalle="Abrí el enlace tal como te llegó, sin recortarlo. Si lo copiaste a mano, puede haberse perdido un trozo."
+              detalle="Abre el enlace tal como te llegó, sin recortarlo. Si lo copiaste a mano, puede haberse perdido un trozo."
             />
           )}
 

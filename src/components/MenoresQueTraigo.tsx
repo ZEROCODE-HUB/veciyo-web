@@ -193,7 +193,7 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
         Menores que vienen contigo
       </p>
       <p className="mt-1 text-xs text-ink/60">
-        Solo si traés alguno. Un menor no llena su propia ficha ni acepta
+        Solo si traes alguno. Un menor no llena su propia ficha ni acepta
         términos: lo hace el adulto que responde por él.
       </p>
 
@@ -333,12 +333,12 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
           <Select
             label="Adulto responsable por el menor"
             tone="soft"
-            placeholder="Elegí a un adulto de esta reserva"
+            placeholder="Elige a un adulto de esta reserva"
             options={adultos.map((a) => ({
               value: a.id,
               label:
                 `${a.nombre} ${a.apellidos ?? ''}`.trim() +
-                (a.soy_yo ? ' (vos)' : a.es_titular ? ' (hizo la reserva)' : ''),
+                (a.soy_yo ? ' (tú)' : a.es_titular ? ' (hizo la reserva)' : ''),
             }))}
             value={responsableId}
             onChange={(e) => setResponsableId(e.target.value)}

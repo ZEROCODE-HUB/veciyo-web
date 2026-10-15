@@ -136,7 +136,7 @@ export default function Access() {
             {estado.tipo === 'invalido' && (
               <Aviso
                 titulo="No encontramos esta reserva"
-                detalle="Puede que el enlace esté incompleto o que tu anfitrión haya generado uno nuevo. Pedíselo otra vez."
+                detalle="Puede que el enlace esté incompleto o que tu anfitrión haya generado uno nuevo. Pídeselo otra vez."
               />
             )}
             {estado.tipo === 'vencido' && (

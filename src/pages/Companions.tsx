@@ -645,7 +645,7 @@ export default function Companions() {
                 {menoresEsperados === 1
                   ? 'una de ellas es menor de edad'
                   : `${menoresEsperados} son menores de edad`}
-                {menoresPuestos > 0 ? ` (llevás ${menoresPuestos})` : ''}.
+                {menoresPuestos > 0 ? ` (llevas ${menoresPuestos})` : ''}.
               </p>
             )}
 
@@ -892,7 +892,7 @@ export default function Companions() {
                 </p>
                 <p className="mt-1 text-xs text-ink/60">
                   {cupo.esDeLaReserva
-                    ? 'Si viene alguien más, pediselo al anfitrión: es él quien amplía la reserva.'
+                    ? 'Si viene alguien más, pídeselo al anfitrión: es quien amplía la reserva.'
                     : 'El alojamiento no admite más personas.'}
                 </p>
               </div>
@@ -929,9 +929,9 @@ export default function Companions() {
                 onCerrar={() => setEnlace(null)}
               >
                 <p className="text-sm text-ink/70">
-                  Mandáselo. Con él sube la foto de su documento, llena sus
-                  datos y acepta sus términos — eso último no lo podés hacer
-                  vos por él.
+                  Mándaselo. Con él sube la foto de su documento, llena sus
+                  datos y acepta sus términos — eso último no lo puedes hacer
+                  tú por esa persona.
                 </p>
                 <div className="mt-4 rounded-xl bg-ink/[0.04] p-3">
                   <p className="break-all font-mono text-xs text-ink/80">
