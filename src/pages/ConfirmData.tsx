@@ -10,6 +10,7 @@ import Accordion from '../components/Accordion'
 import Checkbox from '../components/Checkbox'
 import ReglasDelEdificio from '../components/ReglasDelEdificio'
 import UsarMisDatos from '../components/UsarMisDatos'
+import Recuadro from '../components/Recuadro'
 import { porQueFallo } from '../lib/motivo'
 import { esMayorDeEdadAlLlegar, hoyEnIso, naceDespuesDeLlegar } from '../lib/edad'
 import {
@@ -396,45 +397,41 @@ export default function ConfirmData() {
         </div>
 
         <h1 className="mt-6 text-center font-display text-3xl font-bold text-ink sm:text-[34px]">
-          Tus datos
+          Confirma tus datos
         </h1>
 
         <p className="mx-auto mt-3 max-w-md text-center text-base text-ink/60">
-          Escríbelos tal como figuran en tu {etiquetaDoc.toLowerCase()}. La
-          portería los compara con el documento cuando llegues.
+          Verifica que tus datos sean correctos. Escríbelos tal como figuran
+          en tu {etiquetaDoc.toLowerCase()}: la portería los compara con el
+          documento cuando llegues.
         </p>
 
         <UsarMisDatos onDatos={usarMisDatos} />
 
         <div className="mt-8 space-y-3">
-          <Input
-            label="Nombres"
-            tone="soft"
-            placeholder="Como figura en el documento"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-          />
-          <Input
-            label="Apellidos"
-            tone="soft"
-            placeholder="Como figuran en el documento"
-            value={apellidos}
-            onChange={(e) => setApellidos(e.target.value)}
-          />
-          <div className="rounded-xl bg-surface-soft px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/60">
-              Tipo de identificación
-            </p>
-            <p className="text-sm font-bold text-ink">{etiquetaDoc}</p>
+          {/* La rejilla 2×2 de la maqueta, con los campos editables dentro. */}
+          <div className="grid grid-cols-2 gap-3">
+            <Recuadro
+              etiqueta="Nombre"
+              placeholder="Como figura en el documento"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+            />
+            <Recuadro
+              etiqueta="Apellido"
+              placeholder="Como figuran en el documento"
+              value={apellidos}
+              onChange={(e) => setApellidos(e.target.value)}
+            />
+            <Recuadro etiqueta="Tipo de identificación" value={etiquetaDoc} />
+            <Recuadro
+              etiqueta="Número de identificación"
+              placeholder="Sin puntos ni guiones"
+              value={documento}
+              error={errorDeDocumento(docType, documento)}
+              onChange={(e) => setDocumento(e.target.value)}
+            />
           </div>
-          <Input
-            label="Número de identificación"
-            tone="soft"
-            placeholder="Sin puntos ni guiones"
-            value={documento}
-            error={errorDeDocumento(docType, documento)}
-            onChange={(e) => setDocumento(e.target.value)}
-          />
           {pideFechaExpedicion(docType) ? (
             <Input
               label="Fecha de expedición del documento"
@@ -499,7 +496,7 @@ export default function ConfirmData() {
               placeholder="Ingrese su número de teléfono"
             />
             {errorDeTelefono(telefono) ? (
-              <p className="-mt-2 text-xs font-semibold text-red-600">
+              <p className="-mt-2 text-xs font-semibold text-danger">
                 {errorDeTelefono(telefono)}
               </p>
             ) : null}
@@ -628,7 +625,7 @@ export default function ConfirmData() {
         />
 
         {error && (
-          <p className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-700">
+          <p className="mt-6 rounded-xl bg-danger/5 px-4 py-3 text-center text-sm font-semibold text-danger">
             {error}
           </p>
         )}
@@ -636,7 +633,7 @@ export default function ConfirmData() {
         {faltan.length > 0 && (
           <p
             role="status"
-            className="mt-6 rounded-xl bg-amber-50 px-4 py-3 text-center text-sm text-amber-800"
+            className="mt-6 rounded-xl bg-gold/10 px-4 py-3 text-center text-sm text-ink"
           >
             Para continuar falta: {faltan.join(', ')}.
           </p>

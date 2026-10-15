@@ -119,7 +119,7 @@ export default function Reserva() {
             <p
               className={`mt-5 rounded-xl px-4 py-3 text-sm ${
                 aviso.tono === 'error'
-                  ? 'bg-red-50 font-semibold text-red-700'
+                  ? 'bg-danger/5 font-semibold text-danger'
                   : 'bg-surface-soft text-ink/80'
               }`}
             >

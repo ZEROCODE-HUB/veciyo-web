@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import Input from './Input'
+import Card from './Card'
+import Recuadro from './Recuadro'
 import Select from './Select'
 import Button from './Button'
 import { porQueFallo } from '../lib/motivo'
@@ -129,108 +131,107 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
   const etiquetaTipo = (valor: TipoVehiculo | null) =>
     TIPOS_VEHICULO.find((t) => t.value === valor)?.label ?? null
 
+  /*
+    El aspecto de la maqueta (15/10/2026): «Vehículos» como encabezado pequeño
+    y una tarjeta «Vehículo N» por cada uno, con placa, marca y color en tres
+    columnas. Lo que se añadió después --tipo y quién responde-- va en una
+    segunda fila de la misma tarjeta.
+  */
   return (
-    <div className="mt-8 border-t border-line pt-5">
-      <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-ink/50">
-        Vehículos
-      </p>
-      <p className="mb-3 text-sm text-ink/70">
+    <div className="mt-6 space-y-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-ink/60">Vehículos</p>
+      <p className="text-sm text-ink/70">
         Si llegan en vehículo, anótalo para que la portería lo deje pasar. Si
         no, sáltate esta parte.
       </p>
 
-      {lista.length > 0 && (
-        <ul className="mb-3 space-y-2">
-          {lista.map((v) => (
-            <li
-              key={v.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface-soft px-4 py-3"
+      {lista.map((v, i) => (
+        <Card key={v.id} className="px-6 py-5 sm:px-10 sm:py-6">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-sm font-bold text-ink">Vehículo {i + 1}</p>
+            <button
+              type="button"
+              className="text-xs font-semibold text-danger underline underline-offset-2"
+              onClick={() => void quitar(v.id)}
             >
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-ink">{v.placa}</p>
-                <p className="truncate text-xs text-ink/60">
-                  {[etiquetaTipo(v.tipo), v.marca, v.color]
-                    .filter(Boolean)
-                    .join(' · ')}
-                  {v.responsable_nombre
-                    ? ` — responde ${v.responsable_nombre}`
-                    : ''}
-                </p>
-              </div>
-              <button
-                type="button"
-                className="shrink-0 text-xs font-semibold text-red-600"
-                onClick={() => void quitar(v.id)}
-              >
-                Quitar
-              </button>
-              {!v.responsable_invitado_id && (
-                <div className="w-full">
-                  <Select
-                    label="Falta decir quién responde por este vehículo"
-                    placeholder="Seleccione un adulto de la reserva"
-                    options={adultos.map((a) => ({
-                      value: a.id,
-                      label: `${a.nombre} ${a.apellidos ?? ''}`.trim(),
-                    }))}
-                    value=""
-                    onChange={(e) => void asignar(v, e.target.value)}
-                  />
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+              Quitar
+            </button>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Recuadro etiqueta="Placa" value={v.placa} />
+            <Recuadro etiqueta="Marca" value={v.marca ?? ''} />
+            <Recuadro etiqueta="Color" value={v.color ?? ''} />
+          </div>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Recuadro etiqueta="Tipo" value={etiquetaTipo(v.tipo) ?? ''} />
+            {v.responsable_invitado_id ? (
+              <Recuadro etiqueta="Responde" value={v.responsable_nombre ?? ''} />
+            ) : (
+              <Select
+                label="Falta decir quién responde por este vehículo"
+                tone="soft"
+                placeholder="Seleccione un adulto de la reserva"
+                options={adultos.map((a) => ({
+                  value: a.id,
+                  label: `${a.nombre} ${a.apellidos ?? ''}`.trim(),
+                }))}
+                value=""
+                onChange={(e) => void asignar(v, e.target.value)}
+              />
+            )}
+          </div>
+        </Card>
+      ))}
 
       {abierto ? (
-        <div className="space-y-3 rounded-xl border border-line bg-white p-4">
-          <Input
-            label="Placa"
-            tone="soft"
-            placeholder="ABC123"
-            value={placa}
-            error={repetida ? 'Ese vehículo ya está en la lista.' : ''}
-            onChange={(e) => setPlaca(normalizarPlaca(e.target.value))}
-          />
-          <Select
-            label="Adulto responsable del vehículo"
-            tone="soft"
-            placeholder="Seleccione"
-            options={adultos.map((a) => ({
-              value: a.id,
-              label: `${a.nombre} ${a.apellidos ?? ''}`.trim(),
-            }))}
-            value={responsableId}
-            onChange={(e) => setResponsableId(e.target.value)}
-          />
-          <Select
-            label="Tipo"
-            tone="soft"
-            placeholder="Seleccione"
-            options={
-              TIPOS_VEHICULO as unknown as { value: string; label: string }[]
-            }
-            value={tipo}
-            onChange={(e) => setTipo(e.target.value as TipoVehiculo | '')}
-          />
-          <div className="grid gap-3 sm:grid-cols-2">
+        <Card className="px-6 py-5 sm:px-10 sm:py-6">
+          <p className="mb-3 text-sm font-bold text-ink">Vehículo {lista.length + 1}</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Input
+              label="Placa"
+              tone="soft"
+              placeholder="Ingrese la placa"
+              value={placa}
+              error={repetida ? 'Ese vehículo ya está en la lista.' : ''}
+              onChange={(e) => setPlaca(normalizarPlaca(e.target.value))}
+            />
             <Input
               label="Marca"
               tone="soft"
-              placeholder="Mazda"
+              placeholder="Ingrese la marca"
               value={marca}
               onChange={(e) => setMarca(e.target.value)}
             />
             <Input
               label="Color"
               tone="soft"
-              placeholder="Gris"
+              placeholder="Ingrese el color"
               value={color}
               onChange={(e) => setColor(e.target.value)}
             />
           </div>
-          <div className="flex gap-2">
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Select
+              label="Adulto responsable del vehículo"
+              tone="soft"
+              placeholder="Seleccione"
+              options={adultos.map((a) => ({
+                value: a.id,
+                label: `${a.nombre} ${a.apellidos ?? ''}`.trim(),
+              }))}
+              value={responsableId}
+              onChange={(e) => setResponsableId(e.target.value)}
+            />
+            <Select
+              label="Tipo"
+              tone="soft"
+              placeholder="Seleccione"
+              options={TIPOS_VEHICULO as unknown as { value: string; label: string }[]}
+              value={tipo}
+              onChange={(e) => setTipo(e.target.value as TipoVehiculo | '')}
+            />
+          </div>
+          <div className="mt-4 flex gap-2">
             <Button
               type="button"
               className="flex-1 py-2.5"
@@ -251,7 +252,7 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
               Cancelar
             </Button>
           </div>
-        </div>
+        </Card>
       ) : (
         <Button
           type="button"
@@ -263,7 +264,7 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
         </Button>
       )}
 
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-3 text-sm text-danger">{error}</p>}
     </div>
   )
 }

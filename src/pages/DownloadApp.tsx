@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import Card from '../components/Card'
 import Button from '../components/Button'
+import { CheckIcon } from '../components/icons'
 import { olvidarToken } from '../lib/precheckin'
 
 /**
@@ -41,17 +42,14 @@ import { olvidarToken } from '../lib/precheckin'
  */
 const POR_QUE_CREARLA = [
   {
-    icono: '⚡',
     texto:
       'Tu próximo registro en un minuto: guardamos tus datos y los traemos ya puestos la próxima vez que te alojes.',
   },
   {
-    icono: '🔑',
     texto:
       'La clave del wifi y el código de la puerta el día que llegas, sin pedirlos por chat.',
   },
   {
-    icono: '💬',
     texto: 'Hablar con portería y reservar zonas comunes desde el teléfono.',
   },
 ]
@@ -59,28 +57,22 @@ const POR_QUE_CREARLA = [
 /** Lo que de verdad hay al otro lado de la cuenta. Nada de esto es promesa. */
 const LO_QUE_GANA = [
   {
-    icono: '🏠',
     texto: 'Ver tu estancia: fechas, vivienda y quién viene contigo.',
   },
   {
-    icono: '📖',
     texto:
       'Abrir el libro del alojamiento —wifi, puerta e instrucciones de tu anfitrión— mientras dure tu estadía.',
   },
   {
-    icono: '🏊',
     texto: 'Reservar las zonas comunes que el edificio deje usar a huéspedes.',
   },
   {
-    icono: '💬',
     texto: 'Hablar con portería sin bajar ni llamar por teléfono.',
   },
   {
-    icono: '👋',
     texto: 'Anunciar tus propias visitas para que las dejen pasar.',
   },
   {
-    icono: '⚡',
     texto: 'Volver a alojarte sin rellenar nada: tus datos quedan guardados.',
   },
 ]
@@ -111,30 +103,40 @@ export default function DownloadApp() {
       <div className="w-full px-4 py-10 sm:px-6 lg:px-8">
         <Card className="mx-auto max-w-[640px] px-6 py-10 sm:px-12 sm:py-12">
           <div className="text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-3xl">
-              ✓
+            {/* La cabecera de la maqueta: círculo, «Registro completado
+                exitosamente» y la franja de estado. Lo de «pendiente de
+                aceptación del anfitrión» no vuelve: no es cierto en la mayoría
+                de las reservas y el huésped no ve la revisión. */}
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+              <CheckIcon className="h-8 w-8 text-success" />
             </div>
 
             <h1 className="mt-6 font-display text-3xl font-extrabold text-ink sm:text-[34px]">
-              Tu preregistro está completo
+              Registro completado exitosamente
             </h1>
 
             <p className="mx-auto mt-4 max-w-md text-base text-ink/70">
-              La portería ya te espera con tus datos cargados.
+              Tu registro como huésped temporal ha sido completado. La portería
+              ya te espera con tus datos cargados.
             </p>
+
+            <div className="mt-6 flex items-center justify-center gap-3 rounded-lg bg-success/5 px-4 py-3">
+              <CheckIcon className="h-4 w-4 text-success" />
+              <span className="text-sm font-semibold text-success">Preregistro enviado</span>
+            </div>
           </div>
 
           {/*
             Lo primero después del «listo», y no al final: es lo único de esta
             pantalla que puede impedirle entrar al edificio.
           */}
-          <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-5">
-            <p className="text-sm font-bold text-amber-900">
+          <div className="mt-8 rounded-2xl border border-gold/40 bg-gold/10 px-5 py-5">
+            <p className="text-sm font-bold text-ink">
               Antes de venir, dos cosas
             </p>
-            <ul className="mt-3 space-y-3 text-sm text-amber-900/90">
+            <ul className="mt-3 space-y-3 text-sm text-ink">
               <li className="flex gap-3">
-                <span aria-hidden="true">📄</span>
+                <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
                 <span>
                   <strong>Trae tus documentos físicos.</strong> La portería los
                   compara con lo que acabas de registrar, uno por uno, incluidos
@@ -142,7 +144,7 @@ export default function DownloadApp() {
                 </span>
               </li>
               <li className="flex gap-3">
-                <span aria-hidden="true">🙋</span>
+                <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
                 <span>
                   <strong>
                     Quien se presente tiene que ser quien se registró.
@@ -163,7 +165,7 @@ export default function DownloadApp() {
               <ul className="mt-3 space-y-2.5">
                 {POR_QUE_CREARLA.map((cosa) => (
                   <li key={cosa.texto} className="flex gap-3 text-sm text-ink/80">
-                    <span aria-hidden="true">{cosa.icono}</span>
+                    <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
                     <span>{cosa.texto}</span>
                   </li>
                 ))}
@@ -181,7 +183,7 @@ export default function DownloadApp() {
                   className="flex-1 py-3"
                   onClick={copiar}
                 >
-                  {copiado ? '✓ Copiado' : 'Copiar enlace'}
+                  {copiado ? 'Copiado' : 'Copiar enlace'}
                 </Button>
                 {/*
                   Un enlace de verdad y no un botón que navega: así se puede
@@ -212,7 +214,7 @@ export default function DownloadApp() {
             <ul className="mt-3 space-y-2.5">
               {LO_QUE_GANA.map((cosa) => (
                 <li key={cosa.texto} className="flex gap-3 text-sm text-ink/70">
-                  <span aria-hidden="true">{cosa.icono}</span>
+                  <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
                   <span>{cosa.texto}</span>
                 </li>
               ))}

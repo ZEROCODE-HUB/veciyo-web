@@ -10,6 +10,7 @@ import {
   subirDocumentoPrecheckin,
   consultarPrecheckin,
   estadoDeLaReserva,
+  fichaDelPrecheckin,
   avisoDeLlegada,
   tieneDosCaras,
   tokenActual,
@@ -44,6 +45,9 @@ export default function PreCheckIn() {
   const [errorFoto, setErrorFoto] = useState('')
   // «Faltan 3 días»: lo pidió la responsable de producto (14/10/2026).
   const [aviso, setAviso] = useState<string | null>(null)
+  // Para el «Bienvenido {nombre}» de la maqueta. Vacío si el anfitrión no lo
+  // puso o es el nombre de relleno: entonces «Bienvenido, …».
+  const [nombre, setNombre] = useState('')
 
   useEffect(() => {
     if (!token) {
@@ -61,6 +65,9 @@ export default function PreCheckIn() {
       .finally(() => vigente && setCargando(false))
     estadoDeLaReserva(token)
       .then((r) => vigente && setAviso(avisoDeLlegada(r?.estado, r?.diasParaLlegar ?? 0)))
+      .catch(() => {})
+    fichaDelPrecheckin(token)
+      .then((f) => vigente && setNombre(f?.nombre?.trim() ?? ''))
       .catch(() => {})
     return () => {
       vigente = false
@@ -125,12 +132,13 @@ export default function PreCheckIn() {
     <MainLayout header="default" bg="soft">
       <div className="mx-auto max-w-[640px] px-4 py-10 sm:px-6 lg:px-8">
         {aviso ? (
-          <p className="mb-3 inline-block rounded-full bg-brand/15 px-3 py-1 text-sm font-bold text-brand">
+          <p className="mb-3 inline-block rounded-full bg-brand/10 px-3 py-1 text-sm font-bold text-brand">
             {aviso}
           </p>
         ) : null}
         <h1 className="font-display text-2xl font-extrabold leading-snug text-ink sm:text-[40px] sm:leading-tight">
-          Este es el preregistro de seguridad de {estancia?.condominio}.
+          Bienvenido{nombre ? ` ${nombre}` : ''}, este es el preregistro de
+          seguridad del edificio {estancia?.condominio}.
         </h1>
 
         {estancia?.anfitrion && (
@@ -148,9 +156,8 @@ export default function PreCheckIn() {
             </p>
             <ul className="mt-3 space-y-2 text-base leading-relaxed text-ink/70">
               {[
-                'Tu documento de identidad',
                 'Dirección de residencia',
-                'Correo electrónico de contacto',
+                'Correos electrónicos de contacto',
                 'Placas de los vehículos',
                 'Documentos de todos los huéspedes',
               ].map((linea) => (
@@ -222,14 +229,14 @@ export default function PreCheckIn() {
               )}
 
               {docType && faltanFotos && (
-                <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-900">
+                <p className="rounded-xl bg-gold/10 px-4 py-3 text-sm leading-relaxed text-ink">
                   Puedes continuar sin subir las fotos. Si lo haces, ten el
                   documento a mano al llegar: la portería te lo va a pedir.
                 </p>
               )}
 
               {errorFoto && (
-                <p className="text-center text-sm text-red-600">
+                <p className="text-center text-sm text-danger">
                   {errorFoto} Puedes continuar: tu documento se revisa en
                   porteria al llegar.
                 </p>

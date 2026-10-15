@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import MainLayout from '../layouts/MainLayout'
 import Card from './Card'
 import Button from './Button'
+import Loading from './Loading'
 
 /**
  * El aviso que se lee **antes** de escribir ningún dato.
@@ -66,11 +67,12 @@ export default function AvisoDePrevencion({ children }: { children: ReactNode })
     <MainLayout header="default" bg="soft" center>
       <div className="w-full px-4 py-10 sm:px-6">
         <Card className="mx-auto max-w-[560px] px-6 py-10 text-center sm:px-10">
+          {/* El búho en el círculo dorado, como en la maqueta: sin emojis. */}
           <div
             aria-hidden="true"
-            className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-2xl"
+            className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gold/10"
           >
-            🛡️
+            <Loading size="sm" />
           </div>
           <h1 className="mt-5 font-display text-2xl font-extrabold text-ink">
             Antes de empezar

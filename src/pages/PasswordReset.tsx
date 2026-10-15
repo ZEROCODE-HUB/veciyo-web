@@ -85,19 +85,19 @@ export default function PasswordReset() {
           </h1>
 
           {sesion === 'buscando' && (
-            <p className="mt-6 text-sm text-gray-500">Comprobando el enlace...</p>
+            <p className="mt-6 text-sm text-ink/60">Comprobando el enlace...</p>
           )}
 
           {sesion === 'no' && (
             <div className="mt-6 space-y-4">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-ink/60">
                 Este enlace no es válido o ya venció. Los enlaces de
                 recuperación duran poco a propósito.
               </p>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-ink/60">
                 Pide uno nuevo desde la aplicación, en «Recuperar contraseña».
               </p>
-              <Link to="/invitacion" className="text-sm font-semibold text-primary">
+              <Link to="/invitacion" className="text-sm font-semibold text-brand">
                 Volver
               </Link>
             </div>
@@ -126,7 +126,7 @@ export default function PasswordReset() {
                 placeholder="La misma, para no equivocarte"
               />
 
-              {error && <p className="text-sm text-red-600">{error}</p>}
+              {error && <p className="text-sm text-danger">{error}</p>}
 
               <Button type="submit" className="w-full py-3.5" disabled={guardando}>
                 {guardando ? 'Guardando...' : 'Guardar contraseña'}
@@ -136,11 +136,11 @@ export default function PasswordReset() {
 
           {listo && (
             <div className="mt-6 space-y-4">
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-ink/60">
                 Listo. Ya puedes entrar en la aplicación con tu contraseña
                 nueva.
               </p>
-              <Link to="/invitacion" className="text-sm font-semibold text-primary">
+              <Link to="/invitacion" className="text-sm font-semibold text-brand">
                 Volver
               </Link>
             </div>

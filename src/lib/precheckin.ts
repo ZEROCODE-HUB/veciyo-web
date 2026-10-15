@@ -816,6 +816,11 @@ export async function subirAutorizacionMenor(
   token: string,
   invitadoId: string,
   archivo: File,
+  /**
+   * Un documento más de la tutela, después del principal: la maqueta deja
+   * subir «Documento adicional N» (15/10/2026). No reemplaza al principal.
+   */
+  adicional = false,
 ): Promise<void> {
   const url = import.meta.env.VITE_SUPABASE_URL
   if (!url) throw new Error('Sin conexión con el servidor')
@@ -835,6 +840,7 @@ export async function subirAutorizacionMenor(
       invitadoId,
       archivoBase64: base64,
       contentType: archivo.type || 'application/pdf',
+      adicional,
     }),
   })
 
@@ -861,7 +867,14 @@ export async function subirAutorizacionMenor(
 export async function subirLoElegido(
   token: string,
   personaId: string,
-  elegidos: { documento?: File | null; autorizacion?: File | null },
+  elegidos: {
+    documento?: File | null
+    /** El reverso del documento, como en la maqueta (frente y reverso). */
+    reverso?: File | null
+    autorizacion?: File | null
+    /** «Documento adicional N» de la tutela, después del principal. */
+    adicionales?: File[]
+  },
   subir = { documento: subirDocumentoPrecheckin, autorizacion: subirAutorizacionMenor },
 ): Promise<string[]> {
   const fallos: string[] = []
@@ -872,11 +885,25 @@ export async function subirLoElegido(
       fallos.push('la foto de su documento')
     }
   }
+  if (elegidos.reverso) {
+    try {
+      await subir.documento(token, elegidos.reverso, 'reverso', personaId)
+    } catch {
+      fallos.push('el reverso de su documento')
+    }
+  }
   if (elegidos.autorizacion) {
     try {
       await subir.autorizacion(token, personaId, elegidos.autorizacion)
     } catch {
-      fallos.push('la autorización firmada')
+      fallos.push('la carta de potestad o tutela')
+    }
+    for (const extra of elegidos.adicionales ?? []) {
+      try {
+        await subir.autorizacion(token, personaId, extra, true)
+      } catch {
+        fallos.push('un documento adicional de la tutela')
+      }
     }
   }
   return fallos

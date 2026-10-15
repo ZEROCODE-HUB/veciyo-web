@@ -3,6 +3,7 @@ import Input from './Input'
 import Select from './Select'
 import Button from './Button'
 import FileUploader from './FileUploader'
+import BloqueTutela from './BloqueTutela'
 import { porQueFallo } from '../lib/motivo'
 import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
 import {
@@ -204,20 +205,20 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
               <div className="flex items-start gap-3">
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-ink">
-                    👶 {menor.nombre} {menor.apellidos ?? ''}
+                    {menor.nombre} {menor.apellidos ?? ''}
                   </p>
 
                   <p
                     className={`mt-1 text-xs font-semibold ${
-                      menor.tiene_documento ? 'text-green-700' : 'text-amber-700'
+                      menor.tiene_documento ? 'text-success' : 'text-ink'
                     }`}
                   >
                     {menor.tiene_documento
-                      ? '✓ Subiste la foto de su documento'
+                      ? 'Subiste la foto de su documento'
                       : 'Falta la foto de su documento'}
                   </p>
                   {!menor.tiene_documento && (
-                    <label className="mt-1 block text-xs font-semibold text-primary underline">
+                    <label className="mt-1 block text-xs font-semibold text-brand underline">
                       {subiendo === menor.id ? 'Subiendo…' : 'Subir su documento'}
                       <input
                         type="file"
@@ -242,19 +243,19 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
                       <p
                         className={`mt-1 text-xs font-semibold ${
                           menor.tiene_autorizacion
-                            ? 'text-green-700'
-                            : 'text-amber-700'
+                            ? 'text-success'
+                            : 'text-ink'
                         }`}
                       >
                         {menor.tiene_autorizacion
-                          ? '✓ Autorización firmada subida'
-                          : 'Falta su autorización firmada'}
+                          ? 'Carta de potestad / tutela subida'
+                          : 'Falta su carta de potestad / tutela'}
                       </p>
                       {!menor.tiene_autorizacion && (
-                        <label className="mt-1 block text-xs font-semibold text-primary underline">
+                        <label className="mt-1 block text-xs font-semibold text-brand underline">
                           {subiendo === menor.id
                             ? 'Subiendo…'
-                            : 'Subir la autorización'}
+                            : 'Subir la carta de potestad / tutela'}
                           <input
                             type="file"
                             className="hidden"
@@ -275,7 +276,7 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
                   type="button"
                   onClick={() => void quitar(menor.id)}
                   aria-label={`Quitar a ${menor.nombre}`}
-                  className="shrink-0 text-xs font-semibold text-red-600 underline"
+                  className="shrink-0 text-xs font-semibold text-danger underline"
                 >
                   Quitar
                 </button>
@@ -330,6 +331,8 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
             value={documento}
             onChange={(e) => setDocumento(e.target.value)}
           />
+          {/* El bloque del menor de la maqueta, con su texto de protección. */}
+          <BloqueTutela>
           <Select
             label="Adulto responsable por el menor"
             tone="soft"
@@ -365,13 +368,14 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
           />
           {necesitaPermiso(parentesco || null) && (
             <FileUploader
-              compact
-              title="Autorización firmada"
+              tone="soft"
+              title="Carta de potestad / tutela notarial"
               hint="Hace falta al no ser su padre ni su madre. Foto o PDF."
               accept="image/jpeg,image/png,image/webp,application/pdf"
               onFileSelected={setAutorizacion}
             />
           )}
+          </BloqueTutela>
 
           <div className="flex gap-2">
             <Button
@@ -399,13 +403,13 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
         <button
           type="button"
           onClick={() => setAbierto(true)}
-          className="mt-4 text-sm font-semibold text-primary underline"
+          className="mt-4 text-sm font-semibold text-brand underline"
         >
           + Añadir un menor
         </button>
       )}
 
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-3 text-sm text-danger">{error}</p>}
     </div>
   )
 }

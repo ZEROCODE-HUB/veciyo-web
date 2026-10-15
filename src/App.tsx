@@ -8,6 +8,7 @@ import DownloadApp from './pages/DownloadApp'
 import Access from './pages/Access'
 import Reserva from './pages/Reserva'
 import CompanionAccess from './pages/CompanionAccess'
+import Validation from './pages/Validation'
 // Las dos paginas publicas que pide Google para publicar la pantalla de
 // «Entrar con Google». Lo que el huesped acepta en su preregistro es otra
 // cosa, y vive dentro del propio preregistro.
@@ -69,6 +70,9 @@ export default function App() {
       <Route path="/privacidad" element={<Privacidad />} />
       <Route path="/terminos" element={<Terminos />} />
       <Route path="/companions" element={<Companions />} />
+      {/* «Validación de huéspedes» de la maqueta, recuperada el 15/10/2026:
+          va entre «Enviar información» y la descarga de la app. */}
+      <Route path="/validation" element={<Validation />} />
       <Route path="/download-app" element={<DownloadApp />} />
       {/*
         Aqui estaban seis rutas de la maqueta de diseño: `/login`,

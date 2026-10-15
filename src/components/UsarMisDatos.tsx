@@ -150,7 +150,7 @@ export default function UsarMisDatos({ onDatos }: Props) {
         <button
           type="button"
           onClick={() => setAbierto(true)}
-          className="text-sm font-semibold text-primary underline"
+          className="text-sm font-semibold text-brand underline"
         >
           ¿Ya te alojaste con Veciyo? Inicia sesión y no vuelvas a escribirlo
         </button>
@@ -159,7 +159,7 @@ export default function UsarMisDatos({ onDatos }: Props) {
       {aviso && (
         <p
           className={`mt-2 text-xs font-semibold ${
-            aviso.bien ? 'text-green-700' : 'text-red-600'
+            aviso.bien ? 'text-success' : 'text-danger'
           }`}
         >
           {aviso.texto}

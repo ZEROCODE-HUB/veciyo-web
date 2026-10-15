@@ -16,11 +16,11 @@ const ACTUALIZADA = '6 de octubre de 2026'
 export default function Terminos() {
   return (
     <MainLayout>
-      <article className="mx-auto max-w-2xl px-4 py-8 text-sm leading-6 text-gray-800">
-        <h1 className="mb-1 text-2xl font-bold text-gray-900">
+      <article className="mx-auto max-w-2xl px-4 py-8 text-sm leading-6 text-ink">
+        <h1 className="mb-1 text-2xl font-bold text-ink">
           Términos de servicio
         </h1>
-        <p className="mb-6 text-xs text-gray-500">
+        <p className="mb-6 text-xs text-ink/60">
           Última actualización: {ACTUALIZADA}
         </p>
 
@@ -151,7 +151,7 @@ function Seccion({
 }) {
   return (
     <section className="mb-6">
-      <h2 className="mb-2 text-base font-semibold text-gray-900">{titulo}</h2>
+      <h2 className="mb-2 text-base font-semibold text-ink">{titulo}</h2>
       <div className="space-y-2">{children}</div>
     </section>
   )

@@ -62,13 +62,13 @@ export default function Input({
         aria-describedby={error ? idDelError : undefined}
         className={`${fieldBase} ${
           error
-            ? 'border border-red-400 bg-white focus:border-red-500 focus:ring-red-200'
+            ? 'border border-danger bg-white focus:border-danger focus:ring-red-200'
             : tones[tone]
         } ${className}`}
         {...props}
       />
       {error ? (
-        <p id={idDelError} role="alert" className="mt-1.5 text-xs text-red-600">
+        <p id={idDelError} role="alert" className="mt-1.5 text-xs text-danger">
           {error}
         </p>
       ) : null}

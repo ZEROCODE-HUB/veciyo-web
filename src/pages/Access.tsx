@@ -2,13 +2,15 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import BackgroundCarousel from '../components/BackgroundCarousel'
 import Loading from '../components/Loading'
-import { hayBackend } from '../lib/supabase'
+import { formatearFecha, hayBackend } from '../lib/supabase'
+import Button from '../components/Button'
 import {
   consultarPrecheckin,
   estadoDeLaReserva,
   fichaDelPrecheckin,
   guardarToken,
   textoDeLaCuentaAtras,
+  vehiculosDelPrecheckin,
   type EstanciaPrecheckin,
 } from '../lib/precheckin'
 
@@ -32,6 +34,17 @@ type Estado =
   | { tipo: 'completado'; datos: EstanciaPrecheckin; dias: number | null }
   | { tipo: 'cancelada' }
   | { tipo: 'terminada'; completado: boolean; condominio: string }
+  /*
+    La tarjeta de inicio de la maqueta (15/10/2026): «Preregistro de
+    Seguridad del Condominio» con el resumen de la reserva y «Continuar».
+    Solo la primera vez; quien ya empezó vuelve directo a donde lo dejó.
+  */
+  | {
+      tipo: 'inicio'
+      datos: EstanciaPrecheckin
+      huesped: string
+      vehiculos: number
+    }
 
 /**
  * La puerta de entrada del huésped: el enlace que le mandó su anfitrión.
@@ -106,9 +119,21 @@ export default function Access() {
             .then((ficha) => {
               if (!vigente) return
               const empezado = Boolean(ficha?.documento?.trim())
-              navigate(empezado ? '/confirm-data' : '/pre-check-in', {
-                replace: true,
-              })
+              if (empezado) {
+                navigate('/confirm-data', { replace: true })
+                return
+              }
+              vehiculosDelPrecheckin(token)
+                .catch(() => [])
+                .then((vehiculos) => {
+                  if (!vigente) return
+                  setEstado({
+                    tipo: 'inicio',
+                    datos,
+                    huesped: `${ficha?.nombre ?? ''} ${ficha?.apellidos ?? ''}`.trim(),
+                    vehiculos: vehiculos.length,
+                  })
+                })
             })
             .catch(() => vigente && navigate('/pre-check-in', { replace: true }))
         }
@@ -132,7 +157,60 @@ export default function Access() {
             </p>
           </div>
         ) : (
-          <div className="w-full max-w-[560px] rounded-2xl border border-white/30 bg-white/40 px-8 py-12 text-center shadow-2xl shadow-black/10 backdrop-blur-2xl sm:px-14">
+          <div
+            className={`w-full ${estado.tipo === 'inicio' ? 'max-w-[640px]' : 'max-w-[560px]'} rounded-2xl border border-white/30 bg-white/40 px-8 py-12 text-center shadow-2xl shadow-black/10 backdrop-blur-2xl sm:px-14`}
+          >
+            {estado.tipo === 'inicio' && (
+              <>
+                <h1 className="text-center font-display text-3xl font-extrabold text-ink sm:text-[34px]">
+                  Preregistro de Seguridad del Condominio
+                </h1>
+                <p className="mx-auto mt-4 max-w-md text-center text-base leading-relaxed text-ink/80">
+                  Este condominio requiere que completes este preregistro de
+                  seguridad para aprobar la reservación.
+                </p>
+                <div className="mt-8 rounded-xl border border-white/30 bg-white/40 px-6 py-5 text-left shadow-lg backdrop-blur-md">
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                    {estado.huesped && (
+                      <div className="col-span-2">
+                        <p className="text-xs font-semibold uppercase tracking-widest text-ink/70">Nombre del huésped</p>
+                        <p className="text-sm font-bold text-ink">{estado.huesped}</p>
+                      </div>
+                    )}
+                    <div className="col-span-2">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-ink/70">Alojamiento</p>
+                      <p className="text-sm font-bold text-ink">
+                        {estado.datos.condominio} · vivienda {estado.datos.unidad}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-ink/70">Cantidad de huéspedes</p>
+                      <p className="text-sm font-bold text-ink">
+                        {estado.datos.huespedes_previstos ?? 'La indicas tú'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-ink/70">Vehículos</p>
+                      <p className="text-sm font-bold text-ink">{estado.vehiculos}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-ink/70">Fechas de la reserva</p>
+                      <p className="text-sm font-bold text-ink sm:whitespace-nowrap">
+                        Entrada: {formatearFecha(estado.datos.fecha_desde)}&emsp;&emsp;Salida:{' '}
+                        {formatearFecha(estado.datos.fecha_hasta)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  className="mt-10 w-full py-3.5"
+                  onClick={() => navigate('/pre-check-in')}
+                >
+                  Continuar
+                </Button>
+              </>
+            )}
             {estado.tipo === 'invalido' && (
               <Aviso
                 titulo="No encontramos esta reserva"

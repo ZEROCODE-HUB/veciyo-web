@@ -150,7 +150,7 @@ export default function DeclararIncapacidad({
         onChange={(e) => setAcepto(e.target.checked)}
       />
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       <div className="flex gap-2 pt-1">
         <Button

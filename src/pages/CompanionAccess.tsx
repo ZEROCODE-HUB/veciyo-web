@@ -397,14 +397,14 @@ export default function CompanionAccess() {
                 </p>
                 <p
                   className={`mt-1 text-xs font-semibold ${
-                    fotoSubida ? 'text-green-700' : 'text-ink/60'
+                    fotoSubida ? 'text-success' : 'text-ink/60'
                   }`}
                 >
                   {fotoSubida
-                    ? '✓ Foto guardada'
+                    ? 'Foto guardada'
                     : 'Si la subes, la portería te recibe más rápido.'}
                 </p>
-                <label className="mt-2 block text-xs font-semibold text-primary underline">
+                <label className="mt-2 block text-xs font-semibold text-brand underline">
                   {subiendoFoto
                     ? 'Subiendo…'
                     : fotoSubida
@@ -531,12 +531,12 @@ export default function CompanionAccess() {
             <MenoresQueTraigo token={token} llegada={estancia.desde} />
           )}
 
-          {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+          {error && <p className="mt-4 text-sm text-danger">{error}</p>}
 
           {faltan.length > 0 && (
             <p
               role="status"
-              className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-center text-sm text-amber-800"
+              className="mt-4 rounded-xl bg-gold/10 px-4 py-3 text-center text-sm text-ink"
             >
               Para continuar falta: {faltan.join(', ')}.
             </p>

@@ -96,14 +96,14 @@ export default function Invitation() {
           {estado.tipo === 'invalida' && (
             <Mensaje
               titulo="No encontramos esta invitación"
-              detalle="Puede que se haya revocado o que el enlace no sea correcto. Pedile a quien te invitó que te mande uno nuevo."
+              detalle="Puede que se haya revocado o que el enlace no sea correcto. Pídele a quien te invitó que te mande uno nuevo."
             />
           )}
 
           {estado.tipo === 'vencida' && (
             <Mensaje
               titulo="Esta invitación ya venció"
-              detalle={`Se emitió para ${estado.datos.correo}. Pedile a quien te invitó que te mande una nueva.`}
+              detalle={`Se emitió para ${estado.datos.correo}. Pídele a quien te invitó que te mande una nueva.`}
             />
           )}
 
@@ -150,8 +150,8 @@ function Detalle({
       */}
       <p className="mx-auto mt-4 max-w-md text-center text-base leading-relaxed text-ink/80">
         {esHuesped
-          ? 'Creá tu cuenta para ver tu alojamiento durante la estadía.'
-          : 'Creá tu cuenta para entrar a la vivienda que te asignaron.'}
+          ? 'Crea tu cuenta para ver tu alojamiento durante la estadía.'
+          : 'Crea tu cuenta para entrar a la vivienda que te asignaron.'}
       </p>
 
       <div className="mt-8 rounded-xl border border-white/30 bg-white/40 px-6 py-5 shadow-lg backdrop-blur-md">
