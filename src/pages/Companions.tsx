@@ -9,6 +9,7 @@ import Loading from '../components/Loading'
 import Modal from '../components/Modal'
 import VehiculosDeLaEstancia from '../components/VehiculosDeLaEstancia'
 import DeclararIncapacidad from '../components/DeclararIncapacidad'
+import FileUploader from '../components/FileUploader'
 import { porQueFallo } from '../lib/motivo'
 import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
 import { errorDeFechaExpedicion, pideFechaExpedicion } from '../lib/ficha'
@@ -30,6 +31,8 @@ import {
   necesitaPermiso,
   PARENTESCOS,
   subirAutorizacionMenor,
+  subirLoElegido,
+  avisoDeLoQueNoSubio,
   subirDocumentoPrecheckin,
   type Acompanante,
   type AdultoDeLaEstancia,
@@ -100,6 +103,14 @@ export default function Companions() {
   const [adultos, setAdultos] = useState<AdultoDeLaEstancia[]>([])
   const [subiendo, setSubiendo] = useState<string | null>(null)
   /*
+    La foto del documento y la autorización, elegidas en el mismo formulario
+    (15/10/2026). Se suben apenas la persona existe. `altaN` vuelve a montar
+    los selectores al limpiar, para que no se queden con el archivo anterior.
+  */
+  const [fotoDocumento, setFotoDocumento] = useState<File | null>(null)
+  const [autorizacion, setAutorizacion] = useState<File | null>(null)
+  const [altaN, setAltaN] = useState(0)
+  /*
     El enlace de un acompañante vuelve **una sola vez**: en la base vive solo su
     sha256. Se guarda aqui para poder enseñarlo y copiarlo; si se cierra sin
     copiarlo, hay que emitir otro y el anterior deja de valer.
@@ -165,6 +176,9 @@ export default function Companions() {
     setFechaNacimiento('')
     setResponsableId('')
     setParentesco('')
+    setFotoDocumento(null)
+    setAutorizacion(null)
+    setAltaN((n) => n + 1)
   }
 
   /*
@@ -232,6 +246,10 @@ export default function Companions() {
       if (!esMenor && pideFechaExpedicion(tipoDoc) && fechaExpedicion) {
         await guardarFechaExpedicion(token, fechaExpedicion, id)
       }
+      const fallos = await subirLoElegido(token, id, {
+        documento: fotoDocumento,
+        autorizacion: esMenor && necesitaPermiso(parentesco || null) ? autorizacion : null,
+      })
       const [acompanantes, mayores] = await Promise.all([
         listarAcompanantes(token),
         // Quien acaba de entrar como adulto pasa a poder hacerse cargo de un
@@ -241,6 +259,7 @@ export default function Companions() {
       setLista(acompanantes)
       setAdultos(mayores)
       limpiar()
+      setError(avisoDeLoQueNoSubio(fallos))
     } catch (e) {
       setError(porQueFallo(e, 'No pudimos añadirlo'))
     }
@@ -382,7 +401,7 @@ export default function Companions() {
                       </p>
                       <p className="text-xs text-ink/60">
                         {persona.es_menor
-                          ? 'Menor de edad · sin documento propio'
+                          ? 'Menor de edad'
                           : persona.documento_numero}
                       </p>
 
@@ -726,23 +745,20 @@ export default function Companions() {
                       onChange={(e) => setParentesco(e.target.value as Parentesco | '')}
                     />
                     {/*
-                      Lo que viene **después** de pulsar «Añadir», dicho antes.
-
-                      La foto del documento no cabe en este formulario: hace
-                      falta el identificador de la persona, y ese no existe
-                      hasta guardarla. Así que se pide en su ficha, un paso más
-                      tarde, y eso sin avisar se lee como que el formulario se
-                      dejó algo: «luego de añadir al menor, recién me pidió la
-                      foto de su documento, es decir no durante el registro».
+                      La autorización se elige aquí mismo (15/10/2026): antes
+                      solo se podía subir desde su ficha, después de añadirlo,
+                      y el cliente lo vio como que «no se puede subir directo».
                     */}
-                    <p className="rounded-xl bg-ink/[0.04] px-3 py-2 text-xs text-ink/70">
-                      Al añadirlo vas a poder subir la{' '}
-                      <strong>foto de su documento</strong>
-                      {necesitaPermiso(parentesco || null)
-                        ? ' y su autorización firmada, que hace falta al no ser su padre ni su madre'
-                        : ''}
-                      , desde su ficha.
-                    </p>
+                    {necesitaPermiso(parentesco || null) && (
+                      <FileUploader
+                        key={`autorizacion-${altaN}`}
+                        compact
+                        title="Autorización firmada"
+                        hint="Hace falta al no ser su padre ni su madre. Foto o PDF."
+                        accept="image/jpeg,image/png,image/webp,application/pdf"
+                        onFileSelected={setAutorizacion}
+                      />
+                    )}
                   </>
                 )}
 
@@ -777,6 +793,19 @@ export default function Companions() {
                   placeholder="Sin puntos ni guiones"
                   value={documento}
                   onChange={(e) => setDocumento(e.target.value)}
+                />
+                {/*
+                  La foto del documento, en el mismo formulario (15/10/2026):
+                  se sube apenas la persona queda añadida. Opcional aquí; la
+                  puede subir luego desde su ficha o desde su enlace.
+                */}
+                <FileUploader
+                  key={`documento-${altaN}`}
+                  compact
+                  title="Foto de su documento (opcional)"
+                  hint="El frente, donde se ve la foto"
+                  accept="image/jpeg,image/png,image/webp"
+                  onFileSelected={setFotoDocumento}
                 />
                 {!esMenor && pideFechaExpedicion(tipoDoc) ? (
                   <Input

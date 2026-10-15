@@ -3,6 +3,8 @@ import {
   esNombreDeRelleno,
   NOMBRE_SIN_CONFIRMAR,
   normalizarPlaca,
+  subirLoElegido,
+  avisoDeLoQueNoSubio,
   textoDeLaCuentaAtras,
   topeDePersonas,
   type EstanciaPrecheckin,
@@ -123,5 +125,48 @@ describe('la cuenta atrás (14/10/2026)', () => {
     expect(textoDeLaCuentaAtras(3)).toBe('Faltan 3 días para tu llegada')
     expect(textoDeLaCuentaAtras(1)).toBe('Mañana llegas')
     expect(textoDeLaCuentaAtras(0)).toBe('Hoy llegas')
+  })
+})
+
+describe('lo elegido en el formulario de alta', () => {
+  const archivo = (n: string) => new File(['x'], n)
+
+  it('sube la foto y la autorización a la persona recién creada', async () => {
+    const hechos: string[] = []
+    const fallos = await subirLoElegido(
+      't',
+      'p1',
+      { documento: archivo('doc.jpg'), autorizacion: archivo('aut.pdf') },
+      {
+        documento: async (_t, f, _c, id) => void hechos.push(`${f.name}>${id}`),
+        autorizacion: async (_t, id, f) => void hechos.push(`${f.name}>${id}`),
+      },
+    )
+    expect(hechos).toEqual(['doc.jpg>p1', 'aut.pdf>p1'])
+    expect(fallos).toEqual([])
+    expect(avisoDeLoQueNoSubio(fallos)).toBeNull()
+  })
+
+  it('si una no sube, la otra sí, y se dice cuál faltó', async () => {
+    const fallos = await subirLoElegido(
+      't',
+      'p1',
+      { documento: archivo('doc.jpg'), autorizacion: archivo('aut.pdf') },
+      {
+        documento: async () => {
+          throw new Error('caído')
+        },
+        autorizacion: async () => {},
+      },
+    )
+    expect(fallos).toEqual(['la foto de su documento'])
+    expect(avisoDeLoQueNoSubio(fallos)).toMatch(/añadimos.*foto de su documento.*ficha/)
+  })
+
+  it('sin nada elegido no sube nada', async () => {
+    let llamadas = 0
+    const contar = async () => void llamadas++
+    await subirLoElegido('t', 'p1', {}, { documento: contar, autorizacion: contar })
+    expect(llamadas).toBe(0)
   })
 })

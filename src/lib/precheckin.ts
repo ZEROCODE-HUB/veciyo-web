@@ -846,6 +846,48 @@ export async function subirAutorizacionMenor(
   }
 }
 
+/**
+ * Lo que se eligió en el formulario de alta, subido apenas la persona existe.
+ *
+ * Los archivos van por persona, y la persona no tiene identificador hasta
+ * guardarla. Hasta el 15/10/2026 eso obligaba a añadirla y luego buscar su
+ * ficha para subir la foto y la autorización; el cliente lo vio como que «no
+ * se puede subir directo». Ahora se eligen en el mismo formulario y se suben
+ * justo después de guardar.
+ *
+ * Devuelve lo que no se pudo subir, para decirlo: la persona ya quedó añadida
+ * y eso no se deshace por una foto; desde su ficha se puede volver a intentar.
+ */
+export async function subirLoElegido(
+  token: string,
+  personaId: string,
+  elegidos: { documento?: File | null; autorizacion?: File | null },
+  subir = { documento: subirDocumentoPrecheckin, autorizacion: subirAutorizacionMenor },
+): Promise<string[]> {
+  const fallos: string[] = []
+  if (elegidos.documento) {
+    try {
+      await subir.documento(token, elegidos.documento, 'frente', personaId)
+    } catch {
+      fallos.push('la foto de su documento')
+    }
+  }
+  if (elegidos.autorizacion) {
+    try {
+      await subir.autorizacion(token, personaId, elegidos.autorizacion)
+    } catch {
+      fallos.push('la autorización firmada')
+    }
+  }
+  return fallos
+}
+
+/** Cómo se dice que la persona quedó, pero algo de lo elegido no subió. */
+export function avisoDeLoQueNoSubio(fallos: string[]): string | null {
+  if (fallos.length === 0) return null
+  return `Lo añadimos, pero no pudimos subir ${fallos.join(' ni ')}. Inténtalo de nuevo desde su ficha.`
+}
+
 /* ========================================================================== *
  * Los menores que trae un acompañante
  *

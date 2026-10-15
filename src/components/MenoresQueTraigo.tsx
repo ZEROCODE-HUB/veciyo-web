@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import Input from './Input'
 import Select from './Select'
 import Button from './Button'
+import FileUploader from './FileUploader'
 import { porQueFallo } from '../lib/motivo'
 import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
 import {
@@ -14,6 +15,8 @@ import {
   quitarMenorAcompanante,
   subirAutorizacionMenor,
   subirDocumentoPrecheckin,
+  subirLoElegido,
+  avisoDeLoQueNoSubio,
   type AdultoParaElegir,
   type MenorACargo,
   type Parentesco,
@@ -58,6 +61,9 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
   const [fechaNacimiento, setFechaNacimiento] = useState('')
   const [responsableId, setResponsableId] = useState('')
   const [parentesco, setParentesco] = useState<Parentesco | ''>('')
+  // Elegidos en el formulario y subidos apenas el menor existe (15/10/2026).
+  const [fotoDocumento, setFotoDocumento] = useState<File | null>(null)
+  const [autorizacion, setAutorizacion] = useState<File | null>(null)
 
   const refrescar = async () => {
     const [menores, mayores] = await Promise.all([
@@ -94,6 +100,8 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
     setDocumento('')
     setFechaNacimiento('')
     setParentesco('')
+    setFotoDocumento(null)
+    setAutorizacion(null)
   }
 
   /*
@@ -122,7 +130,7 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
     setError(null)
     setGuardando(true)
     try {
-      await guardarMenorAcompanante(token, {
+      const id = await guardarMenorAcompanante(token, {
         nombre: nombre.trim(),
         apellidos: apellidos.trim() || undefined,
         tipoDocumento: tipoDoc || undefined,
@@ -131,9 +139,14 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
         responsableId,
         parentesco: parentesco as Parentesco,
       })
+      const fallos = await subirLoElegido(token, id, {
+        documento: fotoDocumento,
+        autorizacion: necesitaPermiso(parentesco || null) ? autorizacion : null,
+      })
       await refrescar()
       limpiar()
       setAbierto(false)
+      setError(avisoDeLoQueNoSubio(fallos))
     } catch (e) {
       setError(porQueFallo(e, 'No pudimos añadirlo'))
     } finally {
@@ -338,11 +351,26 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
             value={parentesco}
             onChange={(e) => setParentesco(e.target.value as Parentesco | '')}
           />
+          {/*
+            La foto y la autorización se eligen aquí mismo (15/10/2026), no
+            después de añadirlo. El formulario se desmonta al cerrar, así que
+            los selectores empiezan vacíos cada vez.
+          */}
+          <FileUploader
+            compact
+            title="Foto de su documento (opcional)"
+            hint="El frente, donde se ve la foto"
+            accept="image/jpeg,image/png,image/webp"
+            onFileSelected={setFotoDocumento}
+          />
           {necesitaPermiso(parentesco || null) && (
-            <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
-              Al no ser su padre ni su madre, hará falta una autorización
-              firmada. Podrás subirla aquí en cuanto lo añadas.
-            </p>
+            <FileUploader
+              compact
+              title="Autorización firmada"
+              hint="Hace falta al no ser su padre ni su madre. Foto o PDF."
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              onFileSelected={setAutorizacion}
+            />
           )}
 
           <div className="flex gap-2">
