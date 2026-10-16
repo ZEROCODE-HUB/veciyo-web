@@ -151,8 +151,9 @@ export default function DownloadApp() {
 
           {noPorAhora && (
             <p className="mt-6 rounded-2xl bg-surface-soft px-5 py-4 text-center text-sm text-ink/80">
-              Listo, tu preregistro queda hecho. Si más adelante quieres tu
-              cuenta, pídele a tu anfitrión que te vuelva a enviar el acceso.
+              Listo, tu preregistro queda hecho. Cuando se apruebe el ingreso
+              de tu grupo, te avisaremos a tu correo y te enviaremos el QR de
+              acceso.
             </p>
           )}
         </Card>
