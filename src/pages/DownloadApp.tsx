@@ -1,6 +1,8 @@
-import { useLocation } from 'react-router-dom'
+import { useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import Card from '../components/Card'
+import Button from '../components/Button'
 import { CheckIcon } from '../components/icons'
 import { entradaElegida, olvidarToken } from '../lib/precheckin'
 
@@ -20,7 +22,8 @@ import { entradaElegida, olvidarToken } from '../lib/precheckin'
  * qué crear la cuenta, y pidió quitar el enlace escrito («Tu acceso a la
  * aplicación») y poner los logos de App Store y Google Play. Los enlaces de las
  * tiendas son **provisionales**: la aplicación todavía no está publicada
- * (REVISAR-A-OJO). El acceso para crear la cuenta sigue en el botón.
+ * (REVISAR-A-OJO). Las tiendas se enseñan después de decir que sí a la cuenta,
+ * en la página de crearla (16/10/2026, segunda vuelta).
  */
 
 /** Lo que pidió la responsable de producto, en su orden (16/10/2026). */
@@ -33,25 +36,25 @@ const POR_QUE_CREARLA = [
   'Registrar tus propias visitas (si está permitido por tu anfitrión).',
 ]
 
-/** Provisionales hasta que la aplicación esté en las tiendas. */
-const TIENDAS = [
-  {
-    nombre: 'App Store',
-    href: 'https://apps.apple.com/app/veciyo/id0000000000',
-    imagen: '/tiendas/app-store.png',
-  },
-  {
-    nombre: 'Google Play',
-    href: 'https://play.google.com/store/apps/details?id=com.veciyo.app',
-    imagen: '/tiendas/google-play.webp',
-  },
-]
-
 export default function DownloadApp() {
   const location = useLocation()
+  const navigate = useNavigate()
   const acceso = (location.state as { acceso?: string } | null)?.acceso ?? null
-  // Eligió «Crear una cuenta» al empezar: el botón va primero y destacado.
+  // Eligió «Crear una cuenta» al empezar: el «Sí» ya viene destacado.
   const quiereCuenta = entradaElegida() === 'crear_cuenta'
+  /*
+    Al terminar se le pregunta si quiere su cuenta (16/10/2026). Si dice que sí,
+    pasa a la página de crearla, que es donde están las tiendas; si no, se
+    queda aquí con su preregistro hecho.
+  */
+  const [noPorAhora, setNoPorAhora] = useState(false)
+
+  const crearCuenta = () => {
+    if (!acceso) return
+    // El acceso es `/invitacion?token=…` de esta misma web.
+    const url = new URL(acceso, window.location.origin)
+    navigate(`${url.pathname}${url.search}`)
+  }
 
   // El token de preregistro ya no sirve para nada: se suelta para que no se
   // quede vivo en la pestaña.
@@ -115,53 +118,43 @@ export default function DownloadApp() {
             </ul>
           </div>
 
-          <div
-            className={`mt-6 rounded-2xl border px-5 py-5 ${
-              quiereCuenta ? 'border-brand bg-brand/5' : 'border-line bg-surface-soft'
-            }`}
-          >
-            <p className="text-sm font-bold text-ink">
-              Por qué crear tu cuenta y descargar la aplicación Veciyo
-            </p>
-            <ul className="mt-3 space-y-2.5">
-              {POR_QUE_CREARLA.map((texto) => (
-                <li key={texto} className="flex gap-3 text-sm text-ink/80">
-                  <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
-                  <span>{texto}</span>
-                </li>
-              ))}
-            </ul>
-
-            {/*
-              Un enlace de verdad y no un botón que navega: así se abre en otra
-              pestaña y esta pantalla no se pierde. El acceso no se puede volver
-              a mostrar.
-            */}
-            {acceso && (
-              <a
-                href={acceso}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-5 block rounded-xl bg-brand px-4 py-3 text-center text-sm font-bold text-white transition-opacity hover:opacity-90"
-              >
-                Crear mi cuenta
-              </a>
-            )}
-
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-              {TIENDAS.map((t) => (
-                <a
-                  key={t.nombre}
-                  href={t.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`Descargar en ${t.nombre}`}
+          {acceso && !noPorAhora && (
+            <div
+              className={`mt-6 rounded-2xl border px-5 py-5 ${
+                quiereCuenta ? 'border-brand bg-brand/5' : 'border-line bg-surface-soft'
+              }`}
+            >
+              <p className="text-base font-bold text-ink">¿Quieres crear tu cuenta en Veciyo?</p>
+              <ul className="mt-3 space-y-2.5">
+                {POR_QUE_CREARLA.map((texto) => (
+                  <li key={texto} className="flex gap-3 text-sm text-ink/80">
+                    <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
+                    <span>{texto}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+                <Button type="button" className="flex-1 py-3" onClick={crearCuenta}>
+                  Sí, crear mi cuenta
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="flex-1 py-3"
+                  onClick={() => setNoPorAhora(true)}
                 >
-                  <img src={t.imagen} alt={`Descargar en ${t.nombre}`} className="h-11 w-auto" />
-                </a>
-              ))}
+                  Ahora no
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
+
+          {noPorAhora && (
+            <p className="mt-6 rounded-2xl bg-surface-soft px-5 py-4 text-center text-sm text-ink/80">
+              Listo, tu preregistro queda hecho. Si más adelante quieres tu
+              cuenta, pídele a tu anfitrión que te vuelva a enviar el acceso.
+            </p>
+          )}
         </Card>
       </div>
     </MainLayout>

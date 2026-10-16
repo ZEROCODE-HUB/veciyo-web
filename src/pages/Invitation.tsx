@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import BackgroundCarousel from '../components/BackgroundCarousel'
+import Tiendas from '../components/Tiendas'
 import {
   consultarInvitacion,
   ETIQUETA_ROL,
@@ -190,7 +191,7 @@ function Detalle({
       <div className="mt-10 rounded-xl border border-white/30 bg-white/40 px-5 py-4 text-left backdrop-blur-md">
         <p className="text-sm font-bold text-ink">Cómo entrar</p>
         <ol className="mt-2 space-y-1.5 text-sm leading-relaxed text-ink/80">
-          <li>1. Abre VeciYo con el botón de abajo.</li>
+          <li>1. Abre Veciyo con el botón de abajo.</li>
           <li>
             2. Crea tu cuenta con <strong>{datos.correo}</strong>, el mismo
             correo al que se emitió esta invitación.
@@ -211,9 +212,19 @@ function Detalle({
             href={`${URL_DE_LA_APP}/invitacion?token=${encodeURIComponent(token)}`}
             className="mt-4 block rounded-xl bg-brand px-4 py-3 text-center text-sm font-bold text-white transition-opacity hover:opacity-90"
           >
-            Abrir VeciYo y crear mi cuenta
+            Abrir Veciyo y crear mi cuenta
           </a>
         )}
+        {/*
+          Las tiendas, aquí y no al final del preregistro: se enseñan cuando
+          ya decidió crear su cuenta (16/10/2026).
+        */}
+        <p className="mt-5 text-center text-xs font-semibold text-ink/70">
+          También puedes descargar la aplicación
+        </p>
+        <div className="mt-2">
+          <Tiendas />
+        </div>
       </div>
     </>
   )
