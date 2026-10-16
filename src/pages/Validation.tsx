@@ -96,7 +96,7 @@ export default function Validation() {
                 <div className="border-t border-line px-6 py-4 sm:px-8">
                   <div className="space-y-1.5">
                     <Hito estado={h.documentoSubido ? 'hecho' : 'pendiente'}>
-                      {h.documentoSubido ? 'Subida de documentos' : 'Documentos: los revisa la portería al llegar'}
+                      {h.documentoSubido ? 'Subida de documentos' : 'Documentos: los revisa el personal de seguridad al llegar'}
                     </Hito>
                     {h.esMenor ? null : h.exento ? (
                       <Hito estado="exento">Exento de aceptación de Términos y Condiciones</Hito>

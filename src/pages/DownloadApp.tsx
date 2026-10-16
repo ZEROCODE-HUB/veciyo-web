@@ -1,10 +1,8 @@
-import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import Card from '../components/Card'
-import Button from '../components/Button'
 import { CheckIcon } from '../components/icons'
-import { olvidarToken } from '../lib/precheckin'
+import { entradaElegida, olvidarToken } from '../lib/precheckin'
 
 /**
  * El final del preregistro: aquí nace el acceso del huésped a la aplicación.
@@ -12,87 +10,48 @@ import { olvidarToken } from '../lib/precheckin'
  * La pantalla decía «pendiente de aceptación por parte del anfitrión», con un
  * girador al lado, y eso no es lo que pasa: el preregistro queda **cerrado**,
  * y lo que el anfitrión aprueba después --si hace falta-- son los términos de
- * un menor o una verificación con hallazgos. Dejar a alguien mirando un
- * girador que no espera nada es peor que no decir nada.
+ * un menor o una verificación con hallazgos.
  *
- * Mientras el envío de correo esté apagado, el acceso se muestra aquí para
- * poder copiarlo. Cuando se encienda, llegará al buzón del huésped y esta
- * pantalla solo lo dirá.
+ * El 02/10/2026 el cliente pidió que dijera que lleve sus documentos **en
+ * físico** y que quien se presente sea **la misma persona** que se registró
+ * --la base lo impone desde ese día--.
  *
- * El 02/10/2026 el cliente pidió tres cosas más para esta pantalla, y las tres
- * son lo último que lee el huésped antes de aparecer en la puerta:
- *
- *   · que lleve sus documentos **en físico**;
- *   · que quien se presente sea **la misma persona** que hizo el preregistro
- *     --y eso no es un consejo: desde el 02/10 la base lo impone, y si el
- *     número no coincide la portería no le deja entrar. Avisarlo aquí es lo
- *     mínimo, porque quien lo va a sufrir todavía puede corregirlo--;
- *   · y qué gana creando su cuenta, que hasta ahora no decía en ninguna parte.
+ * El 16/10/2026 la responsable de producto cambió los textos, la lista de por
+ * qué crear la cuenta, y pidió quitar el enlace escrito («Tu acceso a la
+ * aplicación») y poner los logos de App Store y Google Play. Los enlaces de las
+ * tiendas son **provisionales**: la aplicación todavía no está publicada
+ * (REVISAR-A-OJO). El acceso para crear la cuenta sigue en el botón.
  */
 
-/**
- * Por qué merece la pena crear la cuenta. Va **antes** del botón.
- *
- * Hasta el 09/10/2026 la pantalla pedía crear la cuenta y explicaba para qué
- * servía después, más abajo: el huésped decidía antes de saber. Lo pidió el
- * cliente: «antes de pedirle que se cree cuenta, decirle las ventajas».
- *
- * La primera es la que cambia la decisión: quien se aloja más de una vez no
- * vuelve a teclear nada.
- */
+/** Lo que pidió la responsable de producto, en su orden (16/10/2026). */
 const POR_QUE_CREARLA = [
-  {
-    texto:
-      'Tu próximo registro en un minuto: guardamos tus datos y los traemos ya puestos la próxima vez que te alojes.',
-  },
-  {
-    texto:
-      'La clave del wifi y el código de la puerta el día que llegas, sin pedirlos por chat.',
-  },
-  {
-    texto: 'Hablar con portería y reservar zonas comunes desde el teléfono.',
-  },
+  'Puedes volver a esta reserva para editar datos.',
+  'Guardaremos tus datos para acelerar tu registro en cualquier edificio Veciyo.',
+  'Abrir el libro del alojamiento —wifi, puerta e instrucciones de tu anfitrión— mientras dure tu estadía.',
+  'Hablar con portería y reservar zonas comunes desde la aplicación.',
+  'Conocer las notificaciones del edificio.',
+  'Registrar tus propias visitas (si está permitido por tu anfitrión).',
 ]
 
-/** Lo que de verdad hay al otro lado de la cuenta. Nada de esto es promesa. */
-const LO_QUE_GANA = [
+/** Provisionales hasta que la aplicación esté en las tiendas. */
+const TIENDAS = [
   {
-    texto: 'Ver tu estancia: fechas, vivienda y quién viene contigo.',
+    nombre: 'App Store',
+    href: 'https://apps.apple.com/app/veciyo/id0000000000',
+    imagen: '/tiendas/app-store.png',
   },
   {
-    texto:
-      'Abrir el libro del alojamiento —wifi, puerta e instrucciones de tu anfitrión— mientras dure tu estadía.',
-  },
-  {
-    texto: 'Reservar las zonas comunes que el edificio deje usar a huéspedes.',
-  },
-  {
-    texto: 'Hablar con portería sin bajar ni llamar por teléfono.',
-  },
-  {
-    texto: 'Anunciar tus propias visitas para que las dejen pasar.',
-  },
-  {
-    texto: 'Volver a alojarte sin rellenar nada: tus datos quedan guardados.',
+    nombre: 'Google Play',
+    href: 'https://play.google.com/store/apps/details?id=com.veciyo.app',
+    imagen: '/tiendas/google-play.webp',
   },
 ]
 
 export default function DownloadApp() {
   const location = useLocation()
   const acceso = (location.state as { acceso?: string } | null)?.acceso ?? null
-  const [copiado, setCopiado] = useState(false)
-
-  const copiar = async () => {
-    if (!acceso) return
-    try {
-      await navigator.clipboard.writeText(acceso)
-      setCopiado(true)
-      setTimeout(() => setCopiado(false), 2000)
-    } catch {
-      // Sin permiso de portapapeles el enlace sigue estando a la vista y se
-      // puede seleccionar a mano.
-    }
-  }
+  // Eligió «Crear una cuenta» al empezar: el botón va primero y destacado.
+  const quiereCuenta = entradaElegida() === 'crear_cuenta'
 
   // El token de preregistro ya no sirve para nada: se suelta para que no se
   // quede vivo en la pestaña.
@@ -103,10 +62,6 @@ export default function DownloadApp() {
       <div className="w-full px-4 py-10 sm:px-6 lg:px-8">
         <Card className="mx-auto max-w-[640px] px-6 py-10 sm:px-12 sm:py-12">
           <div className="text-center">
-            {/* La cabecera de la maqueta: círculo, «Registro completado
-                exitosamente» y la franja de estado. Lo de «pendiente de
-                aceptación del anfitrión» no vuelve: no es cierto en la mayoría
-                de las reservas y el huésped no ve la revisión. */}
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
               <CheckIcon className="h-8 w-8 text-success" />
             </div>
@@ -116,8 +71,15 @@ export default function DownloadApp() {
             </h1>
 
             <p className="mx-auto mt-4 max-w-md text-base text-ink/70">
-              Tu registro como huésped temporal ha sido completado. La portería
-              ya te espera con tus datos cargados.
+              Tu registro como huésped temporal ha sido completado. El equipo de
+              seguridad te espera para completar tu registro presencial con tus
+              documentos físicos.
+            </p>
+            <p className="mx-auto mt-3 max-w-md text-sm text-ink/70">
+              Cuando el proceso de registro de todo tu grupo esté completo,
+              recibirás confirmación de aprobación de ingreso a tu correo
+              electrónico con un QR para agilizar tu registro físico a tu
+              llegada.
             </p>
 
             <div className="mt-6 flex items-center justify-center gap-3 rounded-lg bg-success/5 px-4 py-3">
@@ -131,110 +93,75 @@ export default function DownloadApp() {
             pantalla que puede impedirle entrar al edificio.
           */}
           <div className="mt-8 rounded-2xl border border-gold/40 bg-gold/10 px-5 py-5">
-            <p className="text-sm font-bold text-ink">
-              Antes de venir, dos cosas
-            </p>
+            <p className="text-sm font-bold text-ink">Antes de venir, dos cosas</p>
             <ul className="mt-3 space-y-3 text-sm text-ink">
               <li className="flex gap-3">
                 <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
                 <span>
-                  <strong>Trae tus documentos físicos.</strong> La portería los
-                  compara con lo que acabas de registrar, uno por uno, incluidos
-                  los de quienes vienen contigo.
+                  <strong>Trae tus documentos físicos.</strong> El personal de
+                  seguridad los compara con lo que acabas de registrar, uno por
+                  uno, incluidos los de quienes vienen contigo.
                 </span>
               </li>
               <li className="flex gap-3">
                 <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
                 <span>
-                  <strong>
-                    Quien se presente tiene que ser quien se registró.
-                  </strong>{' '}
-                  Si el número del documento no coincide con el que pusiste, la
-                  portería no puede dejar pasar a esa persona. Si algo quedó mal
-                  escrito, dilo ahora a tu anfitrión.
+                  <strong>Quien se presente tiene que ser quien se registró.</strong>{' '}
+                  Si el número del documento no coincide con el que pusiste, no
+                  se puede dejar pasar a esa persona. Si algo quedó mal escrito,
+                  dilo ahora a tu anfitrión.
                 </span>
               </li>
             </ul>
           </div>
 
-          {acceso && (
-            <div className="mt-6 rounded-2xl border border-line bg-surface-soft px-5 py-5">
-              <p className="text-sm font-bold text-ink">
-                Por qué crear tu cuenta
-              </p>
-              <ul className="mt-3 space-y-2.5">
-                {POR_QUE_CREARLA.map((cosa) => (
-                  <li key={cosa.texto} className="flex gap-3 text-sm text-ink/80">
-                    <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
-                    <span>{cosa.texto}</span>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-5 text-xs font-semibold uppercase tracking-wider text-ink/60">
-                Tu acceso a la aplicación
-              </p>
-              <p className="mt-2 break-all font-mono text-xs text-ink">
-                {acceso}
-              </p>
-              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="flex-1 py-3"
-                  onClick={copiar}
-                >
-                  {copiado ? 'Copiado' : 'Copiar enlace'}
-                </Button>
-                {/*
-                  Un enlace de verdad y no un botón que navega: así se puede
-                  abrir en otra pestaña y el enlace sigue aquí para copiarlo. La
-                  advertencia de abajo dice que no se vuelve a mostrar, y un
-                  botón que se lleva la página por delante la contradiría.
-                */}
-                <a
-                  href={acceso}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 rounded-xl bg-brand px-4 py-3 text-center text-sm font-bold text-white transition-opacity hover:opacity-90"
-                >
-                  Crear mi cuenta
-                </a>
-              </div>
-              <p className="mt-3 text-xs text-ink/60">
-                Guárdalo: por seguridad no se puede volver a mostrar. Con él
-                creas tu cuenta, y caduca cuando termina tu estadía.
-              </p>
-            </div>
-          )}
-
-          <div className="mt-8">
+          <div
+            className={`mt-6 rounded-2xl border px-5 py-5 ${
+              quiereCuenta ? 'border-brand bg-brand/5' : 'border-line bg-surface-soft'
+            }`}
+          >
             <p className="text-sm font-bold text-ink">
-              Qué puedes hacer con tu cuenta
+              Por qué crear tu cuenta y descargar la aplicación Veciyo
             </p>
             <ul className="mt-3 space-y-2.5">
-              {LO_QUE_GANA.map((cosa) => (
-                <li key={cosa.texto} className="flex gap-3 text-sm text-ink/70">
+              {POR_QUE_CREARLA.map((texto) => (
+                <li key={texto} className="flex gap-3 text-sm text-ink/80">
                   <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
-                  <span>{cosa.texto}</span>
+                  <span>{texto}</span>
                 </li>
               ))}
             </ul>
+
+            {/*
+              Un enlace de verdad y no un botón que navega: así se abre en otra
+              pestaña y esta pantalla no se pierde. El acceso no se puede volver
+              a mostrar.
+            */}
+            {acceso && (
+              <a
+                href={acceso}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-5 block rounded-xl bg-brand px-4 py-3 text-center text-sm font-bold text-white transition-opacity hover:opacity-90"
+              >
+                Crear mi cuenta
+              </a>
+            )}
+
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+              {TIENDAS.map((t) => (
+                <a
+                  key={t.nombre}
+                  href={t.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Descargar en ${t.nombre}`}
+                >
+                  <img src={t.imagen} alt={`Descargar en ${t.nombre}`} className="h-11 w-auto" />
+                </a>
+              ))}
+            </div>
           </div>
-
-          {/*
-            Aquí había dos insignias de App Store y Google Play con `href="#"`:
-            dos botones que no llevan a ninguna parte, porque la aplicación
-            todavía no está publicada en ninguna tienda.
-
-            Se dice lo que hay. Un enlace muerto en la última pantalla del
-            registro es peor que una frase honesta, y además hace creer que la
-            app existe donde no existe. Queda en REVISAR-A-OJO (122) para
-            ponerlas el día que haya algo al otro lado.
-          */}
-          <p className="mt-8 border-t border-line pt-6 text-center text-xs text-ink/50">
-            La aplicación funciona desde el navegador, sin instalar nada. Las
-            versiones de App Store y Google Play llegan más adelante.
-          </p>
         </Card>
       </div>
     </MainLayout>

@@ -35,8 +35,9 @@ const CLAVE = 'veciyo_aviso_prevencion_visto'
 
 /** El mismo texto que enseña la aplicación al anfitrión. */
 export const TEXTO_DE_PREVENCION =
-  'Este edificio está comprometido con la prevención del abuso sexual de ' +
-  'menores y la trata de personas. Si el invitado es menor de edad, debe ' +
+  'Este condominio está comprometido en proteger la integridad de los ' +
+  'menores de edad y prevenir la explotación comercial sexual de las niñas, ' +
+  'niños y adolescentes. Si el invitado es menor de edad, debe ' +
   'ingresar con su padre, madre o tutor legal, con la documentación ' +
   'respectiva.'
 
@@ -81,7 +82,7 @@ export default function AvisoDePrevencion({ children }: { children: ReactNode })
             {TEXTO_DE_PREVENCION}
           </p>
           <p className="mx-auto mt-3 max-w-md text-sm text-ink/60">
-            La portería comprueba la identidad de cada persona al llegar.
+            El personal de seguridad comprueba la identidad de cada persona al llegar.
           </p>
           <Button
             type="button"

@@ -132,7 +132,7 @@ export default function DeclararIncapacidad({
         onChange={(e) => setDocumento(e.target.value)}
       />
       <Input
-        label="¿Por qué no puede completar su registro?"
+        label="¿Por qué no está en capacidad de aceptar los términos y condiciones por sí mismo(a)?"
         tone="soft"
         placeholder="Por ejemplo: no sabe leer, tiene una discapacidad visual…"
         value={motivo}

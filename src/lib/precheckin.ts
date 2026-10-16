@@ -87,6 +87,30 @@ export function olvidarToken(): void {
   }
 }
 
+/**
+ * Cómo eligió entrar al preregistro (16/10/2026): como invitado, queriendo
+ * crear su cuenta al final, o con su sesión. Dura lo que la pestaña.
+ */
+export type ModoDeEntrada = 'invitado' | 'crear_cuenta' | 'sesion'
+const CLAVE_ENTRADA = 'veciyo_precheckin_entrada'
+
+export function recordarEntrada(modo: ModoDeEntrada): void {
+  try {
+    sessionStorage.setItem(CLAVE_ENTRADA, modo)
+  } catch {
+    /* ver arriba */
+  }
+}
+
+export function entradaElegida(): ModoDeEntrada | null {
+  try {
+    const v = sessionStorage.getItem(CLAVE_ENTRADA)
+    return v === 'invitado' || v === 'crear_cuenta' || v === 'sesion' ? v : null
+  } catch {
+    return null
+  }
+}
+
 export interface EstanciaPrecheckin {
   visita_id: string
   condominio: string
@@ -112,6 +136,11 @@ export interface EstanciaPrecheckin {
   menores_previstos: number | null
   /** Cuántas hay ya, titular incluido. Lo cuenta la base, no la pantalla. */
   personas_ya: number
+  /**
+   * El máximo de personas que fija el edificio para la renta corta
+   * (`limite_renta_corta_condominio`). Nulo si no fijó ninguno.
+   */
+  max_huespedes_edificio?: number | null
   vigente: boolean
   completado: boolean
 }
@@ -143,6 +172,20 @@ export function topeDePersonas(estancia: EstanciaPrecheckin | null): {
   return previstos <= aforo
     ? { tope: previstos, esDeLaReserva: true }
     : { tope: aforo, esDeLaReserva: false }
+}
+
+/**
+ * El número que va entre paréntesis junto a «Cantidad de huéspedes».
+ *
+ * El del anfitrión y, si no puso ninguno, el del edificio. Lo pidió la
+ * responsable de producto el 16/10/2026.
+ */
+export function maximoDeHuespedes(estancia: EstanciaPrecheckin): number | null {
+  if (estancia.max_huespedes && estancia.max_huespedes > 0) return estancia.max_huespedes
+  if (estancia.max_huespedes_edificio && estancia.max_huespedes_edificio > 0) {
+    return estancia.max_huespedes_edificio
+  }
+  return null
 }
 
 /** Lo que se puede saber de la estancia **antes** de identificarse. */
@@ -612,6 +655,43 @@ export async function consultarMiPrecheckin(
   return (fila as Record<string, unknown>) ?? null
 }
 
+/**
+ * Con el enlace de un acompañante: si ya subió las dos caras de su documento,
+ * y la dirección y el motivo que ya hubiera puesto (16/10/2026).
+ */
+export async function fotosDeMiDocumento(
+  token: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<{ frente: boolean; reverso: boolean; direccion: string; motivo: Motivo | '' } | null> {
+  const { data, error } = await conexion(cliente).rpc('fotos_de_mi_documento', {
+    p_token: token,
+  })
+  if (error) throw error
+  const fila = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | undefined
+  if (!fila) return null
+  return {
+    frente: fila.frente === true,
+    reverso: fila.reverso === true,
+    direccion: typeof fila.direccion === 'string' ? fila.direccion : '',
+    motivo: (typeof fila.motivo === 'string' ? fila.motivo : '') as Motivo | '',
+  }
+}
+
+/** El acompañante escribe su dirección y el motivo, como el titular. */
+export async function guardarDireccionYMotivoAcompanante(
+  token: string,
+  direccion: string,
+  motivo: Motivo | '',
+  cliente?: ClientePrecheckin | null,
+): Promise<void> {
+  const { error } = await conexion(cliente).rpc('guardar_direccion_y_motivo_acompanante', {
+    p_token: token,
+    p_direccion: direccion.trim() || null,
+    p_motivo: motivo || null,
+  })
+  if (error) throw error
+}
+
 /** Un acompañante escribe **sus** datos, con su propio enlace. */
 export async function guardarMiFichaAcompanante(
   token: string,
@@ -1039,7 +1119,9 @@ export const PARENTESCOS: { value: Parentesco; label: string }[] = [
   { value: 'madre', label: 'Su madre' },
   { value: 'padre', label: 'Su padre' },
   { value: 'tutor_legal', label: 'Su tutor legal' },
-  { value: 'otro', label: 'Otra persona' },
+  // «Otra persona» se quitó el 16/10/2026 (responsable de producto): un
+  // menor entra con su madre, su padre o su tutor legal. El valor sigue en el
+  // tipo porque puede haber fichas antiguas con él.
 ]
 
 /* ========================================================================== *

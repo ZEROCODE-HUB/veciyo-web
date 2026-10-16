@@ -141,7 +141,7 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
     <div className="mt-6 space-y-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-ink/60">Vehículos</p>
       <p className="text-sm text-ink/70">
-        Si llegan en vehículo, anótalo para que la portería lo deje pasar. Si
+        Si llegan en vehículo, anótalo para que el personal de seguridad lo deje pasar. Si
         no, sáltate esta parte.
       </p>
 

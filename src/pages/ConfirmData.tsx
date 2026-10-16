@@ -8,6 +8,7 @@ import Select from '../components/Select'
 import Button from '../components/Button'
 import Accordion from '../components/Accordion'
 import Checkbox from '../components/Checkbox'
+import CampoHora from '../components/CampoHora'
 import ReglasDelEdificio from '../components/ReglasDelEdificio'
 import UsarMisDatos from '../components/UsarMisDatos'
 import Recuadro from '../components/Recuadro'
@@ -402,8 +403,8 @@ export default function ConfirmData() {
 
         <p className="mx-auto mt-3 max-w-md text-center text-base text-ink/60">
           Verifica que tus datos sean correctos. Escríbelos tal como figuran
-          en tu {etiquetaDoc.toLowerCase()}: la portería los compara con el
-          documento cuando llegues.
+          en tu {etiquetaDoc.toLowerCase()}. El personal de seguridad en
+          recepción lo verifica cuando ingreses.
         </p>
 
         <UsarMisDatos onDatos={usarMisDatos} />
@@ -565,23 +566,19 @@ export default function ConfirmData() {
             Llegada y salida
           </p>
           <p className="mb-3 text-sm text-ink/70">
-            Una hora aproximada, para que la portería sepa cuándo esperarte. Si
-            todavía no la sabes, déjalas vacías.
+            Una hora aproximada, para que el personal de seguridad sepa cuándo
+            esperarte. Si todavía no la sabes, marca «Aún no sé».
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Input
+            <CampoHora
               label="Hora de llegada"
-              type="time"
-              tone="soft"
-              value={horaLlegada}
-              onChange={(e) => setHoraLlegada(e.target.value)}
+              valor={horaLlegada}
+              onChange={setHoraLlegada}
             />
-            <Input
+            <CampoHora
               label="Hora de salida"
-              type="time"
-              tone="soft"
-              value={horaSalida}
-              onChange={(e) => setHoraSalida(e.target.value)}
+              valor={horaSalida}
+              onChange={setHoraSalida}
             />
           </div>
         </div>

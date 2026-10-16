@@ -84,7 +84,7 @@ export default function Footer() {
 
         <p className="mt-6 text-center text-[11px] text-ink/80">
           {/* El año, del reloj: escrito a fuego decía 2025 en 2026. */}
-          © {new Date().getFullYear()} VeciYo. Todos los derechos reservados.
+          © {new Date().getFullYear()} Veciyo. Todos los derechos reservados.
         </p>
       </div>
     </footer>

@@ -3,12 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom'
 import BackgroundCarousel from '../components/BackgroundCarousel'
 import Loading from '../components/Loading'
 import { formatearFecha, hayBackend } from '../lib/supabase'
-import Button from '../components/Button'
+import ComoEntrar from '../components/ComoEntrar'
 import {
   consultarPrecheckin,
   estadoDeLaReserva,
   fichaDelPrecheckin,
   guardarToken,
+  maximoDeHuespedes,
   textoDeLaCuentaAtras,
   vehiculosDelPrecheckin,
   type EstanciaPrecheckin,
@@ -163,11 +164,14 @@ export default function Access() {
             {estado.tipo === 'inicio' && (
               <>
                 <h1 className="text-center font-display text-3xl font-extrabold text-ink sm:text-[34px]">
-                  Preregistro de Seguridad del Condominio
+                  Preregistro de Seguridad del Condominio{' '}
+                  {estado.datos.condominio}
                 </h1>
-                <p className="mx-auto mt-4 max-w-md text-center text-base leading-relaxed text-ink/80">
-                  Este condominio requiere que completes este preregistro de
-                  seguridad para aprobar la reservación.
+                {/* Texto y tamaño de la responsable de producto (16/10/2026). */}
+                <p className="mx-auto mt-4 max-w-lg text-center text-lg font-semibold leading-relaxed text-ink sm:text-xl">
+                  En este condominio es requisito completar este pre registro de
+                  seguridad para aprobar el ingreso de los huéspedes de renta
+                  corta.
                 </p>
                 <div className="mt-8 rounded-xl border border-white/30 bg-white/40 px-6 py-5 text-left shadow-lg backdrop-blur-md">
                   <div className="grid grid-cols-2 gap-x-6 gap-y-3">
@@ -187,6 +191,15 @@ export default function Access() {
                       <p className="text-xs font-semibold uppercase tracking-widest text-ink/70">Cantidad de huéspedes</p>
                       <p className="text-sm font-bold text-ink">
                         {estado.datos.huespedes_previstos ?? 'La indicas tú'}
+                        {/*
+                          Entre paréntesis, el máximo: el del anfitrión y, si
+                          no puso ninguno, el del edificio (16/10/2026).
+                        */}
+                        {maximoDeHuespedes(estado.datos) !== null && (
+                          <span className="font-normal text-ink/70">
+                            {' '}(máximo {maximoDeHuespedes(estado.datos)})
+                          </span>
+                        )}
                       </p>
                     </div>
                     <div>
@@ -202,13 +215,7 @@ export default function Access() {
                     </div>
                   </div>
                 </div>
-                <Button
-                  type="button"
-                  className="mt-10 w-full py-3.5"
-                  onClick={() => navigate('/pre-check-in')}
-                >
-                  Continuar
-                </Button>
+                <ComoEntrar onListo={() => navigate('/pre-check-in')} />
               </>
             )}
             {estado.tipo === 'invalido' && (
@@ -226,7 +233,7 @@ export default function Access() {
             {estado.tipo === 'completado' && (
               <Aviso
                 titulo="Tu preregistro ya está hecho"
-                detalle={`${estado.dias !== null ? `${textoDeLaCuentaAtras(estado.dias)}. ` : ''}Te esperamos en ${estado.datos.condominio}, vivienda ${estado.datos.unidad}. No hace falta que hagas nada más: al llegar, la portería te recibe con esto ya listo.`}
+                detalle={`${estado.dias !== null ? `${textoDeLaCuentaAtras(estado.dias)}. ` : ''}Te esperamos en ${estado.datos.condominio}, vivienda ${estado.datos.unidad}. No hace falta que hagas nada más: al llegar, el personal de seguridad te recibe con esto ya listo.`}
               />
             )}
             {estado.tipo === 'cancelada' && (

@@ -75,8 +75,9 @@ export default function PreCheckIn() {
   }, [token, navigate])
 
   /*
-    Las fotos siguen siendo opcionales --nadie se queda fuera por no tener
-    camara-- pero **ya se guardan**.
+    Desde el 16/10/2026 las fotos son **obligatorias** (responsable de
+    producto: «obligatorio cargar documentos», el mismo flujo para el titular y
+    para cada acompañante). Antes eran opcionales.
 
     Hasta el 02/10/2026 se elegian y se quedaban en la memoria de la pestaña:
     el bucket es privado, sus politicas derivan de quien puede ver la visita, y
@@ -84,10 +85,7 @@ export default function PreCheckIn() {
     permiso. Lo resuelve `subir-documento-precheckin`, una funcion de servidor
     que comprueba el enlace antes de dejar escribir nada.
 
-    Si la subida falla no se bloquea el paso: el numero de documento --que es
-    lo que TRA/SIRE pide-- ya esta guardado, y la porteria compara con el
-    documento fisico al llegar, que es lo que hace de todas formas. Pero se
-    dice, en vez de callar.
+    Si la subida falla, no se sigue: se dice por qué y se puede reintentar.
   */
   const faltanFotos = tieneDosCaras(docType)
     ? !(frente && reverso)
@@ -101,20 +99,18 @@ export default function PreCheckIn() {
    * verdad hace falta --el numero-- ya esta.
    */
   const continuar = async () => {
+    if (!token || faltanFotos) return
     setErrorFoto('')
-    if (token && (frente || reverso)) {
-      setSubiendo(true)
-      try {
-        if (frente) await subirDocumentoPrecheckin(token, frente, 'frente')
-        if (reverso) await subirDocumentoPrecheckin(token, reverso, 'reverso')
-      } catch (e) {
-        setErrorFoto(
-          porQueFallo(e, 'No se pudo guardar la foto del documento'),
-        )
-      } finally {
-        setSubiendo(false)
-      }
+    setSubiendo(true)
+    try {
+      if (frente) await subirDocumentoPrecheckin(token, frente, 'frente')
+      if (reverso) await subirDocumentoPrecheckin(token, reverso, 'reverso')
+    } catch (e) {
+      setErrorFoto(porQueFallo(e, 'No se pudo guardar la foto del documento'))
+      setSubiendo(false)
+      return
     }
+    setSubiendo(false)
     navigate('/confirm-data', { state: { docType } })
   }
 
@@ -143,7 +139,8 @@ export default function PreCheckIn() {
 
         {estancia?.anfitrion && (
           <p className="mt-3 text-base text-ink/70">
-            Te lo envió {estancia.anfitrion}, para tu estadía en la vivienda{' '}
+            Te lo envió {estancia.anfitrion} tu anfitrión, para tu estadía en
+            la vivienda{' '}
             {estancia.unidad}.
           </p>
         )}
@@ -151,7 +148,7 @@ export default function PreCheckIn() {
         {!comenzado && (
           <>
             <p className="mt-4 text-base leading-relaxed text-ink/70 sm:mt-6">
-              Completa tu registro de ingreso al condominio. Ten a la mano lo
+              Para completar tu pre registro de seguridad, ten a la mano lo
               siguiente:
             </p>
             <ul className="mt-3 space-y-2 text-base leading-relaxed text-ink/70">
@@ -230,15 +227,13 @@ export default function PreCheckIn() {
 
               {docType && faltanFotos && (
                 <p className="rounded-xl bg-gold/10 px-4 py-3 text-sm leading-relaxed text-ink">
-                  Puedes continuar sin subir las fotos. Si lo haces, ten el
-                  documento a mano al llegar: la portería te lo va a pedir.
+                  Sube las fotos de tu documento para continuar.
                 </p>
               )}
 
               {errorFoto && (
                 <p className="text-center text-sm text-danger">
-                  {errorFoto} Puedes continuar: tu documento se revisa en
-                  porteria al llegar.
+                  {errorFoto} Inténtalo de nuevo.
                 </p>
               )}
 
@@ -246,7 +241,7 @@ export default function PreCheckIn() {
                 <Button
                   type="button"
                   className="w-full max-w-md py-3.5"
-                  disabled={!docType || subiendo}
+                  disabled={!docType || faltanFotos || subiendo}
                   onClick={() => void continuar()}
                 >
                   {subiendo ? 'Guardando documento...' : 'Continuar'}

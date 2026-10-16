@@ -61,7 +61,10 @@ export default function TarjetaAcompanante({
 }: Props) {
   const titulo = persona.nombre?.trim() || `Acompañante ${numero}`
   const responsable = adultos.find((a) => a.id === persona.responsable_id)
-  const parentesco = PARENTESCOS.find((p) => p.value === persona.parentesco)?.label
+  // «Otra persona» ya no se ofrece, pero puede venir en fichas antiguas.
+  const parentesco =
+    PARENTESCOS.find((p) => p.value === persona.parentesco)?.label ??
+    (persona.parentesco === 'otro' ? 'Otra persona' : undefined)
 
   return (
     <Card className="px-6 py-7 sm:px-10 sm:py-8">
@@ -202,7 +205,7 @@ export default function TarjetaAcompanante({
       {!persona.es_menor && !incapacidad && !persona.terminos_aceptados && (
         <div className="mt-4 border-t border-line pt-4">
           <Checkbox
-            label="Este usuario no está en capacidad de aceptar los Términos y Condiciones."
+            label="Este usuario no está en capacidad de aceptar por su cuenta los Términos y Condiciones."
             checked={declarando}
             onChange={(e) => onNoPuedeAceptar(e.target.checked)}
           />

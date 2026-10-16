@@ -8,6 +8,7 @@ import {
   textoDeLaCuentaAtras,
   avisoDeLlegada,
   topeDePersonas,
+  maximoDeHuespedes,
   type EstanciaPrecheckin,
 } from './precheckin'
 
@@ -182,5 +183,18 @@ describe('la etiqueta de llegada', () => {
   it('terminada o cancelada no lleva etiqueta: eso lo dice la página', () => {
     expect(avisoDeLlegada('terminada', 0)).toBeNull()
     expect(avisoDeLlegada('cancelada', 0)).toBeNull()
+  })
+})
+
+describe('el máximo entre paréntesis junto a «Cantidad de huéspedes»', () => {
+  const base = { max_huespedes: null, max_huespedes_edificio: null } as unknown as EstanciaPrecheckin
+  it('manda el del anfitrión', () => {
+    expect(maximoDeHuespedes({ ...base, max_huespedes: 4, max_huespedes_edificio: 6 })).toBe(4)
+  })
+  it('sin el del anfitrión, el del edificio', () => {
+    expect(maximoDeHuespedes({ ...base, max_huespedes_edificio: 6 })).toBe(6)
+  })
+  it('sin ninguno, nada', () => {
+    expect(maximoDeHuespedes(base)).toBeNull()
   })
 })

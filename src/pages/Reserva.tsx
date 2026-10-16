@@ -43,7 +43,7 @@ const AVISOS: Record<string, Aviso> = {
   cerrado: {
     tono: 'info',
     texto:
-      'El preregistro de esta reserva ya está hecho. No hace falta que hagas nada más: al llegar, la portería te recibe con esto ya listo.',
+      'El preregistro de esta reserva ya está hecho. No hace falta que hagas nada más: al llegar, el personal de seguridad te recibe con esto ya listo.',
   },
   sin_telefono: {
     tono: 'info',

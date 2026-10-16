@@ -407,6 +407,13 @@ export default function Companions() {
     setCerrando(true)
     setError(null)
     try {
+      /*
+        Lo que hay ahora, no lo que se cargó al entrar: un acompañante puede
+        haber terminado lo suyo desde su enlace mientras esta pantalla estaba
+        abierta, y la validación decía que le faltaban los documentos
+        (16/10/2026).
+      */
+      const actual = await listarAcompanantes(token).catch(() => lista)
       const acceso = await cerrarPrecheckin(token)
       // Como en la maqueta: después de enviar, el detalle de validación.
       const huespedes = [
@@ -418,7 +425,7 @@ export default function Companions() {
           documentoSubido: Boolean(titular?.tieneDocumento),
           terminosAceptados: Boolean(titular?.terminosAceptados),
         },
-        ...lista.map((p) => ({
+        ...actual.map((p) => ({
           nombre: `${p.nombre} ${p.apellidos ?? ''}`.trim(),
           identificacion: p.documento_numero ?? '',
           esMenor: p.es_menor,
@@ -468,8 +475,9 @@ export default function Companions() {
           Registro de acompañantes
         </h1>
         <p className="mt-2 text-base text-ink/60">
-          La portería necesita el documento de cada persona que se aloje
-          contigo. Si vienes solo, continúa sin añadir a nadie.
+          Los términos y condiciones de este pre registro de seguridad deben
+          ser aceptados por cada miembro de la reservación. Al incluir sus
+          correos, recibirán el instructivo para completar su registro.
         </p>
 
         {/*
@@ -763,7 +771,7 @@ export default function Companions() {
                       {!esMenor && (
                         <div className="border-t border-line pt-4">
                           <Checkbox
-                            label="Este usuario no está en capacidad de aceptar los Términos y Condiciones."
+                            label="Este usuario no está en capacidad de aceptar por su cuenta los Términos y Condiciones."
                             checked={noPuedeAceptar}
                             onChange={(e) => setNoPuedeAceptar(e.target.checked)}
                           />

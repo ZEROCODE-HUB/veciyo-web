@@ -10,6 +10,8 @@ import Accordion from '../components/Accordion'
 import CampoTelefono from '../components/CampoTelefono'
 import MenoresQueTraigo from '../components/MenoresQueTraigo'
 import ReglasDelEdificio from '../components/ReglasDelEdificio'
+import FileUploader from '../components/FileUploader'
+import ComoEntrar from '../components/ComoEntrar'
 import { PAIS_POR_DEFECTO } from '../lib/paises'
 import { porQueFallo } from '../lib/motivo'
 import {
@@ -22,7 +24,15 @@ import {
 import { NACIONALIDADES } from '../lib/nacionalidades'
 import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
 import {
+  MOTIVOS,
   TIPOS_DOCUMENTO,
+  entradaElegida,
+  fotosDeMiDocumento,
+  guardarDireccionYMotivoAcompanante,
+  misDatosParaPrecheckin,
+  tieneDosCaras,
+  type ModoDeEntrada,
+  type Motivo,
   aceptarMisTerminosAcompanante,
   aceptarReglamento,
   consultarMiPrecheckin,
@@ -69,6 +79,8 @@ interface Ficha {
   ciudadResidencia: string
   ciudadProcedencia: string
   fechaExpedicion: string
+  direccion: string
+  motivo: Motivo | ''
 }
 
 const VACIA: Ficha = {
@@ -84,6 +96,8 @@ const VACIA: Ficha = {
   ciudadResidencia: '',
   ciudadProcedencia: '',
   fechaExpedicion: '',
+  direccion: '',
+  motivo: '',
 }
 
 export default function CompanionAccess() {
@@ -112,8 +126,15 @@ export default function CompanionAccess() {
     siendo opcional, como la del titular: la portería compara el número.
   */
   const [miId, setMiId] = useState<string | null>(null)
-  const [fotoSubida, setFotoSubida] = useState(false)
-  const [subiendoFoto, setSubiendoFoto] = useState(false)
+  /*
+    Desde el 16/10/2026 las fotos son obligatorias, las dos caras, igual que
+    el paso 1 del titular (responsable de producto). Se suben al confirmar.
+  */
+  const [fotos, setFotos] = useState({ frente: false, reverso: false })
+  const [frente, setFrente] = useState<File | null>(null)
+  const [reverso, setReverso] = useState<File | null>(null)
+  // Las tres formas de entrar, también para quien llega invitado por otro.
+  const [entrada, setEntrada] = useState<ModoDeEntrada | null>(entradaElegida())
 
   useEffect(() => {
     if (!token) {
@@ -136,8 +157,11 @@ export default function CompanionAccess() {
         const texto = (v: unknown) => (typeof v === 'string' ? v : '')
         // Lo que ya hubiera, venga de quien venga: el titular pudo teclearlo.
         setFicha((previa) => ({
-          // La fecha de expedicion llega por otra consulta y puede ganar la carrera.
+          // La fecha de expedicion, la direccion y el motivo llegan por otra
+          // consulta y pueden ganar la carrera.
           fechaExpedicion: previa.fechaExpedicion,
+          direccion: previa.direccion,
+          motivo: previa.motivo,
           nombre: texto(fila.nombre),
           apellidos: texto(fila.apellidos),
           tipoDocumento: (fila.tipo_documento as TipoDocumento) ?? '',
@@ -170,6 +194,18 @@ export default function CompanionAccess() {
         if (vigente && suya) {
           setFicha((previa) => ({ ...previa, fechaExpedicion: suya }))
         }
+      })
+      .catch(() => {})
+
+    fotosDeMiDocumento(token)
+      .then((f) => {
+        if (!vigente || !f) return
+        setFotos({ frente: f.frente, reverso: f.reverso })
+        setFicha((previa) => ({
+          ...previa,
+          direccion: previa.direccion || f.direccion,
+          motivo: previa.motivo || f.motivo,
+        }))
       })
       .catch(() => {})
 
@@ -213,6 +249,15 @@ export default function CompanionAccess() {
   if (errorDeFecha !== '' && !faltan.includes('la fecha de nacimiento')) {
     faltan.push('la fecha de nacimiento')
   }
+  if (!esMenor) {
+    if (ficha.direccion.trim() === '') faltan.push('la dirección de residencia')
+    if (!ficha.motivo) faltan.push('el motivo de alojamiento')
+    const tipo = (ficha.tipoDocumento || null) as TipoDocumento | null
+    if (!frente && !fotos.frente) faltan.push('la foto del frente de tu documento')
+    if (tieneDosCaras(tipo) && !reverso && !fotos.reverso) {
+      faltan.push('la foto del reverso de tu documento')
+    }
+  }
   if (!esMenor && !aceptados) faltan.push('aceptar los términos y condiciones')
   if (!esMenor && hayReglas && !reglasAceptadas) {
     faltan.push('aceptar las reglas del edificio')
@@ -220,27 +265,48 @@ export default function CompanionAccess() {
 
   const completo = faltan.length === 0 && (esMenor || hayReglas !== null)
 
-  const subirMiFoto = async (archivo: File) => {
-    if (!token || !miId || subiendoFoto) return
-    setSubiendoFoto(true)
-    setError(null)
-    try {
-      // Con el uuid propio: sin él la función entiende «el titular», y la
-      // foto de este acompañante acabaría en la ficha de quien reservó.
-      await subirDocumentoPrecheckin(token, archivo, 'frente', miId)
-      setFotoSubida(true)
-    } catch (e) {
-      setError(porQueFallo(e, 'No se pudo guardar la foto del documento'))
-    } finally {
-      setSubiendoFoto(false)
+  /*
+    Eligió «Iniciar sesión»: lo que tenga guardado en su cuenta, sin pisar lo
+    que el titular ya le hubiera escrito.
+  */
+  useEffect(() => {
+    if (entrada !== 'sesion' || estado !== 'listo') return
+    let vigente = true
+    misDatosParaPrecheckin()
+      .then((d) => {
+        if (!vigente || !d) return
+        setFicha((previa) => ({
+          ...previa,
+          nombre: previa.nombre || d.nombre,
+          apellidos: previa.apellidos || d.apellidos,
+          tipoDocumento: previa.tipoDocumento || d.tipoDocumento || '',
+          documento: previa.documento || d.documento,
+          correo: previa.correo || d.correo,
+          telefono: previa.telefono || d.telefono,
+          codigoPais: previa.telefono ? previa.codigoPais : d.codigoPais || previa.codigoPais,
+          fechaNacimiento: previa.fechaNacimiento || d.fechaNacimiento,
+          ciudadResidencia: previa.ciudadResidencia || d.ciudadResidencia,
+          ciudadProcedencia: previa.ciudadProcedencia || d.ciudadProcedencia,
+          direccion: previa.direccion || d.direccion,
+        }))
+      })
+      .catch(() => {})
+    return () => {
+      vigente = false
     }
-  }
+  }, [entrada, estado])
 
   const enviar = async () => {
     if (!token || !completo || guardando) return
     setGuardando(true)
     setError(null)
     try {
+      // Con el uuid propio: sin él la función entiende «el titular», y las
+      // fotos de este acompañante acabarían en la ficha de quien reservó.
+      if (!esMenor && miId) {
+        if (frente) await subirDocumentoPrecheckin(token, frente, 'frente', miId)
+        if (reverso) await subirDocumentoPrecheckin(token, reverso, 'reverso', miId)
+      }
       await guardarMiFichaAcompanante(token, {
         nombre: ficha.nombre.trim(),
         apellidos: ficha.apellidos.trim() || undefined,
@@ -254,6 +320,9 @@ export default function CompanionAccess() {
         ciudadResidencia: ficha.ciudadResidencia.trim() || undefined,
         ciudadProcedencia: ficha.ciudadProcedencia.trim() || undefined,
       })
+      if (!esMenor) {
+        await guardarDireccionYMotivoAcompanante(token, ficha.direccion, ficha.motivo)
+      }
       if (!esMenor && pideFechaExpedicion(ficha.tipoDocumento)) {
         await guardarFechaExpedicion(token, ficha.fechaExpedicion)
       }
@@ -308,10 +377,17 @@ export default function CompanionAccess() {
         <div className="mx-auto max-w-[560px] px-4 py-16">
           <Card className="px-6 py-10 text-center">
             <h1 className="text-2xl font-bold text-ink">Listo, {ficha.nombre}</h1>
+            {/* Textos de la responsable de producto (16/10/2026). */}
             <p className="mt-4 text-sm text-ink/70">
               Tus datos quedaron registrados para la estadía en{' '}
-              {estancia.condominio}. La portería los va a comparar con tu
-              documento cuando llegues, así que llévalo contigo.
+              {estancia.condominio}. El equipo de seguridad te espera para
+              completar tu registro presencial con tus documentos físicos.
+            </p>
+            <p className="mt-3 text-sm text-ink/70">
+              Cuando el proceso de registro de todo tu grupo esté completo,
+              recibirás confirmación de aprobación de ingreso a tu correo
+              electrónico con un QR para agilizar tu registro físico a tu
+              llegada.
             </p>
           </Card>
         </div>
@@ -329,10 +405,17 @@ export default function CompanionAccess() {
           {estancia.titular
             ? `${estancia.titular} te incluyó en su reserva`
             : 'Te incluyeron en una reserva'}{' '}
-          en {estancia.condominio}, vivienda {estancia.unidad}. La portería
-          necesita tus datos para dejarte entrar.
+          en {estancia.condominio}, vivienda {estancia.unidad}. El personal
+          de seguridad necesita tus datos para dejarte entrar.
         </p>
 
+        {!esMenor && entrada === null && (
+          <Card className="mt-8 px-5 py-6 sm:px-8">
+            <ComoEntrar onListo={() => setEntrada(entradaElegida() ?? 'invitado')} />
+          </Card>
+        )}
+
+        {(esMenor || entrada !== null) && (
         <Card className="mt-8 px-5 py-6 sm:px-8">
           <div className="space-y-3">
             <Input
@@ -390,40 +473,47 @@ export default function CompanionAccess() {
               </>
             )}
 
-            {!esMenor && miId && (
-              <div className="rounded-xl border border-brand-100 bg-surface-soft px-4 py-3">
-                <p className="text-sm font-semibold text-ink">
-                  Foto de tu documento (opcional)
-                </p>
-                <p
-                  className={`mt-1 text-xs font-semibold ${
-                    fotoSubida ? 'text-success' : 'text-ink/60'
-                  }`}
-                >
-                  {fotoSubida
-                    ? 'Foto guardada'
-                    : 'Si la subes, la portería te recibe más rápido.'}
-                </p>
-                <label className="mt-2 block text-xs font-semibold text-brand underline">
-                  {subiendoFoto
-                    ? 'Subiendo…'
-                    : fotoSubida
-                      ? 'Cambiar la foto'
-                      : 'Subir la foto de mi documento'}
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/jpeg,image/png,image/webp"
-                    disabled={subiendoFoto}
-                    onChange={(e) => {
-                      const archivo = e.target.files?.[0]
-                      if (archivo) void subirMiFoto(archivo)
-                      // Para poder volver a elegir el mismo si falló.
-                      e.target.value = ''
-                    }}
+            {!esMenor && miId && ficha.tipoDocumento && (
+              <div className="space-y-3">
+                {/* Las mismas cajas que el paso 1 del titular. */}
+                <FileUploader
+                  tone="soft"
+                  title={
+                    tieneDosCaras(ficha.tipoDocumento)
+                      ? 'Foto del frente del documento'
+                      : 'Foto del pasaporte'
+                  }
+                  hint={fotos.frente ? 'Ya está guardada. Puedes cambiarla.' : undefined}
+                  onFileSelected={setFrente}
+                />
+                {tieneDosCaras(ficha.tipoDocumento) && (
+                  <FileUploader
+                    tone="soft"
+                    title="Foto del reverso del documento"
+                    hint={fotos.reverso ? 'Ya está guardada. Puedes cambiarla.' : undefined}
+                    onFileSelected={setReverso}
                   />
-                </label>
+                )}
               </div>
+            )}
+
+            {!esMenor && (
+              <>
+                <Input
+                  label="Dirección de residencia"
+                  tone="soft"
+                  value={ficha.direccion}
+                  onChange={(e) => campo('direccion')(e.target.value)}
+                />
+                <Select
+                  label="Motivo de alojamiento"
+                  tone="soft"
+                  placeholder="Seleccione un motivo"
+                  options={MOTIVOS as unknown as { value: string; label: string }[]}
+                  value={ficha.motivo}
+                  onChange={(e) => campo('motivo')(e.target.value)}
+                />
+              </>
             )}
 
             <Input
@@ -551,6 +641,7 @@ export default function CompanionAccess() {
             {guardando ? 'Guardando...' : 'Confirmar mis datos'}
           </Button>
         </Card>
+        )}
       </div>
     </MainLayout>
   )
