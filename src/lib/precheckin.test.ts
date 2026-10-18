@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   esNombreDeRelleno,
-  NOMBRE_SIN_CONFIRMAR,
   normalizarPlaca,
   subirLoElegido,
   avisoDeLoQueNoSubio,
@@ -35,10 +34,17 @@ const estancia = (
   completado: false,
 })
 
+/*
+  El nombre provisional es el parámetro `titular_provisional_nombre` de la base;
+  la función lo recibe. Aquí va su valor actual, que es lo que escribe la
+  aplicación hoy.
+*/
+const NOMBRE_SIN_CONFIRMAR = 'Huésped por confirmar'
+
 describe('el nombre que pone el sistema', () => {
   it('se reconoce como relleno, no como el nombre de nadie', () => {
     // «en el nombre del huésped por defecto sale: Huésped por confirmar».
-    expect(esNombreDeRelleno(NOMBRE_SIN_CONFIRMAR)).toBe(true)
+    expect(esNombreDeRelleno(NOMBRE_SIN_CONFIRMAR, NOMBRE_SIN_CONFIRMAR)).toBe(true)
   })
 
   it('también con el código de la reserva detrás', () => {
@@ -46,14 +52,22 @@ describe('el nombre que pone el sistema', () => {
       Lo que escribe la lectura del calendario de Airbnb. Comparar por
       igualdad dejaría pasar justo las reservas que **nunca** traen nombre.
     */
-    expect(esNombreDeRelleno('Huésped por confirmar (HMABC123)')).toBe(true)
+    expect(
+      esNombreDeRelleno('Huésped por confirmar (HMABC123)', NOMBRE_SIN_CONFIRMAR),
+    ).toBe(true)
   })
 
   it('y un nombre de verdad no se toca', () => {
     // El control positivo: sin él, devolver siempre `true` borraría el nombre
     // que el anfitrión sí escribió.
-    expect(esNombreDeRelleno('Óscar Pérez')).toBe(false)
-    expect(esNombreDeRelleno('')).toBe(false)
+    expect(esNombreDeRelleno('Óscar Pérez', NOMBRE_SIN_CONFIRMAR)).toBe(false)
+    expect(esNombreDeRelleno('', NOMBRE_SIN_CONFIRMAR)).toBe(false)
+  })
+
+  it('si el parámetro cambia, se reconoce el nuevo y no el viejo', () => {
+    // Lo que justifica leerlo de la base: el viejo ya no es relleno.
+    expect(esNombreDeRelleno('Por confirmar (HM1)', 'Por confirmar')).toBe(true)
+    expect(esNombreDeRelleno(NOMBRE_SIN_CONFIRMAR, 'Por confirmar')).toBe(false)
   })
 })
 

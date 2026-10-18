@@ -4,6 +4,7 @@ import Select from './Select'
 import Button from './Button'
 import Checkbox from './Checkbox'
 import { porQueFallo } from '../lib/motivo'
+import { useParametros } from '../lib/useParametros'
 import {
   TIPOS_DOCUMENTO,
   declararIncapacidad,
@@ -37,16 +38,34 @@ interface Props {
  *   · **la firma**: el nombre del titular y una casilla que dice lo que firma.
  *
  * La declaración que queda guardada la redacta la base, no esta pantalla.
+ *
+ * Espera al nombre provisional del titular (`titular_provisional_nombre`, en
+ * la base) antes de pintar el formulario: con él decide si la casilla
+ * «Nombre» arranca vacía, y eso solo se decide una vez, al abrir.
  */
-export default function DeclararIncapacidad({
+export default function DeclararIncapacidad(props: Props) {
+  const { parametros, error } = useParametros()
+  if (!parametros) {
+    return <p className="text-sm text-ink/60">{error ?? 'Cargando...'}</p>
+  }
+  return (
+    <Formulario
+      {...props}
+      nombreProvisional={parametros.texto('titular_provisional_nombre')}
+    />
+  )
+}
+
+function Formulario({
   token,
   persona,
   nombreTitular,
   onHecho,
   onCancelar,
-}: Props) {
+  nombreProvisional,
+}: Props & { nombreProvisional: string }) {
   const [nombre, setNombre] = useState(
-    esNombreDeRelleno(persona.nombre) ? '' : persona.nombre,
+    esNombreDeRelleno(persona.nombre, nombreProvisional) ? '' : persona.nombre,
   )
   const [apellidos, setApellidos] = useState(persona.apellidos ?? '')
   const [tipoDoc, setTipoDoc] = useState<TipoDocumento | ''>(

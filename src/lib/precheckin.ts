@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { megabytesABytes, parametrosPublicos } from './parametros'
 
 /**
  * El cliente con el que hablar con la base.
@@ -219,15 +220,34 @@ export async function consultarPrecheckin(
  *
  * **Lo escriben dos sitios de la aplicacion movil** --el alta de estancias y
  * la lectura del calendario, que le añade el codigo de la reserva detras-- asi
- * que se compara por el principio y no por igualdad. Si alla cambia el texto,
- * hay que cambiarlo aqui: son dos repositorios y no hay forma de compartir la
- * constante.
+ * que se compara por el principio y no por igualdad.
+ *
+ * El texto ya no esta escrito aqui: es el parametro `titular_provisional_nombre`
+ * de la base (18/10/2026), el mismo que lee quien lo escribe. Antes era una
+ * copia en cada repositorio, y si uno cambiaba la web dejaba de reconocerlo.
+ * Quien llama lo pasa.
  */
-export const NOMBRE_SIN_CONFIRMAR = 'Huésped por confirmar'
+export function esNombreDeRelleno(nombre: string, nombreProvisional: string): boolean {
+  return nombre.trimStart().startsWith(nombreProvisional)
+}
 
-/** Si ese nombre lo puso el sistema porque no habia ninguno. */
-export function esNombreDeRelleno(nombre: string): boolean {
-  return nombre.trimStart().startsWith(NOMBRE_SIN_CONFIRMAR)
+/** El nombre provisional, leido de la base con el mismo cliente. */
+async function nombreProvisional(cliente?: ClientePrecheckin | null): Promise<string> {
+  const p = await parametrosPublicos(conexion(cliente))
+  return p.texto('titular_provisional_nombre')
+}
+
+/**
+ * Que el archivo no pase del tope **antes** de mandarlo. El servidor lo vuelve
+ * a mirar --es el limite--, pero sin esto el huesped subia ocho megas por el
+ * telefono para enterarse al final de que no valian. El tope es el parametro
+ * `archivo_tamano_maximo_mb`, el mismo que usan las funciones de servidor.
+ */
+async function comprobarTamano(archivo: File): Promise<void> {
+  const topeMb = (await parametrosPublicos()).numero('archivo_tamano_maximo_mb')
+  if (archivo.size > megabytesABytes(topeMb)) {
+    throw new Error(`El archivo pesa demasiado: el tope son ${topeMb} MB`)
+  }
 }
 
 /** Lo que el titular ya habia escrito, para no pedirselo dos veces. */
@@ -282,6 +302,7 @@ export async function fichaDelPrecheckin(
   const texto = (valor: unknown) => (typeof valor === 'string' ? valor : '')
 
   const nombreGuardado = texto(fila.nombre)
+  const provisional = await nombreProvisional(cliente)
 
   return {
     invitadoId: texto(fila.invitado_id),
@@ -290,7 +311,7 @@ export async function fichaDelPrecheckin(
       persona, y un relleno ahi se lee como que ya respondio. Se limpia aqui y
       no en la pantalla para que valga para cualquiera que lea la ficha.
     */
-    nombre: esNombreDeRelleno(nombreGuardado) ? '' : nombreGuardado,
+    nombre: esNombreDeRelleno(nombreGuardado, provisional) ? '' : nombreGuardado,
     apellidos: texto(fila.apellidos),
     tipoDocumento: (fila.tipo_documento as TipoDocumento) ?? null,
     documento: texto(fila.documento),
@@ -845,6 +866,7 @@ export async function subirDocumentoPrecheckin(
 ): Promise<void> {
   const url = import.meta.env.VITE_SUPABASE_URL
   if (!url) throw new Error('Sin conexión con el servidor')
+  await comprobarTamano(archivo)
 
   // `FileReader` da `data:image/png;base64,AAA...`; la función quiere solo lo
   // de después de la coma.
@@ -904,6 +926,7 @@ export async function subirAutorizacionMenor(
 ): Promise<void> {
   const url = import.meta.env.VITE_SUPABASE_URL
   if (!url) throw new Error('Sin conexión con el servidor')
+  await comprobarTamano(archivo)
 
   const base64 = await new Promise<string>((listo, falla) => {
     const lector = new FileReader()
@@ -1546,9 +1569,10 @@ export async function misDatosParaPrecheckin(
   const nombre = texto(fila.nombre)
   // Una cuenta sin nombre ni documento no tiene nada que prellenar.
   if (!nombre && !texto(fila.documento)) return null
+  const provisional = await nombreProvisional(cliente)
 
   return {
-    nombre: esNombreDeRelleno(nombre) ? '' : nombre,
+    nombre: esNombreDeRelleno(nombre, provisional) ? '' : nombre,
     apellidos: texto(fila.apellidos),
     tipoDocumento: (fila.tipo_documento as TipoDocumento) ?? null,
     documento: texto(fila.documento),

@@ -18,9 +18,11 @@ import {
   errorDeDocumento,
   errorDeFechaExpedicion,
   errorDeNacimientoImposible,
+  limitesDeLaFicha,
   loQueFaltaEnLaFicha,
   pideFechaExpedicion,
 } from '../lib/ficha'
+import { useParametros } from '../lib/useParametros'
 import { NACIONALIDADES } from '../lib/nacionalidades'
 import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
 import {
@@ -226,6 +228,14 @@ export default function CompanionAccess() {
     setFicha((previa) => ({ ...previa, [clave]: valor }))
 
   /*
+    Los límites del teléfono y del año de nacimiento viven en la base. Sin
+    ellos el formulario no se enseña (ver más abajo), así que mientras faltan
+    no hay nada que validar.
+  */
+  const { parametros, error: errorParametros } = useParametros()
+  const limites = parametros ? limitesDeLaFicha(parametros) : null
+
+  /*
     A un menor no se le pide documento propio ni se le hace aceptar nada: por él
     responde quien le acompaña. Es la misma regla que aplica la base al cerrar.
   */
@@ -238,10 +248,12 @@ export default function CompanionAccess() {
     ? ficha.nombre.trim() === ''
       ? ['el nombre']
       : []
-    : loQueFaltaEnLaFicha({ ...ficha, costo: '' }, { esTitular: false })
-  const errorDeFecha = esMenor
+    : limites
+      ? loQueFaltaEnLaFicha({ ...ficha, costo: '' }, { esTitular: false, limites })
+      : []
+  const errorDeFecha = esMenor || !limites
     ? ''
-    : errorDeNacimientoImposible(ficha.fechaNacimiento) ||
+    : errorDeNacimientoImposible(ficha.fechaNacimiento, limites) ||
       (ficha.fechaNacimiento &&
       !esMayorDeEdadAlLlegar(ficha.fechaNacimiento, estancia.desde)
         ? 'Este enlace es para un adulto. A un menor lo añade quien responde por él, desde su propio registro.'
@@ -263,7 +275,8 @@ export default function CompanionAccess() {
     faltan.push('aceptar las reglas del edificio')
   }
 
-  const completo = faltan.length === 0 && (esMenor || hayReglas !== null)
+  const completo =
+    limites !== null && faltan.length === 0 && (esMenor || hayReglas !== null)
 
   /*
     Eligió «Iniciar sesión»: lo que tenga guardado en su cuenta, sin pisar lo
@@ -340,11 +353,15 @@ export default function CompanionAccess() {
     }
   }
 
-  if (estado === 'cargando') {
+  if (estado === 'cargando' || (estado === 'listo' && !parametros)) {
     return (
       <MainLayout header="default" bg="soft">
         <div className="mx-auto max-w-[640px] px-4 py-16">
-          <p className="text-center text-sm text-ink/60">Buscando tu registro...</p>
+          <p className="text-center text-sm text-ink/60">
+            {estado === 'listo' && errorParametros
+              ? errorParametros
+              : 'Buscando tu registro...'}
+          </p>
         </div>
       </MainLayout>
     )

@@ -5,6 +5,7 @@ import Card from '../components/Card'
 import Input from '../components/Input'
 import Button from '../components/Button'
 import { supabase } from '../lib/supabase'
+import { useParametros } from '../lib/useParametros'
 
 /**
  * Poner una contraseña nueva, desde el enlace que llega por correo.
@@ -24,10 +25,15 @@ import { supabase } from '../lib/supabase'
  * Es la tercera de las tres cosas que faltaban para que recuperar la contraseña
  * funcione (REVISAR-A-OJO 58). Las otras dos --`site_url` y la lista de
  * redirecciones-- ya están puestas. Queda el servidor de correo.
+ *
+ * El largo mínimo es el parámetro `contrasena_largo_minimo` de la base desde
+ * el 18/10/2026: antes era un 8 escrito aquí, mientras otros sitios aceptaban
+ * 6. Mientras no llega, el formulario no se enseña.
  */
-const MINIMO = 8
-
 export default function PasswordReset() {
+  const { parametros, error: errorParametros } = useParametros()
+  const minimo = parametros ? parametros.numero('contrasena_largo_minimo') : null
+
   const [sesion, setSesion] = useState<'buscando' | 'si' | 'no'>('buscando')
   const [clave, setClave] = useState('')
   const [repetida, setRepetida] = useState('')
@@ -54,8 +60,9 @@ export default function PasswordReset() {
   const guardar = async () => {
     setError('')
 
-    if (clave.length < MINIMO) {
-      setError(`La contraseña tiene que tener al menos ${MINIMO} caracteres.`)
+    if (minimo === null) return
+    if (clave.length < minimo) {
+      setError(`La contraseña tiene que tener al menos ${minimo} caracteres.`)
       return
     }
     if (clave !== repetida) {
@@ -103,7 +110,13 @@ export default function PasswordReset() {
             </div>
           )}
 
-          {sesion === 'si' && !listo && (
+          {sesion === 'si' && !listo && minimo === null && (
+            <p className="mt-6 text-sm text-ink/60">
+              {errorParametros ?? 'Comprobando el enlace...'}
+            </p>
+          )}
+
+          {sesion === 'si' && !listo && minimo !== null && (
             <form
               className="mt-8 space-y-5"
               onSubmit={(e) => {
@@ -116,7 +129,7 @@ export default function PasswordReset() {
                 type="password"
                 value={clave}
                 onChange={(e) => setClave(e.target.value)}
-                placeholder={`Al menos ${MINIMO} caracteres`}
+                placeholder={`Al menos ${minimo} caracteres`}
               />
               <Input
                 label="Repítela"

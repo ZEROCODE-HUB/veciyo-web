@@ -1,4 +1,5 @@
 import type { TipoDocumento } from './precheckin'
+import type { Parametros } from './parametros'
 
 /**
  * Lo que le falta a una ficha para poderse confirmar, dicho con palabras.
@@ -56,19 +57,48 @@ export function errorDeCorreo(correo: string): string {
     : 'Ese correo no parece válido.'
 }
 
-/** El teléfono es opcional; si se escribe, tiene que poderse marcar. */
-export function errorDeTelefono(telefono: string): string {
-  if (telefono.trim() === '') return ''
-  const cifras = telefono.replace(/[^0-9]/g, '')
-  return cifras.length >= 7 && cifras.length <= 15
-    ? ''
-    : 'Revisa el teléfono: tiene que tener entre 7 y 15 cifras.'
+/**
+ * Los límites de la ficha que son de negocio y viven en la base desde el
+ * 18/10/2026 (`telefono_largo_minimo`, `telefono_largo_maximo`,
+ * `anio_nacimiento_minimo`). Las funciones de aquí son puras: los reciben, no
+ * los leen.
+ */
+export interface LimitesDeLaFicha {
+  telefonoMinimo: number
+  telefonoMaximo: number
+  anioNacimientoMinimo: number
 }
 
-/** Nadie vivo nació antes de 1900: es un año mal tecleado. */
-export function errorDeNacimientoImposible(fecha: string): string {
+export function limitesDeLaFicha(p: Parametros): LimitesDeLaFicha {
+  return {
+    telefonoMinimo: p.numero('telefono_largo_minimo'),
+    telefonoMaximo: p.numero('telefono_largo_maximo'),
+    anioNacimientoMinimo: p.numero('anio_nacimiento_minimo'),
+  }
+}
+
+/** El teléfono es opcional; si se escribe, tiene que poderse marcar. */
+export function errorDeTelefono(
+  telefono: string,
+  limites: Pick<LimitesDeLaFicha, 'telefonoMinimo' | 'telefonoMaximo'>,
+): string {
+  if (telefono.trim() === '') return ''
+  const cifras = telefono.replace(/[^0-9]/g, '')
+  const { telefonoMinimo: min, telefonoMaximo: max } = limites
+  return cifras.length >= min && cifras.length <= max
+    ? ''
+    : `Revisa el teléfono: tiene que tener entre ${min} y ${max} cifras.`
+}
+
+/** Un año anterior al mínimo es un año mal tecleado: nadie vivo nació entonces. */
+export function errorDeNacimientoImposible(
+  fecha: string,
+  limites: Pick<LimitesDeLaFicha, 'anioNacimientoMinimo'>,
+): string {
   if (!fecha) return ''
-  return Number(fecha.slice(0, 4)) < 1900 ? 'Revisa el año de nacimiento.' : ''
+  return Number(fecha.slice(0, 4)) < limites.anioNacimientoMinimo
+    ? 'Revisa el año de nacimiento.'
+    : ''
 }
 
 const sinAdornos = (costo: string) => costo.replace(/[\s$]/g, '')
@@ -137,7 +167,7 @@ export interface DatosDeLaFicha {
  */
 export function loQueFaltaEnLaFicha(
   d: DatosDeLaFicha,
-  opciones: { esTitular: boolean },
+  opciones: { esTitular: boolean; limites: LimitesDeLaFicha },
 ): string[] {
   const faltan: string[] = []
   const vacio = (v: string) => v.trim() === ''
@@ -154,8 +184,11 @@ export function loQueFaltaEnLaFicha(
   ) {
     faltan.push('un correo válido')
   }
-  if (errorDeTelefono(d.telefono)) faltan.push('el teléfono')
-  if (vacio(d.fechaNacimiento) || errorDeNacimientoImposible(d.fechaNacimiento)) {
+  if (errorDeTelefono(d.telefono, opciones.limites)) faltan.push('el teléfono')
+  if (
+    vacio(d.fechaNacimiento) ||
+    errorDeNacimientoImposible(d.fechaNacimiento, opciones.limites)
+  ) {
     faltan.push('la fecha de nacimiento')
   }
   if (

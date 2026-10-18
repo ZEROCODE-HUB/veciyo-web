@@ -22,9 +22,11 @@ import {
   errorDeFechaExpedicion,
   errorDeNacimientoImposible,
   errorDeTelefono,
+  limitesDeLaFicha,
   loQueFaltaEnLaFicha,
   pideFechaExpedicion,
 } from '../lib/ficha'
+import { useParametros } from '../lib/useParametros'
 import { NACIONALIDADES } from '../lib/nacionalidades'
 import {
   aceptarReglamento,
@@ -239,21 +241,27 @@ export default function ConfirmData() {
   }, [token])
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Los límites del teléfono y del año de nacimiento viven en la base.
+  const { parametros, error: errorParametros } = useParametros()
 
   /*
     Mientras se busca lo ya escrito no se decide nada: sin esto, al recargar la
     pantalla se iria al paso 1 justo antes de que llegara el tipo de documento
-    guardado, que es lo que la mantiene aqui.
+    guardado, que es lo que la mantiene aqui. Tampoco sin los parámetros: sin
+    ellos no se puede decir qué está mal.
   */
-  if (cargandoFicha) {
+  if (cargandoFicha || !parametros) {
     return (
       <MainLayout header="default" bg="soft">
         <div className="mx-auto max-w-[640px] px-4 py-10">
-          <p className="text-center text-sm text-ink/60">Recuperando tus datos...</p>
+          <p className="text-center text-sm text-ink/60">
+            {errorParametros ?? 'Recuperando tus datos...'}
+          </p>
         </div>
       </MainLayout>
     )
   }
+  const limites = limitesDeLaFicha(parametros)
 
   if (!token || !docType) {
     return <Navigate to="/pre-check-in" replace />
@@ -286,8 +294,8 @@ export default function ConfirmData() {
 
   const errorDeFecha = !fechaNacimiento
     ? ''
-    : errorDeNacimientoImposible(fechaNacimiento)
-      ? errorDeNacimientoImposible(fechaNacimiento)
+    : errorDeNacimientoImposible(fechaNacimiento, limites)
+      ? errorDeNacimientoImposible(fechaNacimiento, limites)
       : naceDespuesDeLlegar(fechaNacimiento, llegada)
         ? 'Esa fecha es posterior al día de llegada. Revisala.'
         : mayorDeEdad === false
@@ -315,7 +323,7 @@ export default function ConfirmData() {
       costo,
       fechaExpedicion,
     },
-    { esTitular: true },
+    { esTitular: true, limites },
   )
   if (errorDeFecha !== '' && !faltan.includes('la fecha de nacimiento')) {
     faltan.push('la fecha de nacimiento')
@@ -496,9 +504,9 @@ export default function ConfirmData() {
               onTelefonoChange={setTelefono}
               placeholder="Ingrese su número de teléfono"
             />
-            {errorDeTelefono(telefono) ? (
+            {errorDeTelefono(telefono, limites) ? (
               <p className="-mt-2 text-xs font-semibold text-danger">
-                {errorDeTelefono(telefono)}
+                {errorDeTelefono(telefono, limites)}
               </p>
             ) : null}
             <Input

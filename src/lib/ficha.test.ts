@@ -9,7 +9,19 @@ import {
   loQueFaltaEnLaFicha,
   pideFechaExpedicion,
   type DatosDeLaFicha,
+  type LimitesDeLaFicha,
 } from './ficha'
+
+/*
+  Los límites viven en la base (`telefono_largo_minimo`, `telefono_largo_maximo`,
+  `anio_nacimiento_minimo`) y las funciones los reciben. Aquí van sus valores
+  actuales, para que estas pruebas sigan diciendo lo mismo que decían.
+*/
+const LIMITES: LimitesDeLaFicha = {
+  telefonoMinimo: 7,
+  telefonoMaximo: 15,
+  anioNacimientoMinimo: 1900,
+}
 
 /**
  * Lo que el recorrido del 12/10/2026 dejó pasar: una cédula «ABC-12», un
@@ -48,11 +60,19 @@ describe('los demás campos', () => {
     expect(errorDeCorreo('')).toBe('')
     expect(errorDeCorreo('no-es-correo')).not.toBe('')
     expect(errorDeCorreo('ana@ejemplo.com')).toBe('')
-    expect(errorDeTelefono('')).toBe('')
-    expect(errorDeTelefono('12')).not.toBe('')
-    expect(errorDeTelefono('300 123 4567')).toBe('')
-    expect(errorDeNacimientoImposible('1890-01-01')).not.toBe('')
-    expect(errorDeNacimientoImposible('1990-01-01')).toBe('')
+    expect(errorDeTelefono('', LIMITES)).toBe('')
+    expect(errorDeTelefono('12', LIMITES)).not.toBe('')
+    expect(errorDeTelefono('300 123 4567', LIMITES)).toBe('')
+    expect(errorDeNacimientoImposible('1890-01-01', LIMITES)).not.toBe('')
+    expect(errorDeNacimientoImposible('1990-01-01', LIMITES)).toBe('')
+  })
+
+  it('los límites son los que se le pasan, no unos escritos', () => {
+    // Con otros parámetros cambia la respuesta y el mensaje dice los nuevos.
+    const otros = { telefonoMinimo: 10, telefonoMaximo: 10, anioNacimientoMinimo: 1950 }
+    expect(errorDeTelefono('300 123 456', otros)).toMatch(/entre 10 y 10/)
+    expect(errorDeTelefono('300 123 4567', otros)).toBe('')
+    expect(errorDeNacimientoImposible('1940-01-01', otros)).not.toBe('')
   })
 
   it('el costo es un número, y cero vale', () => {
@@ -65,7 +85,7 @@ describe('los demás campos', () => {
 
 describe('lo que falta para confirmar', () => {
   it('a una ficha completa no le falta nada', () => {
-    expect(loQueFaltaEnLaFicha(BUENA, { esTitular: true })).toEqual([])
+    expect(loQueFaltaEnLaFicha(BUENA, { esTitular: true, limites: LIMITES })).toEqual([])
   })
 
   it('a quien reserva se le pide lo que exige el ministerio', () => {
@@ -77,7 +97,7 @@ describe('lo que falta para confirmar', () => {
         ciudadProcedencia: ' ',
         costo: '',
       },
-      { esTitular: true },
+      { esTitular: true, limites: LIMITES },
     )
     expect(faltan).toEqual([
       'la nacionalidad',
@@ -95,9 +115,9 @@ describe('lo que falta para confirmar', () => {
       ciudadResidencia: '',
       ciudadProcedencia: '',
     }
-    expect(loQueFaltaEnLaFicha(acompanante, { esTitular: false })).toEqual([])
+    expect(loQueFaltaEnLaFicha(acompanante, { esTitular: false, limites: LIMITES })).toEqual([])
     expect(
-      loQueFaltaEnLaFicha({ ...acompanante, nacionalidad: '' }, { esTitular: false }),
+      loQueFaltaEnLaFicha({ ...acompanante, nacionalidad: '' }, { esTitular: false, limites: LIMITES }),
     ).toEqual(['la nacionalidad'])
   })
 
@@ -110,7 +130,7 @@ describe('lo que falta para confirmar', () => {
         telefono: '12',
         fechaNacimiento: '1890-01-01',
       },
-      { esTitular: true },
+      { esTitular: true, limites: LIMITES },
     )
     expect(faltan).toEqual([
       'el número de identificación',
@@ -131,16 +151,16 @@ describe('fecha de expedición (14/10/2026)', () => {
 
   it('sin ella, una cédula de extranjería no se puede confirmar', () => {
     const ce = { ...BUENA, tipoDocumento: 'cedula_extranjeria' }
-    expect(loQueFaltaEnLaFicha(ce, { esTitular: true })).toEqual([
+    expect(loQueFaltaEnLaFicha(ce, { esTitular: true, limites: LIMITES })).toEqual([
       'la fecha de expedición del documento',
     ])
     expect(
-      loQueFaltaEnLaFicha({ ...ce, fechaExpedicion: '2020-05-01' }, { esTitular: true }),
+      loQueFaltaEnLaFicha({ ...ce, fechaExpedicion: '2020-05-01' }, { esTitular: true, limites: LIMITES }),
     ).toEqual([])
   })
 
   it('una cédula de ciudadanía no la necesita', () => {
-    expect(loQueFaltaEnLaFicha(BUENA, { esTitular: true })).toEqual([])
+    expect(loQueFaltaEnLaFicha(BUENA, { esTitular: true, limites: LIMITES })).toEqual([])
   })
 
   it('no puede ser futura ni anterior al nacimiento', () => {
@@ -156,7 +176,7 @@ describe('fecha de expedición (14/10/2026)', () => {
       fechaNacimiento: '1990-01-01',
       fechaExpedicion: '1980-01-01',
     }
-    expect(loQueFaltaEnLaFicha(mala, { esTitular: true })).toContain(
+    expect(loQueFaltaEnLaFicha(mala, { esTitular: true, limites: LIMITES })).toContain(
       'la fecha de expedición del documento',
     )
   })
