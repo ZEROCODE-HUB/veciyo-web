@@ -76,11 +76,16 @@ export default function Invitation() {
   }, [token])
 
   return (
-    <div className="relative flex h-dvh flex-col overflow-hidden">
+    /*
+      Era `h-dvh overflow-hidden`: en el celular la tarjeta no cabía y no se
+      podía desplazar, así que el botón para aceptar quedaba fuera de la
+      pantalla (Para Claude, 20/10/2026). El fondo es fijo; la página crece.
+    */
+    <div className="relative flex min-h-dvh flex-col">
       <BackgroundCarousel images={TRAVEL_IMAGES} />
 
-      <div className="flex flex-1 items-center justify-center px-4">
-        <div className="w-full max-w-[640px] rounded-2xl border border-white/30 bg-white/40 px-8 py-12 shadow-2xl shadow-black/10 backdrop-blur-2xl sm:px-14 sm:py-14">
+      <div className="flex flex-1 items-center justify-center px-4 py-6">
+        <div className="w-full max-w-[640px] rounded-2xl border border-white/30 bg-white/40 px-5 py-8 shadow-2xl shadow-black/10 backdrop-blur-2xl sm:px-14 sm:py-14">
           {estado.tipo === 'cargando' && (
             <p className="text-center text-base text-ink/80">
               Buscando tu invitación…
@@ -152,10 +157,12 @@ function Detalle({
       <p className="mx-auto mt-4 max-w-md text-center text-base leading-relaxed text-ink/80">
         {esHuesped
           ? 'Crea tu cuenta para ver tu alojamiento durante la estadía.'
-          : 'Crea tu cuenta para entrar a la vivienda que te asignaron.'}
+          : datos.unidad
+            ? 'Crea tu cuenta para entrar a la vivienda que te asignaron.'
+            : 'Crea tu cuenta para entrar a tu edificio.'}
       </p>
 
-      <div className="mt-8 rounded-xl border border-white/30 bg-white/40 px-6 py-5 shadow-lg backdrop-blur-md">
+      <div className="mt-8 rounded-xl border border-white/30 bg-white/40 px-4 py-5 sm:px-6 shadow-lg backdrop-blur-md">
         <div className="grid grid-cols-2 gap-x-6 gap-y-3">
           <Dato etiqueta="Nombre" valor={datos.nombre} ancho />
           <Dato etiqueta="Correo" valor={datos.correo} ancho />
@@ -188,7 +195,7 @@ function Detalle({
         aplicación, que sí sabe leerlo --`RootNavigator` tiene el deep link de
         `/invitacion`--. Así que se dice, en vez de fingir un botón.
       */}
-      <div className="mt-10 rounded-xl border border-white/30 bg-white/40 px-5 py-4 text-left backdrop-blur-md">
+      <div className="mt-8 rounded-xl border border-white/30 bg-white/40 px-4 py-4 sm:mt-10 sm:px-5 text-left backdrop-blur-md">
         <p className="text-sm font-bold text-ink">Cómo entrar</p>
         <ol className="mt-2 space-y-1.5 text-sm leading-relaxed text-ink/80">
           <li>1. Abre Veciyo con el botón de abajo.</li>
@@ -244,7 +251,8 @@ function Dato({
       <p className="text-xs font-semibold uppercase tracking-widest text-ink/70">
         {etiqueta}
       </p>
-      <p className="whitespace-nowrap text-sm font-bold text-ink">{valor}</p>
+      {/* Sin `nowrap`: un correo largo se salía de la tarjeta en el celular. */}
+      <p className="break-words text-sm font-bold text-ink">{valor}</p>
     </div>
   )
 }
