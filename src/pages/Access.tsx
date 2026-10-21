@@ -147,9 +147,14 @@ export default function Access() {
   }, [token, navigate])
 
   return (
-    <div className="relative flex h-dvh flex-col overflow-hidden">
+    /*
+      Era `h-dvh overflow-hidden`, como la invitación: con la letra del
+      teléfono más grande la tarjeta no cabía y no se podía bajar hasta el
+      botón (Para Claude, 21/10/2026). El fondo es fijo; la página crece.
+    */
+    <div className="relative flex min-h-dvh flex-col">
       <BackgroundCarousel images={TRAVEL_IMAGES} />
-      <div className="relative z-10 flex flex-1 items-center justify-center px-4">
+      <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-6">
         {estado.tipo === 'cargando' ? (
           <div className="flex flex-col items-center gap-4">
             <Loading size="lg" variant="white" />
@@ -159,7 +164,7 @@ export default function Access() {
           </div>
         ) : (
           <div
-            className={`w-full ${estado.tipo === 'inicio' ? 'max-w-[640px]' : 'max-w-[560px]'} rounded-2xl border border-white/30 bg-white/40 px-8 py-12 text-center shadow-2xl shadow-black/10 backdrop-blur-2xl sm:px-14`}
+            className={`w-full ${estado.tipo === 'inicio' ? 'max-w-[640px]' : 'max-w-[560px]'} rounded-2xl border border-white/30 bg-white/40 px-5 py-8 text-center sm:py-12 shadow-2xl shadow-black/10 backdrop-blur-2xl sm:px-14`}
           >
             {estado.tipo === 'inicio' && (
               <>
@@ -173,7 +178,7 @@ export default function Access() {
                   seguridad para aprobar el ingreso de los huéspedes de renta
                   corta.
                 </p>
-                <div className="mt-8 rounded-xl border border-white/30 bg-white/40 px-6 py-5 text-left shadow-lg backdrop-blur-md">
+                <div className="mt-8 rounded-xl border border-white/30 bg-white/40 px-4 py-5 text-left sm:px-6 shadow-lg backdrop-blur-md">
                   <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                     {estado.huesped && (
                       <div className="col-span-2">
