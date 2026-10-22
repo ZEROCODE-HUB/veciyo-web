@@ -1,13 +1,40 @@
+import { useState } from 'react'
 import type { Acompanante } from '../lib/precheckin'
 
 /**
- * «Links individuales para acompañantes», como en la maqueta (15/10/2026).
+ * Copia un texto y dice si pudo.
  *
- * Cada adulto acepta **sus** términos desde su propio enlace: eso nadie lo puede
- * hacer por otro. El enlace se emite aquí y vuelve una sola vez —en la base vive
- * solo su sha256—, así que se enseña con «Copiar mensaje completo» y el aviso de
- * que hay que copiarlo ahora.
+ * «En la computadora no se puede copiar el enlace, en el celular sí» (Para
+ * Claude, 21/10/2026). En Chrome de escritorio `navigator.clipboard.writeText`
+ * se quedaba **esperando** --comprobado: la promesa no se resolvía ni fallaba--
+ * y el botón no decía nada. Primero se copia por el camino directo, que es
+ * síncrono y va dentro del clic; si no, el portapapeles del sistema con un
+ * límite de espera.
  */
+export async function copiarTexto(texto: string): Promise<boolean> {
+  try {
+    const area = document.createElement('textarea')
+    area.value = texto
+    area.setAttribute('readonly', '')
+    area.style.position = 'fixed'
+    area.style.opacity = '0'
+    document.body.appendChild(area)
+    area.select()
+    const ok = document.execCommand('copy')
+    document.body.removeChild(area)
+    if (ok) return true
+  } catch {
+    // Se prueba el otro camino.
+  }
+  if (!navigator.clipboard?.writeText) return false
+  const espera = new Promise<boolean>((r) => setTimeout(() => r(false), 1500))
+  const copia = navigator.clipboard.writeText(texto).then(
+    () => true,
+    () => false,
+  )
+  return Promise.race([copia, espera])
+}
+
 export default function LinksIndividuales({
   personas,
   enlaces,
@@ -19,10 +46,18 @@ export default function LinksIndividuales({
   enlaces: Record<string, string>
   onGenerar: (persona: Acompanante) => void
 }) {
+  /** Por persona: si el último intento de copiar salió bien o no. */
+  const [copiado, setCopiado] = useState<Record<string, boolean>>({})
+
   if (personas.length === 0) return null
 
   const mensaje = (persona: Acompanante, url: string) =>
     `Hola, ${persona.nombre}. Completa tu preregistro con este enlace: ${url}. Desde el mismo enlace puedes ver cómo va.`
+
+  const copiar = async (persona: Acompanante, url: string) => {
+    const ok = await copiarTexto(mensaje(persona, url))
+    setCopiado((c) => ({ ...c, [persona.id]: ok }))
+  }
 
   return (
     <div className="mt-6 rounded-xl border border-brand/20 bg-brand/5 px-6 py-5">
@@ -49,11 +84,26 @@ export default function LinksIndividuales({
                 <>
                   <button
                     type="button"
-                    onClick={() => void navigator.clipboard?.writeText(mensaje(persona, url))}
+                    onClick={() => void copiar(persona, url)}
                     className="self-start text-xs font-semibold text-brand hover:text-brand-700"
                   >
-                    Copiar mensaje completo
+                    {copiado[persona.id] ? 'Copiado ✓' : 'Copiar mensaje completo'}
                   </button>
+                  {copiado[persona.id] === false ? (
+                    <textarea
+                      readOnly
+                      aria-label={`Mensaje para ${persona.nombre}`}
+                      value={mensaje(persona, url)}
+                      onFocus={(e) => e.currentTarget.select()}
+                      className="w-full rounded border border-ink/20 p-2 text-[11px] text-ink"
+                      rows={3}
+                    />
+                  ) : null}
+                  {copiado[persona.id] === false ? (
+                    <p className="text-[11px] text-ink/70">
+                      No se pudo copiar solo: selecciona el texto de arriba y cópialo.
+                    </p>
+                  ) : null}
                   <p className="text-[11px] font-semibold text-ink">
                     Cópialo ahora: no se vuelve a mostrar. Si lo pierdes hay que generar otro, y el
                     de ahora deja de valer.

@@ -42,12 +42,17 @@ export default function CampoTelefono({
         </label>
       )}
 
-      <div className="flex gap-2">
+      {/*
+        En un celular angosto el número se salía de la pantalla (Para Claude,
+        21/10/2026): el `select` medía lo que su opción más larga y el `input`
+        no se encogía. El país tiene un ancho fijo y el número toma el resto.
+      */}
+      <div className="flex w-full gap-2">
         <select
           value={codigoPais || PAIS_POR_DEFECTO}
           onChange={(e) => onCodigoPaisChange(e.target.value)}
           aria-label="País del teléfono"
-          className={`rounded-2xl border border-ink/10 px-3 py-3.5 text-base text-ink ${fondo}`}
+          className={`w-28 shrink-0 truncate rounded-2xl border border-ink/10 px-3 py-3.5 text-base text-ink sm:w-40 ${fondo}`}
         >
           {PAISES.map((pais) => (
             <option key={pais.codigo} value={pais.codigo}>
@@ -66,7 +71,7 @@ export default function CampoTelefono({
           */
           onChange={(e) => onTelefonoChange(e.target.value.replace(/\D/g, ''))}
           placeholder={placeholder}
-          className={`flex-1 rounded-2xl border border-ink/10 px-4 py-3.5 text-base text-ink placeholder:text-ink/40 ${fondo}`}
+          className={`min-w-0 flex-1 rounded-2xl border border-ink/10 px-4 py-3.5 text-base text-ink placeholder:text-ink/40 ${fondo}`}
         />
       </div>
     </div>
