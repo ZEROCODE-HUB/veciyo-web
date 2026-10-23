@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import SelectorDeMoneda from '../components/SelectorDeMoneda'
 import { useLocation, useNavigate, Navigate } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import Input from '../components/Input'
@@ -101,6 +102,8 @@ export default function ConfirmData() {
   const [ciudadResidencia, setCiudadResidencia] = useState('')
   const [ciudadProcedencia, setCiudadProcedencia] = useState('')
   const [costo, setCosto] = useState('')
+  // La moneda de lo que pagó, elegida por país (QA 23/10/2026).
+  const [moneda, setMoneda] = useState('COP')
   /*
     La pide el reporte de extranjeros y no se preguntaba en ninguna pantalla:
     la base la aceptaba desde el principio y llegaba siempre vacía.
@@ -187,6 +190,7 @@ export default function ConfirmData() {
         setCiudadResidencia(ficha.ciudadResidencia)
         setCiudadProcedencia(ficha.ciudadProcedencia)
         setCosto(ficha.costo === null ? '' : String(ficha.costo))
+        if (ficha.moneda) setMoneda(ficha.moneda)
         setNacionalidad(ficha.nacionalidad)
         setAceptados(ficha.terminosAceptados)
         if (ficha.tipoDocumento) setDocTypeGuardado(ficha.tipoDocumento)
@@ -376,6 +380,7 @@ export default function ConfirmData() {
           sabe lo que pagó, y el anfitrión no siempre. Decidido el 02/10/2026.
         */
         costo: costoComoNumero(costo),
+        moneda,
       })
       if (pideFechaExpedicion(docType)) {
         await guardarFechaExpedicion(token, fechaExpedicion)
@@ -411,9 +416,10 @@ export default function ConfirmData() {
         </h1>
 
         <p className="mx-auto mt-3 max-w-md text-center text-base text-ink/60">
-          Verifica que tus datos sean correctos. Escríbelos tal como figuran
-          en tu {etiquetaDoc.toLowerCase()}. El personal de seguridad en
-          recepción lo verifica cuando ingreses.
+          Verifica que tus datos sean correctos y escríbelos tal como figuran
+          en tu {etiquetaDoc.toLowerCase()}. Al llegar, el personal de
+          seguridad los compara con tu documento físico, y tienen que
+          coincidir.
         </p>
 
         <UsarMisDatos onDatos={usarMisDatos} />
@@ -480,9 +486,10 @@ export default function ConfirmData() {
             `REVISAR-A-OJO.md` (63). Mientras tanto, el texto dice la verdad.
           */}
           <p className="px-1 text-xs text-ink/60">
-            Lo usamos para identificarte. Al terminar te mostramos el enlace de
-            acceso a la aplicación, donde vas a ver la clave del wifi y el código
-            de la puerta.
+            Este correo será tu usuario para entrar a la app de Veciyo, donde
+            verás la información del edificio y de tu alojamiento: el wifi, la
+            clave de la puerta y las instrucciones de tu anfitrión. También es
+            donde te llega la confirmación de tu ingreso.
           </p>
         </div>
 
@@ -541,6 +548,7 @@ export default function ConfirmData() {
               error={errorDeCosto(costo)}
               onChange={(e) => setCosto(e.target.value)}
             />
+            <SelectorDeMoneda label="Moneda de lo que pagaste" value={moneda} onChange={setMoneda} />
             <Select
               label="Nacionalidad"
               tone="soft"

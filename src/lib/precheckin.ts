@@ -1287,15 +1287,32 @@ export function avisoDeLlegada(
   dias: number,
 ): string | null {
   if (estado === 'proxima') return textoDeLaCuentaAtras(dias)
-  if (estado === 'en_curso') return 'Tu estancia ya empezó'
+  if (estado === 'en_curso') return dias === 0 ? 'Tu ingreso es hoy' : 'Tu estancia ya empezó'
   return null
 }
 
+/**
+ * «Tu ingreso es hoy», «es mañana», «es en 3 días». Decía «Faltan 0 días para
+ * tu llegada» con la reserva de hoy (QA 23/10/2026).
+ */
 export function textoDeLaCuentaAtras(dias: number): string {
-  if (dias <= 0) return 'Hoy llegas'
-  if (dias === 1) return 'Mañana llegas'
-  return `Faltan ${dias} días para tu llegada`
+  if (dias <= 0) return 'Tu ingreso es hoy'
+  if (dias === 1) return 'Tu ingreso es mañana'
+  return `Tu ingreso es en ${dias} días`
 }
+
+/**
+ * Por qué crear la cuenta. Lo pidió la responsable de producto (16/10/2026) y
+ * se enseña al terminar y al elegir «Crear una cuenta» (23/10/2026).
+ */
+export const POR_QUE_CREAR_LA_CUENTA = [
+  'Puedes volver a esta reserva para editar datos.',
+  'Guardaremos tus datos para acelerar tu registro en cualquier edificio Veciyo.',
+  'Abrir el libro del alojamiento —wifi, puerta e instrucciones de tu anfitrión— mientras dure tu estadía.',
+  'Hablar con portería y reservar zonas comunes desde la aplicación.',
+  'Conocer las notificaciones del edificio.',
+  'Registrar tus propias visitas (si está permitido por tu anfitrión).',
+]
 
 /** Las reglas del edificio para huéspedes, por secciones. */
 export interface Reglamento {
@@ -1597,4 +1614,22 @@ export async function qrDelPrecheckin(
   const { data, error } = await conexion(cliente).rpc('qr_del_precheckin', { p_token: token })
   if (error) throw error
   return (data as string | null) ?? null
+}
+
+/**
+ * El titular confirma que al final vienen menos (QA 23/10/2026). Nunca menos
+ * que las ya registradas ni más que las reservadas; al anfitrión le llega un
+ * aviso.
+ */
+export async function confirmarCuantosVienen(
+  token: string,
+  cuantos: number,
+  cliente?: ClientePrecheckin | null,
+): Promise<number> {
+  const { data, error } = await conexion(cliente).rpc('confirmar_cuantos_vienen', {
+    p_token: token,
+    p_cuantos: cuantos,
+  })
+  if (error) throw error
+  return data as number
 }

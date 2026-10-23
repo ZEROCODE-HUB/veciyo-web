@@ -147,16 +147,30 @@ export default function PreCheckIn() {
 
         {!comenzado && (
           <>
-            <p className="mt-4 text-base leading-relaxed text-ink/70 sm:mt-6">
-              Para completar tu pre registro de seguridad, ten a la mano lo
+            <div className="mt-4 rounded-2xl bg-brand/5 px-5 py-4 text-sm leading-relaxed text-ink/80 sm:mt-6">
+              <p className="font-semibold text-ink">Tienes dos opciones</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                <li>Llenar tú los datos de todos los que vienen contigo.</li>
+                <li>
+                  O dejar que cada uno llene los suyos: le llega un correo con su
+                  enlace.
+                </li>
+              </ul>
+              <p className="mt-2">
+                En los dos casos, cada adulto acepta sus propios términos y
+                condiciones desde el enlace que le llega a su correo.
+              </p>
+            </div>
+            <p className="mt-4 text-base leading-relaxed text-ink/70">
+              Para completar tu preregistro de seguridad, ten a la mano lo
               siguiente:
             </p>
             <ul className="mt-3 space-y-2 text-base leading-relaxed text-ink/70">
               {[
+                'Los documentos de identidad de todos los huéspedes',
                 'Dirección de residencia',
                 'Correos electrónicos de contacto',
                 'Placas de los vehículos',
-                'Documentos de todos los huéspedes',
               ].map((linea) => (
                 <li key={linea} className="flex items-start gap-2">
                   <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
@@ -165,7 +179,7 @@ export default function PreCheckIn() {
               ))}
               <li className="flex items-start gap-2 font-semibold text-ink">
                 <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
-                Esto solo te tomará 2 minutos
+                Esto solo te tomará unos 2 minutos por persona
               </li>
             </ul>
 

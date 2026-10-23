@@ -138,9 +138,9 @@ describe('normalizarPlaca', () => {
 
 describe('la cuenta atrás (14/10/2026)', () => {
   it('dice cuántos días faltan, y mañana y hoy con palabras', () => {
-    expect(textoDeLaCuentaAtras(3)).toBe('Faltan 3 días para tu llegada')
-    expect(textoDeLaCuentaAtras(1)).toBe('Mañana llegas')
-    expect(textoDeLaCuentaAtras(0)).toBe('Hoy llegas')
+    expect(textoDeLaCuentaAtras(3)).toBe('Tu ingreso es en 3 días')
+    expect(textoDeLaCuentaAtras(1)).toBe('Tu ingreso es mañana')
+    expect(textoDeLaCuentaAtras(0)).toBe('Tu ingreso es hoy')
   })
 })
 
@@ -189,10 +189,10 @@ describe('lo elegido en el formulario de alta', () => {
 
 describe('la etiqueta de llegada', () => {
   it('cuenta los días mientras falta', () => {
-    expect(avisoDeLlegada('proxima', 3)).toBe('Faltan 3 días para tu llegada')
+    expect(avisoDeLlegada('proxima', 3)).toBe('Tu ingreso es en 3 días')
   })
   it('con la llegada hoy, la reserva está en curso y lo dice', () => {
-    expect(avisoDeLlegada('en_curso', 0)).toBe('Tu estancia ya empezó')
+    expect(avisoDeLlegada('en_curso', 0)).toBe('Tu ingreso es hoy')
   })
   it('terminada o cancelada no lleva etiqueta: eso lo dice la página', () => {
     expect(avisoDeLlegada('terminada', 0)).toBeNull()

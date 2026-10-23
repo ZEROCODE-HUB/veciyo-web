@@ -23,6 +23,7 @@ import {
 } from '../lib/ficha'
 import {
   cerrarPrecheckin,
+  confirmarCuantosVienen,
   incapacidadesDelPrecheckin,
   retirarIncapacidad,
   consultarPrecheckin,
@@ -166,6 +167,7 @@ export default function Companions() {
     esDeLaReserva: boolean
   }>({ tope: null, esDeLaReserva: false })
   const [menoresEsperados, setMenoresEsperados] = useState(0)
+  const [confirmandoCuantos, setConfirmandoCuantos] = useState(false)
   /*
     El día de llegada: es contra él, y no contra hoy, contra el que la base
     decide si alguien es menor. Quien cumple años entre la reserva y el
@@ -232,6 +234,19 @@ export default function Companions() {
   */
   const personas = lista.length + 1
   const quedanPlazas = cupo.tope === null || personas < cupo.tope
+
+  const confirmarMenos = async () => {
+    setError(null)
+    setConfirmandoCuantos(true)
+    try {
+      const nuevo = await confirmarCuantosVienen(token, personas)
+      setCupo((antes) => ({ ...antes, tope: nuevo }))
+    } catch (e) {
+      setError(porQueFallo(e, 'No pudimos actualizar cuántos vienen'))
+    } finally {
+      setConfirmandoCuantos(false)
+    }
+  }
   /*
     Cuantos menores dijo el anfitrion y cuantos van puestos. El titular no
     cuenta: tiene que ser mayor de edad para cerrar la reserva.
@@ -880,6 +895,32 @@ export default function Companions() {
               <p className="mt-6 rounded-xl bg-danger/5 px-4 py-3 text-center text-sm font-semibold text-danger">
                 {error}
               </p>
+            )}
+
+            {/*
+              Reservaron para más de los que hay: se puede confirmar que al
+              final vienen menos, en vez de quedarse atascado (QA 23/10/2026).
+            */}
+            {cupo.esDeLaReserva && cupo.tope !== null && personas < cupo.tope && (
+              <div className="mt-8 rounded-2xl border border-gold/40 bg-gold/10 px-5 py-4">
+                <p className="text-sm font-semibold text-ink">
+                  ¿Al final vienen {personas} y no {cupo.tope}?
+                </p>
+                <p className="mt-1 text-xs text-ink/70">
+                  Confírmalo y actualizamos la reserva. Tu anfitrión recibe un aviso.
+                </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="mt-3"
+                  disabled={confirmandoCuantos}
+                  onClick={confirmarMenos}
+                >
+                  {confirmandoCuantos
+                    ? 'Confirmando…'
+                    : `Confirmar que solo ${personas === 1 ? 'vengo yo' : `somos ${personas}`}`}
+                </Button>
+              </div>
             )}
 
             <div className="mt-10 flex flex-col items-center border-t border-line pt-8">

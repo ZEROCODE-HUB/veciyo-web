@@ -4,7 +4,7 @@ import MainLayout from '../layouts/MainLayout'
 import Card from '../components/Card'
 import Button from '../components/Button'
 import { CheckIcon } from '../components/icons'
-import { entradaElegida, olvidarToken } from '../lib/precheckin'
+import { POR_QUE_CREAR_LA_CUENTA, entradaElegida, olvidarToken } from '../lib/precheckin'
 
 /**
  * El final del preregistro: aquí nace el acceso del huésped a la aplicación.
@@ -26,15 +26,7 @@ import { entradaElegida, olvidarToken } from '../lib/precheckin'
  * en la página de crearla (16/10/2026, segunda vuelta).
  */
 
-/** Lo que pidió la responsable de producto, en su orden (16/10/2026). */
-const POR_QUE_CREARLA = [
-  'Puedes volver a esta reserva para editar datos.',
-  'Guardaremos tus datos para acelerar tu registro en cualquier edificio Veciyo.',
-  'Abrir el libro del alojamiento —wifi, puerta e instrucciones de tu anfitrión— mientras dure tu estadía.',
-  'Hablar con portería y reservar zonas comunes desde la aplicación.',
-  'Conocer las notificaciones del edificio.',
-  'Registrar tus propias visitas (si está permitido por tu anfitrión).',
-]
+const POR_QUE_CREARLA = POR_QUE_CREAR_LA_CUENTA
 
 export default function DownloadApp() {
   const location = useLocation()

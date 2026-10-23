@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { POR_QUE_CREAR_LA_CUENTA } from '../lib/precheckin'
 import Input from './Input'
 import Button from './Button'
 import { supabase } from '../lib/supabase'
@@ -123,6 +124,20 @@ export default function ComoEntrar({ onListo }: Props) {
       >
         Crear una cuenta
       </Button>
+      {/*
+        Las ventajas de la cuenta, para quien duda (QA 23/10/2026). Las mismas
+        que al terminar el preregistro.
+      */}
+      <details className="rounded-xl bg-surface-soft px-4 py-3 text-sm text-ink/80">
+        <summary className="cursor-pointer font-semibold text-ink">
+          ¿Para qué crear una cuenta?
+        </summary>
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          {POR_QUE_CREAR_LA_CUENTA.map((texto) => (
+            <li key={texto}>{texto}</li>
+          ))}
+        </ul>
+      </details>
       {supabase && (
         <Button
           type="button"
