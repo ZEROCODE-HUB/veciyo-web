@@ -1585,3 +1585,16 @@ export async function misDatosParaPrecheckin(
     ciudadProcedencia: texto(fila.ciudad_procedencia),
   }
 }
+
+/**
+ * El código del QR de ingreso si la estancia ya está aprobada; si no, `null`
+ * (QA 23/10/2026). Es el mismo que llega por correo al aprobarse.
+ */
+export async function qrDelPrecheckin(
+  token: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<string | null> {
+  const { data, error } = await conexion(cliente).rpc('qr_del_precheckin', { p_token: token })
+  if (error) throw error
+  return (data as string | null) ?? null
+}

@@ -69,25 +69,35 @@ export default function DownloadApp() {
               <CheckIcon className="h-8 w-8 text-success" />
             </div>
 
+            {/*
+              QA 23/10/2026 (responsable de producto): que quede claro que hay
+              que esperar la aprobación, que esto todavía no autoriza a entrar
+              y que los documentos se piden en físico.
+            */}
             <h1 className="mt-6 font-display text-3xl font-extrabold text-ink sm:text-[34px]">
-              Registro completado exitosamente
+              Registro completado
             </h1>
 
             <p className="mx-auto mt-4 max-w-md text-base text-ink/70">
-              Tu registro como huésped temporal ha sido completado. El equipo de
-              seguridad te espera para completar tu registro presencial con tus
-              documentos físicos.
+              El equipo de seguridad y tu anfitrión revisarán la información.
+              Espera su confirmación: <strong>esto todavía no es una
+              autorización de ingreso.</strong>
             </p>
             <p className="mx-auto mt-3 max-w-md text-sm text-ink/70">
-              Cuando el proceso de registro de todo tu grupo esté completo,
-              recibirás confirmación de aprobación de ingreso a tu correo
-              electrónico con un QR para agilizar tu registro físico a tu
-              llegada.
+              Cuando se apruebe el ingreso de todo tu grupo, te llegará un correo
+              con la confirmación, el resumen de tu reserva y tu QR de ingreso
+              para agilizar tu registro al llegar.
+            </p>
+            <p className="mx-auto mt-3 max-w-md text-sm text-ink/70">
+              Recuerda que todos los documentos que registraste se te pedirán
+              en físico al llegar.
             </p>
 
-            <div className="mt-6 flex items-center justify-center gap-3 rounded-lg bg-success/5 px-4 py-3">
-              <CheckIcon className="h-4 w-4 text-success" />
-              <span className="text-sm font-semibold text-success">Preregistro enviado</span>
+            <div className="mt-6 flex items-center justify-center gap-3 rounded-lg bg-gold/10 px-4 py-3">
+              <CheckIcon className="h-4 w-4 text-ink" />
+              <span className="text-sm font-semibold text-ink">
+                Preregistro enviado · pendiente de aprobación
+              </span>
             </div>
           </div>
 

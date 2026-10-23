@@ -6,7 +6,7 @@ import Input from '../components/Input'
 import Select from '../components/Select'
 import Button from '../components/Button'
 import Loading from '../components/Loading'
-import Checkbox from '../components/Checkbox'
+import Interruptor from '../components/Interruptor'
 import VehiculosDeLaEstancia from '../components/VehiculosDeLaEstancia'
 import DeclararIncapacidad from '../components/DeclararIncapacidad'
 import FileUploader from '../components/FileUploader'
@@ -17,6 +17,7 @@ import { porQueFallo } from '../lib/motivo'
 import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
 import {
   soloNombre,
+  errorDeCorreo,
   errorDeFechaExpedicion,
   pideFechaExpedicion,
 } from '../lib/ficha'
@@ -129,7 +130,15 @@ export default function Companions() {
     enlace) y «no está en capacidad de aceptar» (al añadirlo se abre la
     declaración por esa persona).
   */
-  const [porSiMismo, setPorSiMismo] = useState(false)
+  /*
+    Por defecto el acompañante pone sus datos él mismo y solo se pide su
+    correo (QA 23/10/2026): es lo normal, y deja a cada uno aceptar sus
+    términos.
+  */
+  const [porSiMismo, setPorSiMismo] = useState(true)
+  /** Lo marca el titular: un menor no recibe enlace y sus datos van aquí. */
+  const [marcadoMenor, setMarcadoMenor] = useState(false)
+  const [guardando, setGuardando] = useState(false)
   const [noPuedeAceptar, setNoPuedeAceptar] = useState(false)
   // El huésped principal, para su tarjeta de arriba.
   const [titular, setTitular] = useState<FichaGuardada | null>(null)
@@ -206,7 +215,8 @@ export default function Companions() {
     setFotoReverso(null)
     setAutorizacion(null)
     setAdicionales([])
-    setPorSiMismo(false)
+    setPorSiMismo(true)
+    setMarcadoMenor(false)
     setNoPuedeAceptar(false)
     setAltaN((n) => n + 1)
   }
@@ -234,9 +244,15 @@ export default function Companions() {
     es lo prudente --se le pide el documento-- y es lo que hace la base, que
     sin fecha se queda con lo que le manden.
   */
-  const esMenor = fechaNacimiento
+  const menorPorFecha = fechaNacimiento
     ? esMayorDeEdadAlLlegar(fechaNacimiento, llegada) === false
     : false
+  const esMenor = marcadoMenor || menorPorFecha
+  /** Marcado como menor pero su fecha dice que llega siendo mayor. */
+  const fechaDeAdulto =
+    marcadoMenor && fechaNacimiento !== '' && !menorPorFecha
+  /** Solo con su correo: él pone el resto desde su enlace. */
+  const soloCorreo = porSiMismo && !esMenor
 
   /*
     Un adulto se puede añadir **sin nada**: sin nombre y sin documento.
@@ -254,11 +270,19 @@ export default function Companions() {
     diga quién lo trae.
   */
   const puedeAnadir =
-    quedanPlazas && (esMenor ? responsableId !== '' && parentesco !== '' : true)
+    quedanPlazas &&
+    !guardando &&
+    (soloCorreo
+      ? correo.trim() !== '' && errorDeCorreo(correo) === ''
+      : esMenor
+        ? fechaNacimiento !== '' && !fechaDeAdulto && responsableId !== '' && parentesco !== ''
+        : true)
 
   const anadir = async () => {
     if (!puedeAnadir) return
     setError(null)
+    // Sin esto un segundo toque guardaba a la misma persona dos veces.
+    setGuardando(true)
     try {
       const id = await guardarAcompanante(token, {
         // Vacío vale: la base lo nombra «Acompañante N» hasta que él lo diga.
@@ -301,6 +325,8 @@ export default function Companions() {
       if (nueva && quiereDeclarar) setDeclarandoPor(nueva)
     } catch (e) {
       setError(porQueFallo(e, 'No pudimos añadirlo'))
+    } finally {
+      setGuardando(false)
     }
   }
 
@@ -581,53 +607,65 @@ export default function Companions() {
             {/* La tarjeta del acompañante nuevo */}
             {quedanPlazas ? (
               <Card className="mt-6 px-6 py-7 sm:px-10 sm:py-8">
-                <h3 className="text-lg font-bold text-ink">Acompañante {lista.length + 1}</h3>
+                {/* El titular es la persona 1: el primer acompañante es el 2. */}
+                <h3 className="text-lg font-bold text-ink">Acompañante {lista.length + 2}</h3>
 
-                {!esMenor && (
-                  <div className="mt-5">
-                    <Checkbox
-                      label="Este acompañante completará su documentación y sus datos por sí mismo."
+                <div className="mt-5 space-y-4 rounded-xl border border-line px-5 py-4">
+                  <Interruptor
+                    label="Es menor de edad"
+                    checked={marcadoMenor}
+                    onChange={(v) => {
+                      setMarcadoMenor(v)
+                      if (v) setPorSiMismo(false)
+                    }}
+                  />
+                  {!esMenor && (
+                    <Interruptor
+                      label="Completará sus datos y aceptará sus términos por sí mismo"
                       checked={porSiMismo}
-                      onChange={(e) => setPorSiMismo(e.target.checked)}
+                      onChange={setPorSiMismo}
                     />
-                  </div>
-                )}
+                  )}
+                </div>
 
                 <div className="mt-5 space-y-4">
-                  {porSiMismo && !esMenor && (
+                  {soloCorreo && (
                     <div className="rounded-xl bg-brand/5 px-5 py-4">
                       <p className="text-sm leading-relaxed text-ink/80">
-                        Este acompañante completará su documentación y sus
-                        datos por sí mismo. Al añadirlo te damos su enlace
-                        para que se lo mandes.
+                        Le enviamos un correo con su enlace para que ponga sus
+                        datos, suba su documento y acepte sus propios términos.
+                        Solo necesitamos su correo.
                       </p>
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <Input
-                      label="Nombres"
-                      tone="soft"
-                      placeholder="Como figura en el documento"
-                      value={nombre}
-                      onChange={(e) => setNombre(soloNombre(e.target.value))}
-                    />
-                    <Input
-                      label="Apellidos"
-                      tone="soft"
-                      placeholder="Como figuran en el documento"
-                      value={apellidos}
-                      onChange={(e) => setApellidos(soloNombre(e.target.value))}
-                    />
-                  </div>
+                  {soloCorreo ? null : (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <Input
+                        label="Nombres"
+                        tone="soft"
+                        placeholder="Como figura en el documento"
+                        value={nombre}
+                        onChange={(e) => setNombre(soloNombre(e.target.value))}
+                      />
+                      <Input
+                        label="Apellidos"
+                        tone="soft"
+                        placeholder="Como figuran en el documento"
+                        value={apellidos}
+                        onChange={(e) => setApellidos(soloNombre(e.target.value))}
+                      />
+                    </div>
+                  )}
 
-                  {porSiMismo && !esMenor ? (
+                  {soloCorreo ? (
                     <Input
                       label="Correo electrónico del acompañante"
                       type="email"
                       tone="soft"
                       placeholder="correo@ejemplo.com"
                       value={correo}
+                      error={errorDeCorreo(correo)}
                       onChange={(e) => setCorreo(e.target.value)}
                     />
                   ) : (
@@ -642,10 +680,16 @@ export default function Companions() {
                         onChange={(e) => setFechaNacimiento(e.target.value)}
                       />
 
+                      {fechaDeAdulto && (
+                        <p className="text-xs font-semibold text-danger">
+                          Con esa fecha llega siendo mayor de edad. Revisa la
+                          fecha, o apaga «Es menor de edad».
+                        </p>
+                      )}
                       {esMenor && (
                         <BloqueTutela>
                           <p className="text-xs text-ink/70">
-                            Con esa fecha es <strong>menor de edad</strong> el
+                            Es <strong>menor de edad</strong> el
                             día de llegada. Di quién responde por el menor; si
                             no es su padre ni su madre, sube la carta de
                             potestad o tutela.
@@ -762,11 +806,12 @@ export default function Companions() {
                             onChange={(e) => setTelefono(e.target.value)}
                           />
                           <Input
-                            label="Correo electrónico"
+                            label={noPuedeAceptar ? 'Correo electrónico (opcional)' : 'Correo electrónico'}
                             type="email"
                             tone="soft"
                             placeholder="correo@ejemplo.com"
                             value={correo}
+                            error={errorDeCorreo(correo)}
                             onChange={(e) => setCorreo(e.target.value)}
                           />
                         </div>
@@ -774,10 +819,10 @@ export default function Companions() {
 
                       {!esMenor && (
                         <div className="border-t border-line pt-4">
-                          <Checkbox
-                            label="Este usuario no está en capacidad de aceptar por su cuenta los Términos y Condiciones."
+                          <Interruptor
+                            label="No está en capacidad de aceptar por su cuenta los Términos y Condiciones"
                             checked={noPuedeAceptar}
-                            onChange={(e) => setNoPuedeAceptar(e.target.checked)}
+                            onChange={setNoPuedeAceptar}
                           />
                           {noPuedeAceptar && (
                             <p className="mt-2 text-xs text-ink/60">
@@ -793,7 +838,11 @@ export default function Companions() {
 
                   <div className="flex justify-end pt-2">
                     <Button type="button" disabled={!puedeAnadir} onClick={anadir}>
-                      Completar registro
+                      {guardando
+                        ? 'Guardando…'
+                        : soloCorreo
+                          ? 'Enviar correo electrónico'
+                          : 'Guardar acompañante'}
                     </Button>
                   </div>
                   {!esMenor && !porSiMismo && documento.trim() === '' && (
@@ -802,9 +851,10 @@ export default function Companions() {
                       pedir con su enlace. Hace falta antes de terminar.
                     </p>
                   )}
-                  {esMenor && !puedeAnadir && (
+                  {esMenor && !puedeAnadir && !guardando && (
                     <p className="text-right text-xs text-ink/60">
-                      Falta decir quién responde por el menor y su parentesco.
+                      Falta su fecha de nacimiento, quién responde por el menor
+                      y su parentesco.
                     </p>
                   )}
                 </div>

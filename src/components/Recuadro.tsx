@@ -17,7 +17,7 @@ interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, 'className'>
 export default function Recuadro({ etiqueta, error, value, onChange, ...resto }: Props) {
   return (
     <div>
-      <label className="block rounded-xl border border-line bg-surface-soft px-4 py-3 focus-within:border-brand">
+      <label className="block min-w-0 rounded-xl border border-line bg-surface-soft px-4 py-3 focus-within:border-brand">
         <span className="block text-[11px] font-semibold uppercase tracking-wider text-ink/60">
           {etiqueta}
         </span>
@@ -30,7 +30,8 @@ export default function Recuadro({ etiqueta, error, value, onChange, ...resto }:
             className="mt-0.5 w-full bg-transparent text-sm font-bold text-ink placeholder:font-normal placeholder:text-muted focus:outline-none"
           />
         ) : (
-          <span className="mt-0.5 block text-sm font-bold text-ink">{value || '—'}</span>
+          // `break-all`: un correo largo se salía del recuadro (QA 23/10/2026).
+          <span className="mt-0.5 block break-all text-sm font-bold text-ink">{value || '—'}</span>
         )}
       </label>
       {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}

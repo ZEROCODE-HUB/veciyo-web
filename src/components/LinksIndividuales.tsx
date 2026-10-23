@@ -105,6 +105,9 @@ export default function LinksIndividuales({
                     </p>
                   ) : null}
                   <p className="text-[11px] font-semibold text-ink">
+                    {persona.correo
+                      ? `También se lo enviamos a ${persona.correo}. `
+                      : ''}
                     Cópialo ahora: no se vuelve a mostrar. Si lo pierdes hay que generar otro, y el
                     de ahora deja de valer.
                   </p>

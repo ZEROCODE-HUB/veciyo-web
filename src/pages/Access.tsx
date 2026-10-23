@@ -10,6 +10,7 @@ import {
   fichaDelPrecheckin,
   guardarToken,
   maximoDeHuespedes,
+  qrDelPrecheckin,
   textoDeLaCuentaAtras,
   vehiculosDelPrecheckin,
   type EstanciaPrecheckin,
@@ -32,7 +33,7 @@ type Estado =
   | { tipo: 'cargando' }
   | { tipo: 'invalido' }
   | { tipo: 'vencido' }
-  | { tipo: 'completado'; datos: EstanciaPrecheckin; dias: number | null }
+  | { tipo: 'completado'; datos: EstanciaPrecheckin; dias: number | null; qr: string | null }
   | { tipo: 'cancelada' }
   | { tipo: 'terminada'; completado: boolean; condominio: string }
   /*
@@ -95,11 +96,14 @@ export default function Access() {
         } else if (!datos.vigente) {
           setEstado({ tipo: 'vencido' })
         } else if (datos.completado) {
-          setEstado({
-            tipo: 'completado',
-            datos,
-            dias: reserva?.estado === 'proxima' ? reserva.diasParaLlegar : null,
-          })
+          const dias = reserva?.estado === 'proxima' ? reserva.diasParaLlegar : null
+          setEstado({ tipo: 'completado', datos, dias, qr: null })
+          // Con el ingreso ya aprobado, el QR aquí mismo (QA 23/10/2026).
+          qrDelPrecheckin(token)
+            .then((qr) => {
+              if (vigente && qr) setEstado({ tipo: 'completado', datos, dias, qr })
+            })
+            .catch(() => {})
         } else {
           // El token viaja en `sessionStorage` y no en el estado de
           // navegación: son seis pantallas, y recargar en mitad no puede
@@ -235,7 +239,25 @@ export default function Access() {
                 detalle="Los enlaces de preregistro caducan con la estancia. Si tu reserva sigue en pie, tu anfitrión puede mandarte uno nuevo."
               />
             )}
-            {estado.tipo === 'completado' && (
+            {estado.tipo === 'completado' && estado.qr ? (
+              <div className="text-center">
+                <Aviso
+                  titulo="Tu ingreso está aprobado"
+                  detalle={`${estado.datos.condominio}, vivienda ${estado.datos.unidad}${
+                    estado.datos.fecha_desde && estado.datos.fecha_hasta
+                      ? `, del ${formatearFecha(estado.datos.fecha_desde)} al ${formatearFecha(estado.datos.fecha_hasta)}`
+                      : ''
+                  }. Muestra tu QR en recepción al llegar y lleva tus documentos.`}
+                />
+                <a
+                  href={`/qr/${estado.qr}`}
+                  className="mt-4 inline-block rounded-xl bg-brand px-6 py-3 text-sm font-bold text-white"
+                >
+                  Ver mi QR de ingreso
+                </a>
+              </div>
+            ) : null}
+            {estado.tipo === 'completado' && !estado.qr && (
               <Aviso
                 titulo="Tu preregistro ya está hecho"
                 detalle={`${estado.dias !== null ? `${textoDeLaCuentaAtras(estado.dias)}. ` : ''}Te esperamos en ${estado.datos.condominio}, vivienda ${estado.datos.unidad}. No hace falta que hagas nada más: al llegar, el personal de seguridad te recibe con esto ya listo.`}

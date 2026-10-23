@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import Card from './Card'
-import Checkbox from './Checkbox'
+import Interruptor from './Interruptor'
 import FileUploader from './FileUploader'
 import Recuadro from './Recuadro'
 import Hito from './Hito'
@@ -204,10 +204,10 @@ export default function TarjetaAcompanante({
 
       {!persona.es_menor && !incapacidad && !persona.terminos_aceptados && (
         <div className="mt-4 border-t border-line pt-4">
-          <Checkbox
-            label="Este usuario no está en capacidad de aceptar por su cuenta los Términos y Condiciones."
+          <Interruptor
+            label="No está en capacidad de aceptar por su cuenta los Términos y Condiciones"
             checked={declarando}
-            onChange={(e) => onNoPuedeAceptar(e.target.checked)}
+            onChange={onNoPuedeAceptar}
           />
           {declarando && <div className="mt-4">{children}</div>}
         </div>
