@@ -16,6 +16,7 @@ import Privacidad from './pages/Privacidad'
 import Terminos from './pages/Terminos'
 import AvisoDePrevencion from './components/AvisoDePrevencion'
 import CodigoQr from './pages/CodigoQr'
+import CuentaConfirmada from './pages/CuentaConfirmada'
 export default function App() {
   return (
     <Routes>
@@ -77,6 +78,7 @@ export default function App() {
       <Route path="/download-app" element={<DownloadApp />} />
       {/* El QR del correo de «ingreso aprobado» (16/10/2026). */}
       <Route path="/qr/:codigo" element={<CodigoQr />} />
+      <Route path="/cuenta-confirmada" element={<CuentaConfirmada />} />
       {/*
         Aqui estaban seis rutas de la maqueta de diseño: `/login`,
         `/visit-details`, `/validation`, `/temporary-guest-pre-check-in`,
