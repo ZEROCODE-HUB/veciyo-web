@@ -5,6 +5,7 @@ import Button from './Button'
 import Checkbox from './Checkbox'
 import { porQueFallo } from '../lib/motivo'
 import { useParametros } from '../lib/useParametros'
+import { soloNombre } from '../lib/ficha'
 import {
   TIPOS_DOCUMENTO,
   declararIncapacidad,
@@ -127,13 +128,13 @@ function Formulario({
         label="Nombres"
         tone="soft"
         value={nombre}
-        onChange={(e) => setNombre(e.target.value)}
+        onChange={(e) => setNombre(soloNombre(e.target.value))}
       />
       <Input
         label="Apellidos"
         tone="soft"
         value={apellidos}
-        onChange={(e) => setApellidos(e.target.value)}
+        onChange={(e) => setApellidos(soloNombre(e.target.value))}
       />
       <Select
         label="Tipo de documento"
@@ -146,7 +147,7 @@ function Formulario({
       <Input
         label="Número de documento"
         tone="soft"
-        placeholder="Sin puntos ni guiones"
+        placeholder="Tal como aparece en el documento"
         value={documento}
         onChange={(e) => setDocumento(e.target.value)}
       />
@@ -161,7 +162,7 @@ function Formulario({
         label="Tu nombre completo, como firma"
         tone="soft"
         value={firma}
-        onChange={(e) => setFirma(e.target.value)}
+        onChange={(e) => setFirma(soloNombre(e.target.value))}
       />
       <Checkbox
         label="Declaro que es verdad, y acepto en su nombre los términos y las reglas del edificio"

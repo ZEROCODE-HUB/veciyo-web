@@ -24,6 +24,15 @@ const SOLO_CIFRAS: ReadonlySet<string> = new Set([
 ])
 
 /** El número tal como se compara: sin espacios, puntos ni guiones. */
+/**
+ * Un nombre o un apellido solo lleva letras (con tildes y ñ), espacios,
+ * apóstrofos, guiones y puntos. Se quita lo demás al escribir: se podían poner
+ * números en el nombre (QA 23/10/2026).
+ */
+export function soloNombre(texto: string): string {
+  return texto.replace(/[^\p{L}\p{M}\s'’.\-]/gu, '')
+}
+
 export function limpiarDocumento(numero: string): string {
   return numero.replace(/[\s.-]/g, '').toUpperCase()
 }

@@ -8,6 +8,7 @@ import {
   errorDeTelefono,
   loQueFaltaEnLaFicha,
   pideFechaExpedicion,
+  soloNombre,
   type DatosDeLaFicha,
   type LimitesDeLaFicha,
 } from './ficha'
@@ -179,5 +180,13 @@ describe('fecha de expedición (14/10/2026)', () => {
     expect(loQueFaltaEnLaFicha(mala, { esTitular: true, limites: LIMITES })).toContain(
       'la fecha de expedición del documento',
     )
+  })
+})
+
+describe('soloNombre', () => {
+  it('quita números y símbolos, y deja letras con tilde, ñ, apóstrofo, guion y punto', () => {
+    expect(soloNombre('Ana3 María')).toBe('Ana María')
+    expect(soloNombre("O'Neill-Peña Jr.")).toBe("O'Neill-Peña Jr.")
+    expect(soloNombre('José#1 @Núñez')).toBe('José Núñez')
   })
 })

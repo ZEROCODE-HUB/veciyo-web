@@ -15,7 +15,11 @@ import LinksIndividuales from '../components/LinksIndividuales'
 import BloqueTutela from '../components/BloqueTutela'
 import { porQueFallo } from '../lib/motivo'
 import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
-import { errorDeFechaExpedicion, pideFechaExpedicion } from '../lib/ficha'
+import {
+  soloNombre,
+  errorDeFechaExpedicion,
+  pideFechaExpedicion,
+} from '../lib/ficha'
 import {
   cerrarPrecheckin,
   incapacidadesDelPrecheckin,
@@ -606,14 +610,14 @@ export default function Companions() {
                       tone="soft"
                       placeholder="Como figura en el documento"
                       value={nombre}
-                      onChange={(e) => setNombre(e.target.value)}
+                      onChange={(e) => setNombre(soloNombre(e.target.value))}
                     />
                     <Input
                       label="Apellidos"
                       tone="soft"
                       placeholder="Como figuran en el documento"
                       value={apellidos}
-                      onChange={(e) => setApellidos(e.target.value)}
+                      onChange={(e) => setApellidos(soloNombre(e.target.value))}
                     />
                   </div>
 
@@ -731,7 +735,7 @@ export default function Companions() {
                       <Input
                         label="Número de identificación"
                         tone="soft"
-                        placeholder="Sin puntos ni guiones"
+                        placeholder="Tal como aparece en el documento"
                         value={documento}
                         onChange={(e) => setDocumento(e.target.value)}
                       />

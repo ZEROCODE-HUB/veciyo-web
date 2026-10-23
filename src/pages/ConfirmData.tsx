@@ -15,6 +15,7 @@ import Recuadro from '../components/Recuadro'
 import { porQueFallo } from '../lib/motivo'
 import { esMayorDeEdadAlLlegar, hoyEnIso, naceDespuesDeLlegar } from '../lib/edad'
 import {
+  soloNombre,
   costoComoNumero,
   errorDeCorreo,
   errorDeCosto,
@@ -424,18 +425,18 @@ export default function ConfirmData() {
               etiqueta="Nombre"
               placeholder="Como figura en el documento"
               value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
+              onChange={(e) => setNombre(soloNombre(e.target.value))}
             />
             <Recuadro
               etiqueta="Apellido"
               placeholder="Como figuran en el documento"
               value={apellidos}
-              onChange={(e) => setApellidos(e.target.value)}
+              onChange={(e) => setApellidos(soloNombre(e.target.value))}
             />
             <Recuadro etiqueta="Tipo de identificación" value={etiquetaDoc} />
             <Recuadro
               etiqueta="Número de identificación"
-              placeholder="Sin puntos ni guiones"
+              placeholder="Tal como aparece en el documento"
               value={documento}
               error={errorDeDocumento(docType, documento)}
               onChange={(e) => setDocumento(e.target.value)}

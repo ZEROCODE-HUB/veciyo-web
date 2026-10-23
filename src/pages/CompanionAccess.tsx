@@ -15,6 +15,7 @@ import ComoEntrar from '../components/ComoEntrar'
 import { PAIS_POR_DEFECTO } from '../lib/paises'
 import { porQueFallo } from '../lib/motivo'
 import {
+  soloNombre,
   errorDeDocumento,
   errorDeFechaExpedicion,
   errorDeNacimientoImposible,
@@ -439,13 +440,13 @@ export default function CompanionAccess() {
               label="Nombres"
               tone="soft"
               value={ficha.nombre}
-              onChange={(e) => campo('nombre')(e.target.value)}
+              onChange={(e) => campo('nombre')(soloNombre(e.target.value))}
             />
             <Input
               label="Apellidos"
               tone="soft"
               value={ficha.apellidos}
-              onChange={(e) => campo('apellidos')(e.target.value)}
+              onChange={(e) => campo('apellidos')(soloNombre(e.target.value))}
             />
 
             {/*
@@ -467,7 +468,7 @@ export default function CompanionAccess() {
                 <Input
                   label="Número de documento"
                   tone="soft"
-                  placeholder="Sin puntos ni guiones"
+                  placeholder="Tal como aparece en el documento"
                   value={ficha.documento}
                   error={errorDeDocumento(ficha.tipoDocumento, ficha.documento)}
                   onChange={(e) => campo('documento')(e.target.value)}

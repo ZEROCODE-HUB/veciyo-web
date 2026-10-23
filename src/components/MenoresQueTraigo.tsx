@@ -6,6 +6,7 @@ import FileUploader from './FileUploader'
 import BloqueTutela from './BloqueTutela'
 import { porQueFallo } from '../lib/motivo'
 import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
+import { soloNombre } from '../lib/ficha'
 import {
   PARENTESCOS,
   TIPOS_DOCUMENTO,
@@ -293,13 +294,13 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
             tone="soft"
             placeholder="Como figuran en su documento"
             value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
+            onChange={(e) => setNombre(soloNombre(e.target.value))}
           />
           <Input
             label="Apellidos"
             tone="soft"
             value={apellidos}
-            onChange={(e) => setApellidos(e.target.value)}
+            onChange={(e) => setApellidos(soloNombre(e.target.value))}
           />
           {/* Nadie nace mañana: el calendario no ofrece el futuro. */}
           <Input
@@ -327,7 +328,7 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
           <Input
             label="Número de documento"
             tone="soft"
-            placeholder="Sin puntos ni guiones"
+            placeholder="Tal como aparece en el documento"
             value={documento}
             onChange={(e) => setDocumento(e.target.value)}
           />
