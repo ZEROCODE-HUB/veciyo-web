@@ -1,0 +1,25 @@
+BEGIN:VCALENDAR
+PRODID:-//Veciyo//Calendario de prueba con el formato de Airbnb//ES
+CALSCALE:GREGORIAN
+VERSION:2.0
+BEGIN:VEVENT
+DTEND;VALUE=DATE:20261208
+DTSTART;VALUE=DATE:20261204
+UID:veciyo-prueba-1@airbnb.com
+DESCRIPTION:Reservation URL: https://www.airbnb.com/hosting/reservations/details/HMPRUEBA01\nPhone Number (Last 4 Digits): 1234
+SUMMARY:Reserved
+END:VEVENT
+BEGIN:VEVENT
+DTEND;VALUE=DATE:20261215
+DTSTART;VALUE=DATE:20261211
+UID:veciyo-prueba-2@airbnb.com
+DESCRIPTION:Reservation URL: https://www.airbnb.com/hosting/reservations/details/HMPRUEBA02\nPhone Number (Last 4 Digits): 5678
+SUMMARY:Reserved
+END:VEVENT
+BEGIN:VEVENT
+DTEND;VALUE=DATE:20261220
+DTSTART;VALUE=DATE:20261218
+UID:veciyo-prueba-bloqueo@airbnb.com
+SUMMARY:Airbnb (Not available)
+END:VEVENT
+END:VCALENDAR
