@@ -8,6 +8,7 @@ import Button from '../components/Button'
 import Loading from '../components/Loading'
 import Interruptor from '../components/Interruptor'
 import VehiculosDeLaEstancia from '../components/VehiculosDeLaEstancia'
+import MascotasDeLaEstancia from '../components/MascotasDeLaEstancia'
 import DeclararIncapacidad from '../components/DeclararIncapacidad'
 import FileUploader from '../components/FileUploader'
 import TarjetaAcompanante from '../components/TarjetaAcompanante'
@@ -577,6 +578,7 @@ export default function Companions() {
 
             {/* Vehículos */}
             <VehiculosDeLaEstancia token={token} adultos={adultos} />
+            <MascotasDeLaEstancia token={token} />
 
             {/* Una tarjeta por acompañante */}
             {lista.length > 0 && (

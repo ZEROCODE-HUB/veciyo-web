@@ -1633,3 +1633,50 @@ export async function confirmarCuantosVienen(
   if (error) throw error
   return data as number
 }
+
+/** Los tipos de `tipo_mascota` de la base. */
+export type TipoMascota = 'perro' | 'gato' | 'otra'
+
+export interface MascotaDelPrecheckin {
+  id: string
+  tipo: TipoMascota
+  nombre: string
+}
+
+/** Si la estancia trae mascota (lo dice el anfitrión) y las que hay registradas. */
+export async function mascotasDelPrecheckin(
+  token: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<{ traeMascota: boolean; mascotas: MascotaDelPrecheckin[] }> {
+  const { data, error } = await conexion(cliente).rpc('mascotas_del_precheckin', { p_token: token })
+  if (error) throw error
+  const d = (data ?? {}) as { trae_mascota?: boolean; mascotas?: MascotaDelPrecheckin[] }
+  return { traeMascota: Boolean(d.trae_mascota), mascotas: d.mascotas ?? [] }
+}
+
+export async function guardarMascota(
+  token: string,
+  tipo: TipoMascota,
+  nombre: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<string> {
+  const { data, error } = await conexion(cliente).rpc('guardar_mascota_precheckin', {
+    p_token: token,
+    p_tipo: tipo,
+    p_nombre: nombre,
+  })
+  if (error) throw error
+  return data as string
+}
+
+export async function quitarMascota(
+  token: string,
+  id: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<void> {
+  const { error } = await conexion(cliente).rpc('quitar_mascota_precheckin', {
+    p_token: token,
+    p_mascota_id: id,
+  })
+  if (error) throw error
+}
