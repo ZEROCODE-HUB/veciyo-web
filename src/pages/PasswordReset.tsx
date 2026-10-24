@@ -4,7 +4,7 @@ import MainLayout from '../layouts/MainLayout'
 import Card from '../components/Card'
 import Input from '../components/Input'
 import Button from '../components/Button'
-import { supabase } from '../lib/supabase'
+import { llegadaDelEnlace, supabase } from '../lib/supabase'
 import { useParametros } from '../lib/useParametros'
 
 /**
@@ -35,6 +35,8 @@ export default function PasswordReset() {
   const minimo = parametros ? parametros.numero('contrasena_largo_minimo') : null
 
   const [sesion, setSesion] = useState<'buscando' | 'si' | 'no'>('buscando')
+  /** De quién es la contraseña que se va a cambiar: se dice antes de cambiarla. */
+  const [correo, setCorreo] = useState('')
   const [clave, setClave] = useState('')
   const [repetida, setRepetida] = useState('')
   const [error, setError] = useState('')
@@ -51,9 +53,21 @@ export default function PasswordReset() {
       recoge al cargar. Se pregunta en vez de suponerlo: alguien puede llegar
       aquí escribiendo la dirección a mano.
     */
+    /*
+      Y solo si la sesión **viene de este enlace**. Una que ya estaba en el
+      navegador --de otra cuenta-- no vale: con un enlace vencido se cambiaba
+      la contraseña de esa otra cuenta (24/10/2026).
+    */
+    if (!llegadaDelEnlace.esRecuperacion || llegadaDelEnlace.error) {
+      setSesion('no')
+      return
+    }
     supabase.auth
       .getSession()
-      .then(({ data }) => setSesion(data.session ? 'si' : 'no'))
+      .then(({ data }) => {
+        setCorreo(data.session?.user.email ?? '')
+        setSesion(data.session ? 'si' : 'no')
+      })
       .catch(() => setSesion('no'))
   }, [])
 
@@ -124,6 +138,11 @@ export default function PasswordReset() {
                 void guardar()
               }}
             >
+              {correo && (
+                <p className="text-sm text-ink/60">
+                  Cuenta: <span className="font-semibold text-ink">{correo}</span>
+                </p>
+              )}
               <Input
                 label="Contraseña nueva"
                 type="password"
@@ -151,7 +170,7 @@ export default function PasswordReset() {
             <div className="mt-6 space-y-4">
               <p className="text-sm text-ink/60">
                 Listo. Ya puedes entrar en la aplicación con tu contraseña
-                nueva.
+                nueva{correo ? ` (${correo})` : ''}.
               </p>
               <Link to="/invitacion" className="text-sm font-semibold text-brand">
                 Volver

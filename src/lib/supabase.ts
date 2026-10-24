@@ -17,6 +17,25 @@ const anon = import.meta.env.VITE_SUPABASE_ANON_KEY
 /** Sin variables de entorno la web sigue funcionando como maqueta. */
 export const hayBackend = Boolean(url && anon)
 
+/**
+ * Cómo llegó esta página, leído **antes** de crear el cliente: al crearse,
+ * el cliente recoge la sesión del fragmento de la URL y lo borra.
+ *
+ * Hace falta para «Nueva contraseña» (24/10/2026). Si el enlace de
+ * recuperación ya venció, Supabase devuelve `#error=...` y no deja sesión
+ * nueva, pero si en ese navegador había otra sesión abierta --la de una
+ * invitación aceptada antes, por ejemplo-- `getSession()` devolvía esa, y la
+ * contraseña se cambiaba en **otra cuenta** sin decir cuál. Le pasó al
+ * cliente: quiso poner la de su cuenta de administrador y cambió la de otra.
+ */
+const fragmento = typeof window === 'undefined' ? '' : window.location.hash
+export const llegadaDelEnlace = {
+  esRecuperacion: /(^|[#&])type=recovery(&|$)/.test(fragmento),
+  error: /(^|[#&])error(_code)?=/.test(fragmento)
+    ? decodeURIComponent((fragmento.match(/error_description=([^&]*)/)?.[1] ?? '').replace(/\+/g, ' '))
+    : null,
+}
+
 export const supabase = hayBackend
   ? createClient(url as string, anon as string)
   : null
