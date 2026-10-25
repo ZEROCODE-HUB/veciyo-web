@@ -3,7 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/assets/logo-dark.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <!--
+      Sin maximum-scale: impedía acercar con los dedos a quien necesita ver
+      más grande (auditoría de responsividad, 24/10/2026). Lo que evita que el
+      iPhone se acerque solo al tocar un campo es que los campos tengan 16 px.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

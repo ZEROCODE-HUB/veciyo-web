@@ -51,7 +51,7 @@ export default function Select({
         <select
           id={selectId}
           defaultValue={defaultValue ?? (placeholder ? '' : undefined)}
-          className={`w-full appearance-none rounded-field px-4 py-3 pr-11 text-sm text-ink outline-none transition focus:ring-2 focus:ring-brand/30 ${tones[tone]} ${className}`}
+          className={`w-full appearance-none rounded-field px-4 py-3 pr-11 text-base text-ink outline-none transition focus:ring-2 focus:ring-brand/30 ${tones[tone]} ${className}`}
           {...props}
         >
           {placeholder && (
