@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  avisoDeEstacionamientos,
   esNombreDeRelleno,
   normalizarPlaca,
   subirLoElegido,
@@ -210,5 +211,29 @@ describe('el máximo entre paréntesis junto a «Cantidad de huéspedes»', () =
   })
   it('sin ninguno, nada', () => {
     expect(maximoDeHuespedes(base)).toBeNull()
+  })
+})
+
+/**
+ * Hueco 17 (25/10/2026): si traen más vehículos que estacionamientos ofrece el
+ * anfitrión, se avisa y no se bloquea.
+ */
+describe('el aviso de estacionamientos', () => {
+  it('no dice nada mientras caben', () => {
+    expect(avisoDeEstacionamientos(0, 2)).toBeNull()
+    expect(avisoDeEstacionamientos(2, 2)).toBeNull()
+  })
+
+  it('avisa en cuanto hay uno de más, con los dos números', () => {
+    expect(avisoDeEstacionamientos(3, 2)).toMatch(/2 estacionamientos y registraste 3 vehículos/)
+    expect(avisoDeEstacionamientos(2, 1)).toMatch(/1 estacionamiento y/)
+  })
+
+  it('con cero no afirma que no hay: puede que el anfitrión no lo indicara', () => {
+    expect(avisoDeEstacionamientos(1, 0)).toMatch(/no ha indicado estacionamientos/)
+  })
+
+  it('sin el dato, no avisa', () => {
+    expect(avisoDeEstacionamientos(5, null)).toBeNull()
   })
 })

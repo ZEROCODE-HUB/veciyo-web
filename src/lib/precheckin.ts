@@ -1412,6 +1412,40 @@ export async function vehiculosDelPrecheckin(
   return (data as VehiculoDelPrecheckin[]) ?? []
 }
 
+/**
+ * Los estacionamientos que el anfitrión ofrece a sus huéspedes (hueco 17).
+ * Nulo si el enlace ya no vale. Sirve para avisar, no para bloquear.
+ */
+export async function estacionamientosDelPrecheckin(
+  token: string,
+  cliente?: ClientePrecheckin | null,
+): Promise<number | null> {
+  const { data, error } = await conexion(cliente).rpc('estacionamientos_del_precheckin', {
+    p_token: token,
+  })
+  if (error) throw error
+  return typeof data === 'number' ? data : null
+}
+
+/**
+ * Lo que se le dice al huésped si trae más vehículos que estacionamientos.
+ *
+ * Advertencia, no bloqueo: el vehículo se registra igual --la portería lo
+ * necesita para dejarlo entrar o no-- y el huésped sabe a qué atenerse. Con
+ * cero no se afirma que «no hay»: puede que el anfitrión no lo haya indicado.
+ */
+export function avisoDeEstacionamientos(
+  vehiculos: number,
+  estacionamientos: number | null,
+): string | null {
+  if (estacionamientos === null || vehiculos <= estacionamientos) return null
+  if (estacionamientos === 0) {
+    return 'Tu anfitrión no ha indicado estacionamientos para este alojamiento: pregúntale dónde dejar el vehículo antes de llegar.'
+  }
+  const plazas = estacionamientos === 1 ? '1 estacionamiento' : `${estacionamientos} estacionamientos`
+  return `El alojamiento tiene ${plazas} y registraste ${vehiculos} vehículos: los demás tendrán que quedarse fuera del edificio. Pregúntale a tu anfitrión.`
+}
+
 export async function guardarVehiculo(
   token: string,
   vehiculo: {

@@ -7,6 +7,8 @@ import Button from './Button'
 import { porQueFallo } from '../lib/motivo'
 import {
   TIPOS_VEHICULO,
+  avisoDeEstacionamientos,
+  estacionamientosDelPrecheckin,
   guardarVehiculo,
   normalizarPlaca,
   quitarVehiculo,
@@ -37,6 +39,7 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [abierto, setAbierto] = useState(false)
   const [guardando, setGuardando] = useState(false)
+  const [estacionamientos, setEstacionamientos] = useState<number | null>(null)
 
   const [placa, setPlaca] = useState('')
   const [tipo, setTipo] = useState<TipoVehiculo | ''>('')
@@ -52,10 +55,19 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
         (e) =>
           vigente && setError(porQueFallo(e, 'No pudimos cargar los vehículos')),
       )
+    /*
+      Los estacionamientos solo sirven para avisar (hueco 17). Si no llegan,
+      no hay aviso y nada más: el vehículo se registra igual.
+    */
+    estacionamientosDelPrecheckin(token)
+      .then((n) => vigente && setEstacionamientos(n))
+      .catch(() => vigente && setEstacionamientos(null))
     return () => {
       vigente = false
     }
   }, [token])
+
+  const aviso = avisoDeEstacionamientos(lista.length, estacionamientos)
 
   const limpiar = () => {
     setPlaca('')
@@ -182,6 +194,12 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
           </div>
         </Card>
       ))}
+
+      {aviso ? (
+        <p className="rounded-xl bg-gold/10 px-4 py-3 text-sm text-ink" role="status">
+          {aviso}
+        </p>
+      ) : null}
 
       {abierto ? (
         <Card className="px-6 py-5 sm:px-10 sm:py-6">
