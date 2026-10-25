@@ -12,6 +12,28 @@ import {
   type DatosDeLaFicha,
   type LimitesDeLaFicha,
 } from './ficha'
+import { documentosDe, type ReglaDeDocumento } from './documentos'
+
+/*
+  Los documentos y sus reglas viven en la base, por país (`documento_del_pais`,
+  25/10/2026). Aquí, los de Colombia tal como se sembraron.
+*/
+const regla = (r: Partial<ReglaDeDocumento> & Pick<ReglaDeDocumento, 'tipo' | 'etiqueta'>): ReglaDeDocumento => ({
+  paraAdultos: true,
+  paraMenores: false,
+  soloCifras: false,
+  largoMinimo: 4,
+  largoMaximo: 20,
+  dosCaras: true,
+  pideFechaExpedicion: false,
+  ...r,
+})
+const COLOMBIA = documentosDe([
+  regla({ tipo: 'cedula_ciudadania', etiqueta: 'Cédula de ciudadanía', soloCifras: true, largoMinimo: 5, largoMaximo: 12 }),
+  regla({ tipo: 'cedula_extranjeria', etiqueta: 'Cédula de extranjería', soloCifras: true, largoMinimo: 5, largoMaximo: 12, pideFechaExpedicion: true }),
+  regla({ tipo: 'ppt', etiqueta: 'PPT', pideFechaExpedicion: true, paraMenores: true }),
+  regla({ tipo: 'pasaporte', etiqueta: 'Pasaporte', dosCaras: false, paraMenores: true }),
+])
 
 /*
   Los límites viven en la base (`telefono_largo_minimo`, `telefono_largo_maximo`,
@@ -45,14 +67,14 @@ const BUENA: DatosDeLaFicha = {
 
 describe('el número de documento', () => {
   it('una cédula lleva solo números', () => {
-    expect(errorDeDocumento('cedula_ciudadania', 'ABC-12')).not.toBe('')
-    expect(errorDeDocumento('cedula_ciudadania', '1.020.304.050')).toBe('')
-    expect(errorDeDocumento('cedula_ciudadania', '12')).not.toBe('')
+    expect(errorDeDocumento(COLOMBIA.regla('cedula_ciudadania'), 'ABC-12')).not.toBe('')
+    expect(errorDeDocumento(COLOMBIA.regla('cedula_ciudadania'), '1.020.304.050')).toBe('')
+    expect(errorDeDocumento(COLOMBIA.regla('cedula_ciudadania'), '12')).not.toBe('')
   })
 
   it('un pasaporte admite letras, y no símbolos', () => {
-    expect(errorDeDocumento('pasaporte', 'AB123456')).toBe('')
-    expect(errorDeDocumento('pasaporte', 'AB#1234')).not.toBe('')
+    expect(errorDeDocumento(COLOMBIA.regla('pasaporte'), 'AB123456')).toBe('')
+    expect(errorDeDocumento(COLOMBIA.regla('pasaporte'), 'AB#1234')).not.toBe('')
   })
 })
 
@@ -86,7 +108,7 @@ describe('los demás campos', () => {
 
 describe('lo que falta para confirmar', () => {
   it('a una ficha completa no le falta nada', () => {
-    expect(loQueFaltaEnLaFicha(BUENA, { esTitular: true, limites: LIMITES })).toEqual([])
+    expect(loQueFaltaEnLaFicha(BUENA, { esTitular: true, limites: LIMITES, documentos: COLOMBIA })).toEqual([])
   })
 
   it('a quien reserva se le pide lo que exige el ministerio', () => {
@@ -98,7 +120,7 @@ describe('lo que falta para confirmar', () => {
         ciudadProcedencia: ' ',
         costo: '',
       },
-      { esTitular: true, limites: LIMITES },
+      { esTitular: true, limites: LIMITES, documentos: COLOMBIA },
     )
     expect(faltan).toEqual([
       'la nacionalidad',
@@ -116,9 +138,9 @@ describe('lo que falta para confirmar', () => {
       ciudadResidencia: '',
       ciudadProcedencia: '',
     }
-    expect(loQueFaltaEnLaFicha(acompanante, { esTitular: false, limites: LIMITES })).toEqual([])
+    expect(loQueFaltaEnLaFicha(acompanante, { esTitular: false, limites: LIMITES, documentos: COLOMBIA })).toEqual([])
     expect(
-      loQueFaltaEnLaFicha({ ...acompanante, nacionalidad: '' }, { esTitular: false, limites: LIMITES }),
+      loQueFaltaEnLaFicha({ ...acompanante, nacionalidad: '' }, { esTitular: false, limites: LIMITES, documentos: COLOMBIA }),
     ).toEqual(['la nacionalidad'])
   })
 
@@ -131,7 +153,7 @@ describe('lo que falta para confirmar', () => {
         telefono: '12',
         fechaNacimiento: '1890-01-01',
       },
-      { esTitular: true, limites: LIMITES },
+      { esTitular: true, limites: LIMITES, documentos: COLOMBIA },
     )
     expect(faltan).toEqual([
       'el número de identificación',
@@ -144,24 +166,35 @@ describe('lo que falta para confirmar', () => {
 
 describe('fecha de expedición (14/10/2026)', () => {
   it('solo la piden la cédula de extranjería y el PPT', () => {
-    expect(pideFechaExpedicion('cedula_extranjeria')).toBe(true)
-    expect(pideFechaExpedicion('ppt')).toBe(true)
-    expect(pideFechaExpedicion('cedula_ciudadania')).toBe(false)
-    expect(pideFechaExpedicion('pasaporte')).toBe(false)
+    expect(pideFechaExpedicion(COLOMBIA.regla('cedula_extranjeria'))).toBe(true)
+    expect(pideFechaExpedicion(COLOMBIA.regla('ppt'))).toBe(true)
+    expect(pideFechaExpedicion(COLOMBIA.regla('cedula_ciudadania'))).toBe(false)
+    expect(pideFechaExpedicion(COLOMBIA.regla('pasaporte'))).toBe(false)
   })
 
   it('sin ella, una cédula de extranjería no se puede confirmar', () => {
     const ce = { ...BUENA, tipoDocumento: 'cedula_extranjeria' }
-    expect(loQueFaltaEnLaFicha(ce, { esTitular: true, limites: LIMITES })).toEqual([
+    expect(loQueFaltaEnLaFicha(ce, { esTitular: true, limites: LIMITES, documentos: COLOMBIA })).toEqual([
       'la fecha de expedición del documento',
     ])
     expect(
-      loQueFaltaEnLaFicha({ ...ce, fechaExpedicion: '2020-05-01' }, { esTitular: true, limites: LIMITES }),
+      loQueFaltaEnLaFicha({ ...ce, fechaExpedicion: '2020-05-01' }, { esTitular: true, limites: LIMITES, documentos: COLOMBIA }),
     ).toEqual([])
   })
 
+  it('quién la pide lo dice el país, no una lista escrita aquí', () => {
+    // En un país donde la cédula de extranjería no la pide, no hace falta.
+    const otroPais = documentosDe([regla({ tipo: 'cedula_extranjeria', etiqueta: 'Cédula de extranjería' })])
+    const ce = { ...BUENA, tipoDocumento: 'cedula_extranjeria' }
+    expect(loQueFaltaEnLaFicha(ce, { esTitular: true, limites: LIMITES, documentos: otroPais })).toEqual([])
+    // Y un número que vale en Colombia no vale con la regla de otro largo.
+    const dniDeOcho = regla({ tipo: 'dni', etiqueta: 'DNI', soloCifras: true, largoMinimo: 8, largoMaximo: 8 })
+    expect(errorDeDocumento(dniDeOcho, '1234567')).toMatch(/entre 8 y 8/)
+    expect(errorDeDocumento(dniDeOcho, '12345678')).toBe('')
+  })
+
   it('una cédula de ciudadanía no la necesita', () => {
-    expect(loQueFaltaEnLaFicha(BUENA, { esTitular: true, limites: LIMITES })).toEqual([])
+    expect(loQueFaltaEnLaFicha(BUENA, { esTitular: true, limites: LIMITES, documentos: COLOMBIA })).toEqual([])
   })
 
   it('no puede ser futura ni anterior al nacimiento', () => {
@@ -177,7 +210,7 @@ describe('fecha de expedición (14/10/2026)', () => {
       fechaNacimiento: '1990-01-01',
       fechaExpedicion: '1980-01-01',
     }
-    expect(loQueFaltaEnLaFicha(mala, { esTitular: true, limites: LIMITES })).toContain(
+    expect(loQueFaltaEnLaFicha(mala, { esTitular: true, limites: LIMITES, documentos: COLOMBIA })).toContain(
       'la fecha de expedición del documento',
     )
   })

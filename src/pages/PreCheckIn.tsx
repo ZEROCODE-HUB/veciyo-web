@@ -6,6 +6,7 @@ import Button from '../components/Button'
 import FileUploader from '../components/FileUploader'
 import Loading from '../components/Loading'
 import { porQueFallo } from '../lib/motivo'
+import { useDocumentos } from '../lib/useDocumentos'
 import {
   subirDocumentoPrecheckin,
   consultarPrecheckin,
@@ -14,7 +15,6 @@ import {
   avisoDeLlegada,
   tieneDosCaras,
   tokenActual,
-  TIPOS_DOCUMENTO_OFRECIDOS,
   type EstanciaPrecheckin,
   type TipoDocumento,
 } from '../lib/precheckin'
@@ -34,6 +34,8 @@ import {
 export default function PreCheckIn() {
   const navigate = useNavigate()
   const token = tokenActual()
+  // Los documentos del país del edificio y sus reglas (25/10/2026).
+  const { documentos, error: errorDocumentos } = useDocumentos(token)
 
   const [estancia, setEstancia] = useState<EstanciaPrecheckin | null>(null)
   const [cargando, setCargando] = useState(true)
@@ -87,7 +89,8 @@ export default function PreCheckIn() {
 
     Si la subida falla, no se sigue: se dice por qué y se puede reintentar.
   */
-  const faltanFotos = tieneDosCaras(docType)
+  const regla = documentos?.regla(docType) ?? null
+  const faltanFotos = tieneDosCaras(regla)
     ? !(frente && reverso)
     : !frente
 
@@ -205,11 +208,14 @@ export default function PreCheckIn() {
             </div>
 
             <div className="mt-6 space-y-6">
+              {errorDocumentos ? (
+                <p className="text-sm text-danger">{errorDocumentos}</p>
+              ) : null}
               <Select
                 label="Tipo de documento"
                 tone="soft"
                 placeholder="Seleccione"
-                options={TIPOS_DOCUMENTO_OFRECIDOS as unknown as { value: string; label: string }[]}
+                options={documentos?.ofrecidos() ?? []}
                 value={docType ?? ''}
                 onChange={(e) => {
                   setDocType((e.target.value || null) as TipoDocumento | null)
@@ -223,13 +229,13 @@ export default function PreCheckIn() {
                   <FileUploader
                     tone="soft"
                     title={
-                      tieneDosCaras(docType)
+                      tieneDosCaras(regla)
                         ? 'Foto del frente del documento'
-                        : 'Foto del pasaporte'
+                        : 'Foto del documento'
                     }
                     onFileSelected={setFrente}
                   />
-                  {tieneDosCaras(docType) && (
+                  {tieneDosCaras(regla) && (
                     <FileUploader
                       tone="soft"
                       title="Foto del reverso del documento"

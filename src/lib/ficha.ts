@@ -1,4 +1,4 @@
-import type { TipoDocumento } from './precheckin'
+import type { Documentos, ReglaDeDocumento } from './documentos'
 import type { Parametros } from './parametros'
 
 /**
@@ -15,14 +15,6 @@ import type { Parametros } from './parametros'
  * Aquí se dice a tiempo. El límite sigue siendo la base.
  */
 
-/** Documentos que en Colombia y Perú son solo cifras. */
-const SOLO_CIFRAS: ReadonlySet<string> = new Set([
-  'cedula_ciudadania',
-  'cedula_extranjeria',
-  'tarjeta_identidad',
-  'dni',
-])
-
 /** El número tal como se compara: sin espacios, puntos ni guiones. */
 /**
  * Un nombre o un apellido solo lleva letras (con tildes y ñ), espacios,
@@ -37,23 +29,38 @@ export function limpiarDocumento(numero: string): string {
   return numero.replace(/[\s.-]/g, '').toUpperCase()
 }
 
-/** Por qué ese número no sirve para ese documento, o cadena vacía. */
+/** Lo que hace falta de la regla de un documento para juzgar su número. */
+export type ReglaDelNumero = Pick<ReglaDeDocumento, 'soloCifras' | 'largoMinimo' | 'largoMaximo'>
+
+/**
+ * Por qué ese número no sirve para ese documento, o cadena vacía.
+ *
+ * Con la regla del país del edificio (`documento_del_pais`, que se edita desde
+ * el panel de la plataforma): solo cifras o no, y su largo. La misma que
+ * `error_de_documento` en la base y que la app. Sin regla --todavía no se
+ * eligió el tipo-- se pide lo mínimo: letras y números, de 4 a 20.
+ */
 export function errorDeDocumento(
-  tipo: TipoDocumento | string | null | undefined,
+  regla: ReglaDelNumero | null | undefined,
   numero: string,
 ): string {
   const limpio = limpiarDocumento(numero)
   if (limpio === '') return ''
-  if (tipo && SOLO_CIFRAS.has(tipo)) {
+  const { soloCifras, largoMinimo, largoMaximo } = regla ?? {
+    soloCifras: false,
+    largoMinimo: 4,
+    largoMaximo: 20,
+  }
+  if (soloCifras) {
     if (!/^[0-9]+$/.test(limpio)) return 'Ese documento lleva solo números.'
-    if (limpio.length < 5 || limpio.length > 12) {
-      return 'Revisa el número: tiene que tener entre 5 y 12 cifras.'
+    if (limpio.length < largoMinimo || limpio.length > largoMaximo) {
+      return `Revisa el número: tiene que tener entre ${largoMinimo} y ${largoMaximo} cifras.`
     }
     return ''
   }
   if (!/^[A-Z0-9]+$/.test(limpio)) return 'Solo letras y números, sin símbolos.'
-  if (limpio.length < 4 || limpio.length > 20) {
-    return 'Revisa el número: tiene que tener entre 4 y 20 caracteres.'
+  if (limpio.length < largoMinimo || limpio.length > largoMaximo) {
+    return `Revisa el número: tiene que tener entre ${largoMinimo} y ${largoMaximo} caracteres.`
   }
   return ''
 }
@@ -130,12 +137,11 @@ export function costoComoNumero(costo: string): number | undefined {
  *
  * Tus Datos no consulta una cédula de extranjería ni un PPT sin ella (lo dice
  * su documentación). Hasta el 14/10/2026 no se pedía, así que a esos huéspedes
- * no se los podía consultar nunca.
+ * no se los podía consultar nunca. Desde el 25/10/2026 lo dice la regla del
+ * país (`pide_fecha_expedicion`), no una lista escrita aquí.
  */
-export function pideFechaExpedicion(
-  tipo: TipoDocumento | string | null | undefined,
-): boolean {
-  return tipo === 'cedula_extranjeria' || tipo === 'ppt'
+export function pideFechaExpedicion(regla: ReglaDeDocumento | null | undefined): boolean {
+  return regla?.pideFechaExpedicion ?? false
 }
 
 /** Por qué esa fecha de expedición no sirve, o cadena vacía. */
@@ -176,7 +182,7 @@ export interface DatosDeLaFicha {
  */
 export function loQueFaltaEnLaFicha(
   d: DatosDeLaFicha,
-  opciones: { esTitular: boolean; limites: LimitesDeLaFicha },
+  opciones: { esTitular: boolean; limites: LimitesDeLaFicha; documentos: Documentos },
 ): string[] {
   const faltan: string[] = []
   const vacio = (v: string) => v.trim() === ''
@@ -184,7 +190,8 @@ export function loQueFaltaEnLaFicha(
   if (vacio(d.nombre)) faltan.push('tus nombres')
   if (vacio(d.apellidos)) faltan.push('tus apellidos')
   if (vacio(d.tipoDocumento)) faltan.push('el tipo de documento')
-  if (vacio(d.documento) || errorDeDocumento(d.tipoDocumento, d.documento)) {
+  const regla = opciones.documentos.regla(d.tipoDocumento)
+  if (vacio(d.documento) || errorDeDocumento(regla, d.documento)) {
     faltan.push('el número de identificación')
   }
   if (
@@ -201,7 +208,7 @@ export function loQueFaltaEnLaFicha(
     faltan.push('la fecha de nacimiento')
   }
   if (
-    pideFechaExpedicion(d.tipoDocumento) &&
+    pideFechaExpedicion(regla) &&
     (!d.fechaExpedicion ||
       errorDeFechaExpedicion(
         d.fechaExpedicion,

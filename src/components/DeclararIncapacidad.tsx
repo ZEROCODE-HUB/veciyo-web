@@ -5,9 +5,9 @@ import Button from './Button'
 import Checkbox from './Checkbox'
 import { porQueFallo } from '../lib/motivo'
 import { useParametros } from '../lib/useParametros'
+import { useDocumentos } from '../lib/useDocumentos'
 import { soloNombre } from '../lib/ficha'
 import {
-  TIPOS_DOCUMENTO_OFRECIDOS,
   declararIncapacidad,
   esNombreDeRelleno,
   guardarAcompanante,
@@ -46,13 +46,16 @@ interface Props {
  */
 export default function DeclararIncapacidad(props: Props) {
   const { parametros, error } = useParametros()
-  if (!parametros) {
-    return <p className="text-sm text-ink/60">{error ?? 'Cargando...'}</p>
+  // Los documentos del país del edificio (25/10/2026).
+  const { documentos, error: errorDocumentos } = useDocumentos(props.token)
+  if (!parametros || !documentos) {
+    return <p className="text-sm text-ink/60">{error ?? errorDocumentos ?? 'Cargando...'}</p>
   }
   return (
     <Formulario
       {...props}
       nombreProvisional={parametros.texto('titular_provisional_nombre')}
+      tiposDocumento={documentos.ofrecidos()}
     />
   )
 }
@@ -64,7 +67,8 @@ function Formulario({
   onHecho,
   onCancelar,
   nombreProvisional,
-}: Props & { nombreProvisional: string }) {
+  tiposDocumento,
+}: Props & { nombreProvisional: string; tiposDocumento: { value: string; label: string }[] }) {
   const [nombre, setNombre] = useState(
     esNombreDeRelleno(persona.nombre, nombreProvisional) ? '' : persona.nombre,
   )
@@ -140,7 +144,7 @@ function Formulario({
         label="Tipo de documento"
         tone="soft"
         placeholder="Seleccione"
-        options={TIPOS_DOCUMENTO_OFRECIDOS as unknown as { value: string; label: string }[]}
+        options={tiposDocumento}
         value={tipoDoc}
         onChange={(e) => setTipoDoc(e.target.value as TipoDocumento | '')}
       />

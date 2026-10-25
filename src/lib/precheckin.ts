@@ -364,13 +364,11 @@ export const TIPOS_DOCUMENTO = [
 
 export type TipoDocumento = (typeof TIPOS_DOCUMENTO)[number]['value']
 
-/**
- * Los que se **ofrecen** al elegir: todos menos el PEP, que dejó de valer en
- * marzo de 2023. `TIPOS_DOCUMENTO` lo conserva para poder nombrar uno ya
- * guardado; la app ya lo quitaba de sus listas y la web no
- * (Parametrización, 25/10/2026).
- */
-export const TIPOS_DOCUMENTO_OFRECIDOS = TIPOS_DOCUMENTO.filter((t) => t.value !== 'pep')
+/*
+  Los que se **ofrecen** ya no salen de aquí: dependen del país del edificio y
+  los edita el dueño de la plataforma (`documentos.ts`, 25/10/2026).
+  `TIPOS_DOCUMENTO` se queda para nombrar lo ya guardado, también un `pep`.
+*/
 
 /**
  * Si hay que fotografiar las dos caras.
@@ -381,10 +379,9 @@ export const TIPOS_DOCUMENTO_OFRECIDOS = TIPOS_DOCUMENTO.filter((t) => t.value !
  * reverso de un registro civil, que no lo tiene: un campo obligatorio
  * imposible de cumplir.
  */
-const DE_UNA_CARA: TipoDocumento[] = ['pasaporte', 'registro_civil']
-
-export function tieneDosCaras(tipo: TipoDocumento | null): boolean {
-  return tipo !== null && !DE_UNA_CARA.includes(tipo)
+export function tieneDosCaras(regla: { dosCaras: boolean } | null | undefined): boolean {
+  // Desde el 25/10/2026 lo dice la regla del país (`dos_caras`), no una lista.
+  return regla?.dosCaras ?? false
 }
 
 export const MOTIVOS = [

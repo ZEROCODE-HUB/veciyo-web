@@ -4,12 +4,12 @@ import Select from './Select'
 import Button from './Button'
 import FileUploader from './FileUploader'
 import BloqueTutela from './BloqueTutela'
+import { useDocumentos } from '../lib/useDocumentos'
 import { porQueFallo } from '../lib/motivo'
 import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
-import { soloNombre } from '../lib/ficha'
+import { errorDeDocumento, soloNombre } from '../lib/ficha'
 import {
   PARENTESCOS,
-  TIPOS_DOCUMENTO_OFRECIDOS,
   adultosParaAcompanante,
   guardarMenorAcompanante,
   menoresACargo,
@@ -48,6 +48,8 @@ interface Props {
  * Y es opcional: quien viene solo no tiene que hacer nada aquí.
  */
 export default function MenoresQueTraigo({ token, llegada }: Props) {
+  // Los documentos de un menor en el país del edificio (25/10/2026).
+  const { documentos } = useDocumentos(token)
   const [lista, setLista] = useState<MenorACargo[]>([])
   const [adultos, setAdultos] = useState<AdultoParaElegir[]>([])
   const [cargando, setCargando] = useState(true)
@@ -321,7 +323,7 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
             label="Tipo de documento"
             tone="soft"
             placeholder="Seleccione"
-            options={TIPOS_DOCUMENTO_OFRECIDOS as unknown as { value: string; label: string }[]}
+            options={documentos?.ofrecidos('menores') ?? []}
             value={tipoDoc}
             onChange={(e) => setTipoDoc(e.target.value as TipoDocumento | '')}
           />
@@ -330,6 +332,7 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
             tone="soft"
             placeholder="Tal como aparece en el documento"
             value={documento}
+            error={errorDeDocumento(documentos?.regla(tipoDoc), documento)}
             onChange={(e) => setDocumento(e.target.value)}
           />
           {/* El bloque del menor de la maqueta, con su texto de protección. */}

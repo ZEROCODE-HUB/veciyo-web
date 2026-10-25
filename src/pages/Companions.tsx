@@ -15,11 +15,13 @@ import TarjetaAcompanante from '../components/TarjetaAcompanante'
 import LinksIndividuales from '../components/LinksIndividuales'
 import BloqueTutela from '../components/BloqueTutela'
 import { porQueFallo } from '../lib/motivo'
+import { useDocumentos } from '../lib/useDocumentos'
 import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
 import {
   soloNombre,
   errorDeCorreo,
   errorDeFechaExpedicion,
+  errorDeDocumento,
   pideFechaExpedicion,
 } from '../lib/ficha'
 import {
@@ -39,7 +41,6 @@ import {
 
   tokenActual,
   TIPOS_DOCUMENTO,
-  TIPOS_DOCUMENTO_OFRECIDOS,
   adultosDeLaEstancia,
   necesitaPermiso,
   PARENTESCOS,
@@ -83,6 +84,8 @@ import {
 export default function Companions() {
   const navigate = useNavigate()
   const token = tokenActual()
+  // Los documentos del país del edificio y sus reglas (25/10/2026).
+  const { documentos } = useDocumentos(token)
 
   const [lista, setLista] = useState<Acompanante[]>([])
   /*
@@ -314,7 +317,7 @@ export default function Companions() {
         responsableId: esMenor ? responsableId : undefined,
         parentesco: esMenor ? (parentesco as Parentesco) : undefined,
       })
-      if (!esMenor && pideFechaExpedicion(tipoDoc) && fechaExpedicion) {
+      if (!esMenor && pideFechaExpedicion(documentos?.regla(tipoDoc)) && fechaExpedicion) {
         await guardarFechaExpedicion(token, fechaExpedicion, id)
       }
       const conPermiso = esMenor && necesitaPermiso(parentesco || null)
@@ -496,7 +499,10 @@ export default function Companions() {
     (p) => !p.es_menor && !incapacidades[p.id] && (!p.terminos_aceptados || !p.tiene_documento),
   )
   const etiquetaDocTitular =
-    TIPOS_DOCUMENTO.find((t) => t.value === titular?.tipoDocumento)?.label ?? ''
+    documentos?.regla(titular?.tipoDocumento)?.etiqueta ??
+    TIPOS_DOCUMENTO.find((t) => t.value === titular?.tipoDocumento)?.label ??
+    ''
+  const reglaDelAlta = documentos?.regla(tipoDoc) ?? null
 
   /*
     El aspecto es el de la maqueta original del preregistro (15/10/2026, a
@@ -770,7 +776,8 @@ export default function Companions() {
                         label="Tipo de documento"
                         tone="soft"
                         placeholder="Seleccione"
-                        options={TIPOS_DOCUMENTO_OFRECIDOS as unknown as { value: string; label: string }[]}
+                        // A un menor, los de un menor en este país.
+                        options={documentos?.ofrecidos(esMenor ? 'menores' : 'adultos') ?? []}
                         value={tipoDoc}
                         onChange={(e) => setTipoDoc(e.target.value as TipoDocumento | '')}
                       />
@@ -779,11 +786,11 @@ export default function Companions() {
                           <FileUploader
                             key={`frente-${altaN}`}
                             tone="soft"
-                            title={tieneDosCaras(tipoDoc) ? 'Foto del frente' : 'Foto del pasaporte'}
+                            title={tieneDosCaras(reglaDelAlta) ? 'Foto del frente' : 'Foto del documento'}
                             accept="image/jpeg,image/png,image/webp"
                             onFileSelected={setFotoDocumento}
                           />
-                          {tieneDosCaras(tipoDoc) && (
+                          {tieneDosCaras(reglaDelAlta) && (
                             <FileUploader
                               key={`reverso-${altaN}`}
                               tone="soft"
@@ -799,9 +806,10 @@ export default function Companions() {
                         tone="soft"
                         placeholder="Tal como aparece en el documento"
                         value={documento}
+                        error={errorDeDocumento(reglaDelAlta, documento)}
                         onChange={(e) => setDocumento(e.target.value)}
                       />
-                      {!esMenor && pideFechaExpedicion(tipoDoc) ? (
+                      {!esMenor && pideFechaExpedicion(reglaDelAlta) ? (
                         <Input
                           label="Fecha de expedición del documento"
                           type="date"

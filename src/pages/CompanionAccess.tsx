@@ -24,11 +24,11 @@ import {
   pideFechaExpedicion,
 } from '../lib/ficha'
 import { useParametros } from '../lib/useParametros'
+import { useDocumentos } from '../lib/useDocumentos'
 import { NACIONALIDADES } from '../lib/nacionalidades'
 import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
 import {
   MOTIVOS,
-  TIPOS_DOCUMENTO_OFRECIDOS,
   entradaElegida,
   fotosDeMiDocumento,
   guardarDireccionYMotivoAcompanante,
@@ -235,6 +235,9 @@ export default function CompanionAccess() {
   */
   const { parametros, error: errorParametros } = useParametros()
   const limites = parametros ? limitesDeLaFicha(parametros) : null
+  // Los documentos del país del edificio y sus reglas (25/10/2026).
+  const { documentos, error: errorDocumentos } = useDocumentos(token)
+  const regla = documentos?.regla(ficha.tipoDocumento) ?? null
 
   /*
     A un menor no se le pide documento propio ni se le hace aceptar nada: por él
@@ -249,8 +252,8 @@ export default function CompanionAccess() {
     ? ficha.nombre.trim() === ''
       ? ['el nombre']
       : []
-    : limites
-      ? loQueFaltaEnLaFicha({ ...ficha, costo: '' }, { esTitular: false, limites })
+    : limites && documentos
+      ? loQueFaltaEnLaFicha({ ...ficha, costo: '' }, { esTitular: false, limites, documentos })
       : []
   const errorDeFecha = esMenor || !limites
     ? ''
@@ -265,9 +268,8 @@ export default function CompanionAccess() {
   if (!esMenor) {
     if (ficha.direccion.trim() === '') faltan.push('la dirección de residencia')
     if (!ficha.motivo) faltan.push('el motivo de alojamiento')
-    const tipo = (ficha.tipoDocumento || null) as TipoDocumento | null
     if (!frente && !fotos.frente) faltan.push('la foto del frente de tu documento')
-    if (tieneDosCaras(tipo) && !reverso && !fotos.reverso) {
+    if (tieneDosCaras(regla) && !reverso && !fotos.reverso) {
       faltan.push('la foto del reverso de tu documento')
     }
   }
@@ -337,7 +339,7 @@ export default function CompanionAccess() {
       if (!esMenor) {
         await guardarDireccionYMotivoAcompanante(token, ficha.direccion, ficha.motivo)
       }
-      if (!esMenor && pideFechaExpedicion(ficha.tipoDocumento)) {
+      if (!esMenor && pideFechaExpedicion(regla)) {
         await guardarFechaExpedicion(token, ficha.fechaExpedicion)
       }
       /*
@@ -354,13 +356,13 @@ export default function CompanionAccess() {
     }
   }
 
-  if (estado === 'cargando' || (estado === 'listo' && !parametros)) {
+  if (estado === 'cargando' || (estado === 'listo' && (!parametros || !documentos))) {
     return (
       <MainLayout header="default" bg="soft">
         <div className="mx-auto max-w-[640px] px-4 py-16">
           <p className="text-center text-sm text-ink/60">
-            {estado === 'listo' && errorParametros
-              ? errorParametros
+            {estado === 'listo' && (errorParametros || errorDocumentos)
+              ? (errorParametros ?? errorDocumentos)
               : 'Buscando tu registro...'}
           </p>
         </div>
@@ -459,7 +461,7 @@ export default function CompanionAccess() {
                   label="Tipo de documento"
                   tone="soft"
                   placeholder="Seleccione"
-                  options={TIPOS_DOCUMENTO_OFRECIDOS as unknown as { value: string; label: string }[]}
+                  options={documentos?.ofrecidos() ?? []}
                   value={ficha.tipoDocumento}
                   onChange={(e) =>
                     campo('tipoDocumento')(e.target.value)
@@ -470,10 +472,10 @@ export default function CompanionAccess() {
                   tone="soft"
                   placeholder="Tal como aparece en el documento"
                   value={ficha.documento}
-                  error={errorDeDocumento(ficha.tipoDocumento, ficha.documento)}
+                  error={errorDeDocumento(regla, ficha.documento)}
                   onChange={(e) => campo('documento')(e.target.value)}
                 />
-                {pideFechaExpedicion(ficha.tipoDocumento) ? (
+                {pideFechaExpedicion(regla) ? (
                   <Input
                     label="Fecha de expedición del documento"
                     type="date"
@@ -497,14 +499,14 @@ export default function CompanionAccess() {
                 <FileUploader
                   tone="soft"
                   title={
-                    tieneDosCaras(ficha.tipoDocumento)
+                    tieneDosCaras(regla)
                       ? 'Foto del frente del documento'
-                      : 'Foto del pasaporte'
+                      : 'Foto del documento'
                   }
                   hint={fotos.frente ? 'Ya está guardada. Puedes cambiarla.' : undefined}
                   onFileSelected={setFrente}
                 />
-                {tieneDosCaras(ficha.tipoDocumento) && (
+                {tieneDosCaras(regla) && (
                   <FileUploader
                     tone="soft"
                     title="Foto del reverso del documento"

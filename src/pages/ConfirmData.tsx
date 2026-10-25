@@ -29,6 +29,7 @@ import {
   pideFechaExpedicion,
 } from '../lib/ficha'
 import { useParametros } from '../lib/useParametros'
+import { useDocumentos } from '../lib/useDocumentos'
 import { NACIONALIDADES } from '../lib/nacionalidades'
 import {
   aceptarReglamento,
@@ -251,6 +252,8 @@ export default function ConfirmData() {
   const [error, setError] = useState<string | null>(null)
   // Los límites del teléfono y del año de nacimiento viven en la base.
   const { parametros, error: errorParametros } = useParametros()
+  // Los documentos del país del edificio y sus reglas (25/10/2026).
+  const { documentos, error: errorDocumentos } = useDocumentos(token)
 
   /*
     Mientras se busca lo ya escrito no se decide nada: sin esto, al recargar la
@@ -258,12 +261,12 @@ export default function ConfirmData() {
     guardado, que es lo que la mantiene aqui. Tampoco sin los parámetros: sin
     ellos no se puede decir qué está mal.
   */
-  if (cargandoFicha || !parametros) {
+  if (cargandoFicha || !parametros || !documentos) {
     return (
       <MainLayout header="default" bg="soft">
         <div className="mx-auto max-w-[640px] px-4 py-10">
           <p className="text-center text-sm text-ink/60">
-            {errorParametros ?? 'Recuperando tus datos...'}
+            {errorParametros ?? errorDocumentos ?? 'Recuperando tus datos...'}
           </p>
         </div>
       </MainLayout>
@@ -275,8 +278,9 @@ export default function ConfirmData() {
     return <Navigate to="/pre-check-in" replace />
   }
 
+  const regla = documentos.regla(docType)
   const etiquetaDoc =
-    TIPOS_DOCUMENTO.find((t) => t.value === docType)?.label ?? docType
+    regla?.etiqueta ?? TIPOS_DOCUMENTO.find((t) => t.value === docType)?.label ?? docType
 
   /*
     La misma validación que hace la base, para poder decir qué falta antes de
@@ -331,7 +335,7 @@ export default function ConfirmData() {
       costo,
       fechaExpedicion,
     },
-    { esTitular: true, limites },
+    { esTitular: true, limites, documentos },
   )
   if (errorDeFecha !== '' && !faltan.includes('la fecha de nacimiento')) {
     faltan.push('la fecha de nacimiento')
@@ -385,7 +389,7 @@ export default function ConfirmData() {
         costo: costoComoNumero(costo),
         moneda,
       })
-      if (pideFechaExpedicion(docType)) {
+      if (pideFechaExpedicion(regla)) {
         await guardarFechaExpedicion(token, fechaExpedicion)
       }
       // Dos llamadas y no una: aceptar los términos es un hecho con fecha y
@@ -452,11 +456,11 @@ export default function ConfirmData() {
               etiqueta="Número de identificación"
               placeholder="Tal como aparece en el documento"
               value={documento}
-              error={errorDeDocumento(docType, documento)}
+              error={errorDeDocumento(regla, documento)}
               onChange={(e) => setDocumento(e.target.value)}
             />
           </div>
-          {pideFechaExpedicion(docType) ? (
+          {pideFechaExpedicion(regla) ? (
             <Input
               label="Fecha de expedición del documento"
               type="date"
