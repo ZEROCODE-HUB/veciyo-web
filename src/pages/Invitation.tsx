@@ -200,7 +200,7 @@ function Detalle({
         <ol className="mt-2 space-y-1.5 text-sm leading-relaxed text-ink/80">
           <li>1. Abre Veciyo con el botón de abajo.</li>
           <li>
-            2. Crea tu cuenta con <strong>{datos.correo}</strong>, el mismo
+            2. Crea tu cuenta con <strong className="break-all">{datos.correo}</strong>, el mismo
             correo al que se emitió esta invitación.
           </li>
         </ol>
