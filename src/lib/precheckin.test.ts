@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  avisoDeEstacionamientos,
+  cupoDeVehiculos,
   esNombreDeRelleno,
   normalizarPlaca,
   subirLoElegido,
@@ -215,25 +215,26 @@ describe('el máximo entre paréntesis junto a «Cantidad de huéspedes»', () =
 })
 
 /**
- * Hueco 17 (25/10/2026): si traen más vehículos que estacionamientos ofrece el
- * anfitrión, se avisa y no se bloquea.
+ * Hueco 17 (25/10/2026): vacío no limita, 0 no admite vehículos y un número
+ * es el máximo.
  */
-describe('el aviso de estacionamientos', () => {
-  it('no dice nada mientras caben', () => {
-    expect(avisoDeEstacionamientos(0, 2)).toBeNull()
-    expect(avisoDeEstacionamientos(2, 2)).toBeNull()
+describe('el cupo de vehículos de la estancia', () => {
+  it('vacío no limita ni dice nada', () => {
+    expect(cupoDeVehiculos(5, null)).toEqual({ lleno: false, texto: null })
   })
 
-  it('avisa en cuanto hay uno de más, con los dos números', () => {
-    expect(avisoDeEstacionamientos(3, 2)).toMatch(/2 estacionamientos y registraste 3 vehículos/)
-    expect(avisoDeEstacionamientos(2, 1)).toMatch(/1 estacionamiento y/)
+  it('con 0 no se puede registrar ninguno', () => {
+    const cupo = cupoDeVehiculos(0, 0)
+    expect(cupo.lleno).toBe(true)
+    expect(cupo.texto).toMatch(/no se pueden registrar vehículos/)
   })
 
-  it('con cero no afirma que no hay: puede que el anfitrión no lo indicara', () => {
-    expect(avisoDeEstacionamientos(1, 0)).toMatch(/no ha indicado estacionamientos/)
-  })
-
-  it('sin el dato, no avisa', () => {
-    expect(avisoDeEstacionamientos(5, null)).toBeNull()
+  it('mientras caben, dice cuántos; al llenarse, deja de ofrecer', () => {
+    expect(cupoDeVehiculos(1, 2)).toEqual({
+      lleno: false,
+      texto: 'Caben hasta 2: el alojamiento tiene 2 estacionamientos para huéspedes.',
+    })
+    expect(cupoDeVehiculos(2, 2).lleno).toBe(true)
+    expect(cupoDeVehiculos(1, 1).texto).toMatch(/1 estacionamiento para huéspedes y ya están ocupados/)
   })
 })

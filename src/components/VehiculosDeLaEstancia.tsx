@@ -7,7 +7,7 @@ import Button from './Button'
 import { porQueFallo } from '../lib/motivo'
 import {
   TIPOS_VEHICULO,
-  avisoDeEstacionamientos,
+  cupoDeVehiculos,
   estacionamientosDelPrecheckin,
   guardarVehiculo,
   normalizarPlaca,
@@ -56,8 +56,8 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
           vigente && setError(porQueFallo(e, 'No pudimos cargar los vehículos')),
       )
     /*
-      Los estacionamientos solo sirven para avisar (hueco 17). Si no llegan,
-      no hay aviso y nada más: el vehículo se registra igual.
+      Los estacionamientos limitan los vehículos (hueco 17). Si no llegan, la
+      pantalla no limita, pero la base sí: al guardar dirá por qué no cabe.
     */
     estacionamientosDelPrecheckin(token)
       .then((n) => vigente && setEstacionamientos(n))
@@ -67,7 +67,7 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
     }
   }, [token])
 
-  const aviso = avisoDeEstacionamientos(lista.length, estacionamientos)
+  const cupo = cupoDeVehiculos(lista.length, estacionamientos)
 
   const limpiar = () => {
     setPlaca('')
@@ -195,13 +195,16 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
         </Card>
       ))}
 
-      {aviso ? (
-        <p className="rounded-xl bg-gold/10 px-4 py-3 text-sm text-ink" role="status">
-          {aviso}
+      {cupo.texto ? (
+        <p
+          className={`rounded-xl px-4 py-3 text-sm text-ink ${cupo.lleno ? 'bg-gold/10' : 'bg-brand-50'}`}
+          role="status"
+        >
+          {cupo.texto}
         </p>
       ) : null}
 
-      {abierto ? (
+      {cupo.lleno ? null : abierto ? (
         <Card className="px-6 py-5 sm:px-10 sm:py-6">
           <p className="mb-3 text-sm font-bold text-ink">Vehículo {lista.length + 1}</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

@@ -1414,7 +1414,7 @@ export async function vehiculosDelPrecheckin(
 
 /**
  * Los estacionamientos que el anfitrión ofrece a sus huéspedes (hueco 17).
- * Nulo si el enlace ya no vale. Sirve para avisar, no para bloquear.
+ * Nulo si no lo indicó (no limita) o si el enlace ya no vale.
  */
 export async function estacionamientosDelPrecheckin(
   token: string,
@@ -1428,22 +1428,33 @@ export async function estacionamientosDelPrecheckin(
 }
 
 /**
- * Lo que se le dice al huésped si trae más vehículos que estacionamientos.
+ * Cuántos vehículos caben en la estancia según los estacionamientos (hueco 17,
+ * decidido con el cliente el 25/10/2026).
  *
- * Advertencia, no bloqueo: el vehículo se registra igual --la portería lo
- * necesita para dejarlo entrar o no-- y el huésped sabe a qué atenerse. Con
- * cero no se afirma que «no hay»: puede que el anfitrión no lo haya indicado.
+ * Vacío no limita; 0 no admite ninguno; un número es el máximo. La base lo
+ * hace cumplir (`guardar_vehiculo_precheckin`): esto es para no ofrecer
+ * «Añadir» cuando ya no cabe y decir por qué.
  */
-export function avisoDeEstacionamientos(
-  vehiculos: number,
+export function cupoDeVehiculos(
+  registrados: number,
   estacionamientos: number | null,
-): string | null {
-  if (estacionamientos === null || vehiculos <= estacionamientos) return null
+): { lleno: boolean; texto: string | null } {
+  if (estacionamientos === null) return { lleno: false, texto: null }
   if (estacionamientos === 0) {
-    return 'Tu anfitrión no ha indicado estacionamientos para este alojamiento: pregúntale dónde dejar el vehículo antes de llegar.'
+    return {
+      lleno: true,
+      texto:
+        'Este alojamiento no tiene estacionamiento para huéspedes: no se pueden registrar vehículos. Si llegan en uno, tendrá que quedarse fuera del edificio.',
+    }
   }
   const plazas = estacionamientos === 1 ? '1 estacionamiento' : `${estacionamientos} estacionamientos`
-  return `El alojamiento tiene ${plazas} y registraste ${vehiculos} vehículos: los demás tendrán que quedarse fuera del edificio. Pregúntale a tu anfitrión.`
+  if (registrados >= estacionamientos) {
+    return {
+      lleno: true,
+      texto: `El alojamiento tiene ${plazas} para huéspedes y ya están ocupados: no caben más vehículos.`,
+    }
+  }
+  return { lleno: false, texto: `Caben hasta ${estacionamientos}: el alojamiento tiene ${plazas} para huéspedes.` }
 }
 
 export async function guardarVehiculo(
