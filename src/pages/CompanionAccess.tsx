@@ -28,7 +28,7 @@ import { NACIONALIDADES } from '../lib/nacionalidades'
 import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
 import {
   MOTIVOS,
-  TIPOS_DOCUMENTO,
+  TIPOS_DOCUMENTO_OFRECIDOS,
   entradaElegida,
   fotosDeMiDocumento,
   guardarDireccionYMotivoAcompanante,
@@ -459,7 +459,7 @@ export default function CompanionAccess() {
                   label="Tipo de documento"
                   tone="soft"
                   placeholder="Seleccione"
-                  options={TIPOS_DOCUMENTO as unknown as { value: string; label: string }[]}
+                  options={TIPOS_DOCUMENTO_OFRECIDOS as unknown as { value: string; label: string }[]}
                   value={ficha.tipoDocumento}
                   onChange={(e) =>
                     campo('tipoDocumento')(e.target.value)

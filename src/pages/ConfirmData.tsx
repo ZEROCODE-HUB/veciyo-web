@@ -103,7 +103,10 @@ export default function ConfirmData() {
   const [ciudadProcedencia, setCiudadProcedencia] = useState('')
   const [costo, setCosto] = useState('')
   // La moneda de lo que pagó, elegida por país (QA 23/10/2026).
-  const [moneda, setMoneda] = useState('COP')
+  // Sin elegir, la base pone la del edificio (`moneda_del_condominio`): nacía
+  // en «COP» y se grababa así aunque el edificio cobrara en otra
+  // (Parametrización, 25/10/2026).
+  const [moneda, setMoneda] = useState('')
   /*
     La pide el reporte de extranjeros y no se preguntaba en ninguna pantalla:
     la base la aceptaba desde el principio y llegaba siempre vacía.

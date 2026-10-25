@@ -5,6 +5,7 @@ import Recuadro from './Recuadro'
 import Select from './Select'
 import Button from './Button'
 import { porQueFallo } from '../lib/motivo'
+import { useParametros } from '../lib/useParametros'
 import {
   TIPOS_VEHICULO,
   cupoDeVehiculos,
@@ -82,8 +83,23 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
     normalizarPlaca(placa) !== '' &&
     lista.some((v) => normalizarPlaca(v.placa) === normalizarPlaca(placa))
 
+  // El largo de la placa es el de la base (`placa_largo_*`), el mismo que en
+  // la app; aquí no se miraba (Parametrización, 25/10/2026).
+  const { parametros } = useParametros()
+  const limpia = normalizarPlaca(placa)
+  const largoMalo =
+    parametros !== null &&
+    limpia !== '' &&
+    (limpia.length < parametros.numero('placa_largo_minimo') ||
+      limpia.length > parametros.numero('placa_largo_maximo'))
+  const errorDePlaca = repetida
+    ? 'Ese vehículo ya está en la lista.'
+    : largoMalo && parametros
+      ? `Revisa la placa: entre ${parametros.numero('placa_largo_minimo')} y ${parametros.numero('placa_largo_maximo')} letras y números.`
+      : ''
+
   const completo =
-    normalizarPlaca(placa) !== '' && responsableId !== '' && !repetida
+    limpia !== '' && responsableId !== '' && !repetida && !largoMalo
 
   const anadir = async () => {
     if (!completo || guardando) return
@@ -213,7 +229,7 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
               tone="soft"
               placeholder="Ingrese la placa"
               value={placa}
-              error={repetida ? 'Ese vehículo ya está en la lista.' : ''}
+              error={errorDePlaca}
               onChange={(e) => setPlaca(normalizarPlaca(e.target.value))}
             />
             <Input

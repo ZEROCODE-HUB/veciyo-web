@@ -206,7 +206,17 @@ export default function Access() {
                         */}
                         {maximoDeHuespedes(estado.datos) !== null && (
                           <span className="font-normal text-ink/70">
-                            {' '}(máximo {maximoDeHuespedes(estado.datos)})
+                            {/*
+                              Si el número es el del edificio, se dice: el
+                              tope que aplica la base es el de la vivienda, y
+                              el del edificio es aviso (KT 4.1.5;
+                              Parametrización, 25/10/2026).
+                            */}
+                            {' '}(máximo {maximoDeHuespedes(estado.datos)}
+                            {estado.datos.max_huespedes && estado.datos.max_huespedes > 0
+                              ? ''
+                              : ' según el edificio'}
+                            )
                           </span>
                         )}
                       </p>

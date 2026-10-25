@@ -14,7 +14,7 @@ import {
   avisoDeLlegada,
   tieneDosCaras,
   tokenActual,
-  TIPOS_DOCUMENTO,
+  TIPOS_DOCUMENTO_OFRECIDOS,
   type EstanciaPrecheckin,
   type TipoDocumento,
 } from '../lib/precheckin'
@@ -209,7 +209,7 @@ export default function PreCheckIn() {
                 label="Tipo de documento"
                 tone="soft"
                 placeholder="Seleccione"
-                options={TIPOS_DOCUMENTO as unknown as { value: string; label: string }[]}
+                options={TIPOS_DOCUMENTO_OFRECIDOS as unknown as { value: string; label: string }[]}
                 value={docType ?? ''}
                 onChange={(e) => {
                   setDocType((e.target.value || null) as TipoDocumento | null)

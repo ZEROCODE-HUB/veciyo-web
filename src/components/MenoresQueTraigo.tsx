@@ -9,7 +9,7 @@ import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
 import { soloNombre } from '../lib/ficha'
 import {
   PARENTESCOS,
-  TIPOS_DOCUMENTO,
+  TIPOS_DOCUMENTO_OFRECIDOS,
   adultosParaAcompanante,
   guardarMenorAcompanante,
   menoresACargo,
@@ -321,7 +321,7 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
             label="Tipo de documento"
             tone="soft"
             placeholder="Seleccione"
-            options={TIPOS_DOCUMENTO as unknown as { value: string; label: string }[]}
+            options={TIPOS_DOCUMENTO_OFRECIDOS as unknown as { value: string; label: string }[]}
             value={tipoDoc}
             onChange={(e) => setTipoDoc(e.target.value as TipoDocumento | '')}
           />

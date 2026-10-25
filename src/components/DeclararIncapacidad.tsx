@@ -7,7 +7,7 @@ import { porQueFallo } from '../lib/motivo'
 import { useParametros } from '../lib/useParametros'
 import { soloNombre } from '../lib/ficha'
 import {
-  TIPOS_DOCUMENTO,
+  TIPOS_DOCUMENTO_OFRECIDOS,
   declararIncapacidad,
   esNombreDeRelleno,
   guardarAcompanante,
@@ -140,7 +140,7 @@ function Formulario({
         label="Tipo de documento"
         tone="soft"
         placeholder="Seleccione"
-        options={TIPOS_DOCUMENTO as unknown as { value: string; label: string }[]}
+        options={TIPOS_DOCUMENTO_OFRECIDOS as unknown as { value: string; label: string }[]}
         value={tipoDoc}
         onChange={(e) => setTipoDoc(e.target.value as TipoDocumento | '')}
       />

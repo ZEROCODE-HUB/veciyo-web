@@ -345,7 +345,7 @@ export const TIPOS_DOCUMENTO = [
   { value: 'pasaporte', label: 'Pasaporte' },
   { value: 'dni', label: 'DNI' },
   { value: 'carne_extranjeria', label: 'Carné de extranjería' },
-  { value: 'pep', label: 'Permiso especial de permanencia' },
+  { value: 'pep', label: 'Permiso especial de permanencia (ya no vigente)' },
   /*
     El PEP venezolano perdió validez en marzo de 2023; el que se pide hoy es
     el PPT. La base ya lo tenía y la pantalla no lo ofrecía (14/10/2026).
@@ -363,6 +363,14 @@ export const TIPOS_DOCUMENTO = [
 ] as const
 
 export type TipoDocumento = (typeof TIPOS_DOCUMENTO)[number]['value']
+
+/**
+ * Los que se **ofrecen** al elegir: todos menos el PEP, que dejó de valer en
+ * marzo de 2023. `TIPOS_DOCUMENTO` lo conserva para poder nombrar uno ya
+ * guardado; la app ya lo quitaba de sus listas y la web no
+ * (Parametrización, 25/10/2026).
+ */
+export const TIPOS_DOCUMENTO_OFRECIDOS = TIPOS_DOCUMENTO.filter((t) => t.value !== 'pep')
 
 /**
  * Si hay que fotografiar las dos caras.
@@ -455,7 +463,8 @@ export async function guardarFicha(
     p_ciudad_procedencia: ficha.ciudadProcedencia,
     p_nacionalidad: ficha.nacionalidad,
     p_costo: ficha.costo,
-    p_moneda: ficha.moneda,
+    // Vacía no se manda: la base pone la del edificio.
+    p_moneda: ficha.moneda || undefined,
   })
   if (error) throw error
   return data as string
