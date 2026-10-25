@@ -22,12 +22,14 @@ export default function Recuadro({ etiqueta, error, value, onChange, ...resto }:
           {etiqueta}
         </span>
         {onChange ? (
+          // 16 px: con menos, el iPhone se acerca solo al tocar el campo
+          // (auditoría de responsividad, 25/10/2026; como en Input).
           <input
             {...resto}
             value={value}
             onChange={onChange}
             aria-invalid={error ? true : undefined}
-            className="mt-0.5 w-full bg-transparent text-sm font-bold text-ink placeholder:font-normal placeholder:text-muted focus:outline-none"
+            className="mt-0.5 w-full bg-transparent text-base font-bold text-ink placeholder:font-normal placeholder:text-muted focus:outline-none"
           />
         ) : (
           // `break-all`: un correo largo se salía del recuadro (QA 23/10/2026).

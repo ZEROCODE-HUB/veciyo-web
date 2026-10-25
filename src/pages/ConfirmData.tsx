@@ -425,8 +425,13 @@ export default function ConfirmData() {
         <UsarMisDatos onDatos={usarMisDatos} />
 
         <div className="mt-8 space-y-3">
-          {/* La rejilla 2×2 de la maqueta, con los campos editables dentro. */}
-          <div className="grid grid-cols-2 gap-3">
+          {/*
+            La rejilla 2×2 de la maqueta, con los campos editables dentro. En
+            un celular de menos de 400 px, una columna: en la mitad de 360 un
+            apellido compuesto salía cortado («Gómez Restre…») y un campo no
+            puede bajar de línea (auditoría de responsividad, 25/10/2026).
+          */}
+          <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
             <Recuadro
               etiqueta="Nombre"
               placeholder="Como figura en el documento"

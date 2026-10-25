@@ -95,7 +95,7 @@ export default function LinksIndividuales({
                       aria-label={`Mensaje para ${persona.nombre}`}
                       value={mensaje(persona, url)}
                       onFocus={(e) => e.currentTarget.select()}
-                      className="w-full rounded border border-ink/20 p-2 text-[11px] text-ink"
+                      className="w-full rounded border border-ink/20 p-2 text-base text-ink"
                       rows={3}
                     />
                   ) : null}
