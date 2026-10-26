@@ -246,7 +246,11 @@ export default function Access() {
             {estado.tipo === 'vencido' && (
               <Aviso
                 titulo="Este enlace ya venció"
-                detalle="Los enlaces de preregistro caducan con la estancia. Si tu reserva sigue en pie, tu anfitrión puede mandarte uno nuevo."
+                /*
+                  Desde el 26/10/2026 el preregistro se cierra unas horas
+                  antes de la llegada (hueco 23), no con la estancia.
+                */
+                detalle="El preregistro se cierra unas horas antes de tu llegada. Si todavía te falta completarlo, escríbele a tu anfitrión: puede mandarte un enlace nuevo."
               />
             )}
             {estado.tipo === 'completado' && estado.qr ? (
