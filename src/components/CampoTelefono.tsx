@@ -1,4 +1,5 @@
-import { PAISES, PAIS_POR_DEFECTO } from '../lib/paises'
+import { PAIS_POR_DEFECTO, paisPorCodigo } from '../lib/paises'
+import CampoPais from './CampoPais'
 
 interface Props {
   label?: string
@@ -19,9 +20,9 @@ interface Props {
  * 03/10/2026 escribía un número suelto y nadie sabía de dónde era: ni para
  * llamarle, ni para mandarle nada por WhatsApp.
  *
- * Aquí el selector es un `<select>` nativo y no una hoja con buscador como en
- * la aplicación: en un navegador el desplegable del sistema ya trae su propio
- * buscador por teclado, y una lista de treinta países no necesita más.
+ * El país se elige con buscador (`CampoPais`): desde el 26/10/2026 son los 245
+ * países del mundo, y bajar por un `<select>` nativo hasta el tuyo en un
+ * celular no es razonable.
  */
 export default function CampoTelefono({
   label,
@@ -48,18 +49,16 @@ export default function CampoTelefono({
         no se encogía. El país tiene un ancho fijo y el número toma el resto.
       */}
       <div className="flex w-full gap-2">
-        <select
-          value={codigoPais || PAIS_POR_DEFECTO}
-          onChange={(e) => onCodigoPaisChange(e.target.value)}
-          aria-label="País del teléfono"
-          className={`w-28 shrink-0 truncate rounded-2xl border border-ink/10 px-3 py-3.5 text-base text-ink sm:w-40 ${fondo}`}
-        >
-          {PAISES.map((pais) => (
-            <option key={pais.codigo} value={pais.codigo}>
-              +{pais.prefijo} · {pais.nombre}
-            </option>
-          ))}
-        </select>
+        <CampoPais
+          // Un código que la lista no conoce --había «+57» de antes-- cae en el
+          // de por defecto, como hacía el `<select>`, en vez de quedar en blanco.
+          value={paisPorCodigo(codigoPais) ? codigoPais : PAIS_POR_DEFECTO}
+          onChange={onCodigoPaisChange}
+          conPrefijo
+          ariaLabel="País del teléfono"
+          className="w-28 shrink-0 sm:w-40"
+          claseBoton={`rounded-2xl border border-ink/10 px-3 py-3.5 ${fondo}`}
+        />
 
         <input
           type="tel"

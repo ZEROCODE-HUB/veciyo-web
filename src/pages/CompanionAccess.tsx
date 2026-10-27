@@ -25,7 +25,7 @@ import {
 } from '../lib/ficha'
 import { useParametros } from '../lib/useParametros'
 import { useDocumentos } from '../lib/useDocumentos'
-import { NACIONALIDADES } from '../lib/nacionalidades'
+import CampoPais from '../components/CampoPais'
 import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
 import {
   MOTIVOS,
@@ -563,13 +563,12 @@ export default function CompanionAccess() {
               onChange={(e) => campo('fechaNacimiento')(e.target.value)}
             />
             {!esMenor && (
-              <Select
+              <CampoPais
                 label="Nacionalidad"
                 tone="soft"
                 placeholder="Seleccione"
-                options={NACIONALIDADES}
                 value={ficha.nacionalidad}
-                onChange={(e) => campo('nacionalidad')(e.target.value)}
+                onChange={campo('nacionalidad')}
               />
             )}
             <Input

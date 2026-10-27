@@ -30,7 +30,7 @@ import {
 } from '../lib/ficha'
 import { useParametros } from '../lib/useParametros'
 import { useDocumentos } from '../lib/useDocumentos'
-import { NACIONALIDADES } from '../lib/nacionalidades'
+import CampoPais from '../components/CampoPais'
 import {
   aceptarReglamento,
   aceptarTerminos,
@@ -561,13 +561,12 @@ export default function ConfirmData() {
               onChange={(e) => setCosto(e.target.value)}
             />
             <SelectorDeMoneda label="Moneda de lo que pagaste" value={moneda} onChange={setMoneda} />
-            <Select
+            <CampoPais
               label="Nacionalidad"
               tone="soft"
               placeholder="Seleccione"
-              options={NACIONALIDADES}
               value={nacionalidad}
-              onChange={(e) => setNacionalidad(e.target.value)}
+              onChange={setNacionalidad}
             />
             {/* Nadie nace mañana: el calendario no ofrece el futuro. */}
             <Input
