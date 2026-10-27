@@ -1,8 +1,7 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import Card from '../components/Card'
-import Input from '../components/Input'
 import Button from '../components/Button'
 import { porQueFallo } from '../lib/motivo'
 import { abrirPrecheckinPorReserva } from '../lib/precheckin'
@@ -14,13 +13,10 @@ import { abrirPrecheckinPorReserva } from '../lib/precheckin'
  * anfitrión puso **una vez** en su mensaje automático. Así no tiene que
  * generar y mandar un enlace por cada reserva.
  *
- * Un código de reserva no es un secreto: va en correos y en capturas de
- * pantalla. Por eso aquí se piden además los **últimos cuatro dígitos del
- * teléfono** con el que se reservó, que es lo único del huésped que trae el
- * calendario de Airbnb. Los intentos se cuentan en la base, no aquí.
- *
- * Si acierta, recibe un enlace de preregistro normal y sigue por el camino de
- * siempre (`/access/:token`): esta pantalla no duplica nada de aquel.
+ * Se abre sola (hueco 48, 27/10/2026): antes pedía los cuatro últimos dígitos
+ * del teléfono, y el cliente decidió quitarlos. Si la reserva está, recibe un
+ * enlace de preregistro normal y sigue por el camino de siempre
+ * (`/access/:token`): esta pantalla no duplica nada de aquel.
  */
 type Aviso = { tono: 'info' | 'error'; texto: string } | null
 
@@ -30,43 +26,24 @@ const AVISOS: Record<string, Aviso> = {
     texto:
       'Todavía estamos preparando tu reserva. Si acabas de reservar, vuelve a intentarlo en un rato. Si el código no es este, revisa el enlace que te mandó tu anfitrión.',
   },
-  ultimos4_incorrectos: {
-    tono: 'error',
-    texto:
-      'Esos dígitos no coinciden con el teléfono de la reserva. Son los cuatro últimos del número con el que reservaste.',
-  },
-  bloqueado: {
-    tono: 'error',
-    texto:
-      'Demasiados intentos. Por seguridad, esta reserva no se puede abrir desde aquí durante una hora. Tu anfitrión puede mandarte un enlace directo.',
-  },
   cerrado: {
     tono: 'info',
     texto:
       'El preregistro de esta reserva ya está hecho. No hace falta que hagas nada más: al llegar, el personal de seguridad te recibe con esto ya listo.',
-  },
-  sin_telefono: {
-    tono: 'info',
-    texto:
-      'Esta reserva no se puede abrir con el código. Pídele a tu anfitrión el enlace de preregistro.',
   },
 }
 
 export default function Reserva() {
   const { codigo = '' } = useParams<{ codigo: string }>()
   const navigate = useNavigate()
-  const [digitos, setDigitos] = useState('')
-  const [buscando, setBuscando] = useState(false)
+  const [buscando, setBuscando] = useState(true)
   const [aviso, setAviso] = useState<Aviso>(null)
 
-  const completo = digitos.length === 4
-
-  const abrir = async () => {
-    if (!completo || buscando) return
+  const abrir = useCallback(async () => {
     setBuscando(true)
     setAviso(null)
     try {
-      const { estado, token } = await abrirPrecheckinPorReserva(codigo, digitos)
+      const { estado, token } = await abrirPrecheckinPorReserva(codigo)
       if (estado === 'listo' && token) {
         // El camino de siempre: allí se comprueba el enlace y se decide por
         // dónde seguir.
@@ -81,7 +58,11 @@ export default function Reserva() {
     } finally {
       setBuscando(false)
     }
-  }
+  }, [codigo, navigate])
+
+  useEffect(() => {
+    void abrir()
+  }, [abrir])
 
   return (
     <MainLayout header="default" bg="soft">
@@ -92,28 +73,11 @@ export default function Reserva() {
           </h1>
           <p className="mt-3 text-center text-base text-ink/60">
             Reserva <span className="font-bold text-ink">{codigo.toUpperCase()}</span>.
-            Para comprobar que es tuya, escribe los últimos cuatro dígitos del
-            teléfono con el que reservaste.
           </p>
 
-          <div className="mt-8">
-            <Input
-              label="Últimos 4 dígitos de tu teléfono"
-              tone="soft"
-              inputMode="numeric"
-              autoComplete="off"
-              maxLength={4}
-              placeholder="0000"
-              value={digitos}
-              onChange={(e) => {
-                setDigitos(e.target.value.replace(/\D/g, '').slice(0, 4))
-                setAviso(null)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void abrir()
-              }}
-            />
-          </div>
+          {buscando && (
+            <p className="mt-6 text-center text-sm text-ink/60">Buscando tu reserva…</p>
+          )}
 
           {aviso && (
             <p
@@ -127,14 +91,11 @@ export default function Reserva() {
             </p>
           )}
 
-          <Button
-            type="button"
-            className="mt-6 w-full py-3.5"
-            disabled={!completo || buscando}
-            onClick={() => void abrir()}
-          >
-            {buscando ? 'Buscando tu reserva…' : 'Continuar'}
-          </Button>
+          {!buscando && aviso && (
+            <Button type="button" className="mt-6 w-full py-3.5" onClick={() => void abrir()}>
+              Volver a intentarlo
+            </Button>
+          )}
         </Card>
       </div>
     </MainLayout>

@@ -1508,30 +1508,23 @@ export async function quitarVehiculo(
  * Entrar con el código de la reserva
  * ========================================================================== */
 
-export type EstadoDeApertura =
-  | 'listo'
-  | 'preparando'
-  | 'ultimos4_incorrectos'
-  | 'bloqueado'
-  | 'cerrado'
-  | 'sin_telefono'
+export type EstadoDeApertura = 'listo' | 'preparando' | 'cerrado'
 
 /**
- * Abre el preregistro con el código de la reserva y los últimos cuatro
- * dígitos del teléfono con el que se reservó.
+ * Abre el preregistro con el código de la reserva.
  *
- * Es la puerta de quien llega desde el mensaje automático de Airbnb. Si
- * acierta devuelve un enlace de preregistro normal; el anterior deja de valer.
- * Los intentos los cuenta la base: cinco fallos seguidos bloquean una hora.
+ * Es la puerta de quien llega desde el mensaje automático de Airbnb. Basta el
+ * código desde el 27/10/2026 (hueco 48): antes se pedían también los cuatro
+ * últimos dígitos del teléfono. Devuelve un enlace de preregistro normal; el
+ * anterior deja de valer.
  */
 export async function abrirPrecheckinPorReserva(
   codigo: string,
-  ultimos4: string,
   cliente?: ClientePrecheckin | null,
 ): Promise<{ estado: EstadoDeApertura; token: string | null }> {
   const { data, error } = await conexion(cliente).rpc(
     'abrir_precheckin_por_reserva',
-    { p_codigo: codigo, p_ultimos4: ultimos4 },
+    { p_codigo: codigo },
   )
   if (error) throw error
   const fila = (Array.isArray(data) ? data[0] : data) as
