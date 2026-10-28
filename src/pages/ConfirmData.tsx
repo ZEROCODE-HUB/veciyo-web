@@ -522,7 +522,7 @@ export default function ConfirmData() {
               onCodigoPaisChange={setCodigoPais}
               telefono={telefono}
               onTelefonoChange={setTelefono}
-              placeholder="Ingrese su número de teléfono"
+              placeholder="Escribe tu número de teléfono"
             />
             {errorDeTelefono(telefono, limites) ? (
               <p className="-mt-2 text-xs font-semibold text-danger">
@@ -564,7 +564,7 @@ export default function ConfirmData() {
             <CampoPais
               label="Nacionalidad *"
               tone="soft"
-              placeholder="Seleccione"
+              placeholder="Elige"
               value={nacionalidad}
               onChange={setNacionalidad}
             />
@@ -581,7 +581,7 @@ export default function ConfirmData() {
             <Select
               label="Motivo de alojamiento"
               tone="soft"
-              placeholder="Seleccione un motivo"
+              placeholder="Elige un motivo"
               options={MOTIVOS as unknown as { value: string; label: string }[]}
               value={motivo}
               onChange={(e) => setMotivo(e.target.value as Motivo | '')}

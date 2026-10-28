@@ -40,7 +40,7 @@ export default function CampoPais({
   label,
   value,
   onChange,
-  placeholder = 'Seleccione',
+  placeholder = 'Elige',
   tone = 'default',
   conPrefijo = false,
   ariaLabel,

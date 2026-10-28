@@ -322,7 +322,7 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
           <Select
             label="Tipo de documento"
             tone="soft"
-            placeholder="Seleccione"
+            placeholder="Elige"
             options={documentos?.ofrecidos('menores') ?? []}
             value={tipoDoc}
             onChange={(e) => setTipoDoc(e.target.value as TipoDocumento | '')}
@@ -353,7 +353,7 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
           <Select
             label="Parentesco"
             tone="soft"
-            placeholder="Seleccione"
+            placeholder="Elige"
             options={PARENTESCOS as unknown as { value: string; label: string }[]}
             value={parentesco}
             onChange={(e) => setParentesco(e.target.value as Parentesco | '')}

@@ -143,7 +143,7 @@ function Formulario({
       <Select
         label="Tipo de documento"
         tone="soft"
-        placeholder="Seleccione"
+        placeholder="Elige"
         options={tiposDocumento}
         value={tipoDoc}
         onChange={(e) => setTipoDoc(e.target.value as TipoDocumento | '')}

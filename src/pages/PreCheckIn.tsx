@@ -214,7 +214,7 @@ export default function PreCheckIn() {
               <Select
                 label="Tipo de documento"
                 tone="soft"
-                placeholder="Seleccione"
+                placeholder="Elige"
                 options={documentos?.ofrecidos() ?? []}
                 value={docType ?? ''}
                 onChange={(e) => {

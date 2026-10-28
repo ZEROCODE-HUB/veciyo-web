@@ -108,7 +108,7 @@ export default function MascotasDeLaEstancia({ token }: { token: string }) {
         <Select
           label="Tipo"
           tone="soft"
-          placeholder="Seleccione"
+          placeholder="Elige"
           options={TIPOS}
           value={tipo}
           onChange={(e) => setTipo(e.target.value as TipoMascota | '')}

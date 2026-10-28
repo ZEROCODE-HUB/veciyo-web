@@ -460,7 +460,7 @@ export default function CompanionAccess() {
                 <Select
                   label="Tipo de documento"
                   tone="soft"
-                  placeholder="Seleccione"
+                  placeholder="Elige"
                   options={documentos?.ofrecidos() ?? []}
                   value={ficha.tipoDocumento}
                   onChange={(e) =>
@@ -528,7 +528,7 @@ export default function CompanionAccess() {
                 <Select
                   label="Motivo de alojamiento"
                   tone="soft"
-                  placeholder="Seleccione un motivo"
+                  placeholder="Elige un motivo"
                   options={MOTIVOS as unknown as { value: string; label: string }[]}
                   value={ficha.motivo}
                   onChange={(e) => campo('motivo')(e.target.value)}
@@ -566,7 +566,7 @@ export default function CompanionAccess() {
               <CampoPais
                 label="Nacionalidad"
                 tone="soft"
-                placeholder="Seleccione"
+                placeholder="Elige"
                 value={ficha.nacionalidad}
                 onChange={campo('nacionalidad')}
               />

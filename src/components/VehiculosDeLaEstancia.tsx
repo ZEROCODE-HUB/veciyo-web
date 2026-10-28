@@ -205,7 +205,7 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
               <Select
                 label="Falta decir quién responde por este vehículo"
                 tone="soft"
-                placeholder="Seleccione un adulto de la reserva"
+                placeholder="Elige un adulto de la reserva"
                 options={adultos.map((a) => ({
                   value: a.id,
                   label: `${a.nombre} ${a.apellidos ?? ''}`.trim(),
@@ -234,7 +234,7 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
             <Input
               label="Placa *"
               tone="soft"
-              placeholder="Ingrese la placa"
+              placeholder="Escribe la placa"
               value={placa}
               error={errorDePlaca}
               onChange={(e) => setPlaca(normalizarPlaca(e.target.value))}
@@ -242,14 +242,14 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
             <Input
               label="Marca *"
               tone="soft"
-              placeholder="Ingrese la marca"
+              placeholder="Escribe la marca"
               value={marca}
               onChange={(e) => setMarca(e.target.value)}
             />
             <Input
               label="Color *"
               tone="soft"
-              placeholder="Ingrese el color"
+              placeholder="Escribe el color"
               value={color}
               onChange={(e) => setColor(e.target.value)}
             />
@@ -258,7 +258,7 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
             <Select
               label="Adulto responsable del vehículo *"
               tone="soft"
-              placeholder="Seleccione"
+              placeholder="Elige"
               options={adultos.map((a) => ({
                 value: a.id,
                 label: `${a.nombre} ${a.apellidos ?? ''}`.trim(),
@@ -269,7 +269,7 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
             <Select
               label="Tipo"
               tone="soft"
-              placeholder="Seleccione"
+              placeholder="Elige"
               options={TIPOS_VEHICULO as unknown as { value: string; label: string }[]}
               value={tipo}
               onChange={(e) => setTipo(e.target.value as TipoVehiculo | '')}

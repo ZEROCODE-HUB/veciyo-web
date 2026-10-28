@@ -734,7 +734,7 @@ export default function Companions() {
                           <Select
                             label="Parentesco"
                             tone="soft"
-                            placeholder="Seleccione"
+                            placeholder="Elige"
                             options={PARENTESCOS as unknown as { value: string; label: string }[]}
                             value={parentesco}
                             onChange={(e) => setParentesco(e.target.value as Parentesco | '')}
@@ -775,7 +775,7 @@ export default function Companions() {
                       <Select
                         label="Tipo de documento"
                         tone="soft"
-                        placeholder="Seleccione"
+                        placeholder="Elige"
                         // A un menor, los de un menor en este país.
                         options={documentos?.ofrecidos(esMenor ? 'menores' : 'adultos') ?? []}
                         value={tipoDoc}
@@ -827,7 +827,7 @@ export default function Companions() {
                             label="Teléfono"
                             type="tel"
                             tone="soft"
-                            placeholder="Ingrese el teléfono"
+                            placeholder="Escribe el teléfono"
                             value={telefono}
                             onChange={(e) => setTelefono(e.target.value)}
                           />
