@@ -1,4 +1,5 @@
 import { PAIS_POR_DEFECTO, paisPorCodigo } from '../lib/paises'
+import TextoDeEtiqueta from './TextoDeEtiqueta'
 import CampoPais from './CampoPais'
 
 interface Props {
@@ -39,7 +40,7 @@ export default function CampoTelefono({
     <div>
       {label && (
         <label className="mb-1.5 block text-sm font-medium text-ink/70">
-          {label}
+          <TextoDeEtiqueta texto={label} />
         </label>
       )}
 

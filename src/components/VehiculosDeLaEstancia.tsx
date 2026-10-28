@@ -98,8 +98,15 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
       ? `Revisa la placa: entre ${parametros.numero('placa_largo_minimo')} y ${parametros.numero('placa_largo_maximo')} letras y números.`
       : ''
 
+  // Marca y color también: la portería reconoce el carro por ellos antes de
+  // leer la placa (Para Claude 116, 27/10/2026). El tipo sigue opcional.
   const completo =
-    limpia !== '' && responsableId !== '' && !repetida && !largoMalo
+    limpia !== '' &&
+    marca.trim() !== '' &&
+    color.trim() !== '' &&
+    responsableId !== '' &&
+    !repetida &&
+    !largoMalo
 
   const anadir = async () => {
     if (!completo || guardando) return
@@ -109,8 +116,8 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
       await guardarVehiculo(token, {
         placa: normalizarPlaca(placa),
         tipo: tipo || undefined,
-        marca: marca.trim() || undefined,
-        color: color.trim() || undefined,
+        marca: marca.trim(),
+        color: color.trim(),
         responsableId,
       })
       setLista(await vehiculosDelPrecheckin(token))
@@ -225,7 +232,7 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
           <p className="mb-3 text-sm font-bold text-ink">Vehículo {lista.length + 1}</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <Input
-              label="Placa"
+              label="Placa *"
               tone="soft"
               placeholder="Ingrese la placa"
               value={placa}
@@ -233,14 +240,14 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
               onChange={(e) => setPlaca(normalizarPlaca(e.target.value))}
             />
             <Input
-              label="Marca"
+              label="Marca *"
               tone="soft"
               placeholder="Ingrese la marca"
               value={marca}
               onChange={(e) => setMarca(e.target.value)}
             />
             <Input
-              label="Color"
+              label="Color *"
               tone="soft"
               placeholder="Ingrese el color"
               value={color}
@@ -249,7 +256,7 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
           </div>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Select
-              label="Adulto responsable del vehículo"
+              label="Adulto responsable del vehículo *"
               tone="soft"
               placeholder="Seleccione"
               options={adultos.map((a) => ({

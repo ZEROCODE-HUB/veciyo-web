@@ -1,4 +1,5 @@
 import type { InputHTMLAttributes } from 'react'
+import TextoDeEtiqueta from './TextoDeEtiqueta'
 import { useId } from 'react'
 
 type Tone = 'default' | 'soft'
@@ -49,7 +50,7 @@ export default function Input({
             strongLabel ? 'font-semibold text-ink' : 'font-medium text-ink'
           }`}
         >
-          {label}
+          <TextoDeEtiqueta texto={label} />
         </label>
       )}
       <input

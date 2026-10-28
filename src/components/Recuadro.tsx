@@ -1,4 +1,5 @@
 import type { InputHTMLAttributes } from 'react'
+import TextoDeEtiqueta from './TextoDeEtiqueta'
 
 /**
  * El recuadro de dato de la maqueta: etiqueta pequeña en mayúsculas sobre el
@@ -19,7 +20,7 @@ export default function Recuadro({ etiqueta, error, value, onChange, ...resto }:
     <div>
       <label className="block min-w-0 rounded-xl border border-line bg-surface-soft px-4 py-3 focus-within:border-brand">
         <span className="block text-[11px] font-semibold uppercase tracking-wider text-ink/60">
-          {etiqueta}
+          <TextoDeEtiqueta texto={etiqueta} />
         </span>
         {onChange ? (
           // 16 px: con menos, el iPhone se acerca solo al tocar el campo

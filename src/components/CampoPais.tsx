@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import TextoDeEtiqueta from './TextoDeEtiqueta'
 import { ChevronDownIcon } from './icons'
 import { buscarPaises, paisPorCodigo } from '../lib/paises'
 
@@ -77,7 +78,7 @@ export default function CampoPais({
     <div ref={caja} className={`relative ${className}`}>
       {label && (
         <label htmlFor={id} className="mb-2 block text-sm font-medium text-ink">
-          {label}
+          <TextoDeEtiqueta texto={label} />
         </label>
       )}
       <button

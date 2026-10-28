@@ -1,4 +1,5 @@
 import type { SelectHTMLAttributes } from 'react'
+import TextoDeEtiqueta from './TextoDeEtiqueta'
 import { useId } from 'react'
 import { ChevronDownIcon } from './icons'
 
@@ -44,7 +45,7 @@ export default function Select({
             strongLabel ? 'font-semibold text-ink' : 'font-medium text-ink'
           }`}
         >
-          {label}
+          <TextoDeEtiqueta texto={label} />
         </label>
       )}
       <div className="relative">

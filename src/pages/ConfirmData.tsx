@@ -440,20 +440,20 @@ export default function ConfirmData() {
           */}
           <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
             <Recuadro
-              etiqueta="Nombre"
+              etiqueta="Nombre *"
               placeholder="Como figura en el documento"
               value={nombre}
               onChange={(e) => setNombre(soloNombre(e.target.value))}
             />
             <Recuadro
-              etiqueta="Apellido"
+              etiqueta="Apellido *"
               placeholder="Como figuran en el documento"
               value={apellidos}
               onChange={(e) => setApellidos(soloNombre(e.target.value))}
             />
-            <Recuadro etiqueta="Tipo de identificación" value={etiquetaDoc} />
+            <Recuadro etiqueta="Tipo de identificación *" value={etiquetaDoc} />
             <Recuadro
-              etiqueta="Número de identificación"
+              etiqueta="Número de identificación *"
               placeholder="Tal como aparece en el documento"
               value={documento}
               error={errorDeDocumento(regla, documento)}
@@ -462,7 +462,7 @@ export default function ConfirmData() {
           </div>
           {pideFechaExpedicion(regla) ? (
             <Input
-              label="Fecha de expedición del documento"
+              label="Fecha de expedición del documento *"
               type="date"
               tone="soft"
               max={hoyEnIso()}
@@ -476,7 +476,7 @@ export default function ConfirmData() {
             />
           ) : null}
           <Input
-            label="Correo electrónico"
+            label="Correo electrónico *"
             type="email"
             tone="soft"
             placeholder="correo@ejemplo.com"
@@ -537,21 +537,21 @@ export default function ConfirmData() {
               onChange={(e) => setDireccion(e.target.value)}
             />
             <Input
-              label="Ciudad donde vives"
+              label="Ciudad donde vives *"
               tone="soft"
               placeholder="Medellín"
               value={ciudadResidencia}
               onChange={(e) => setCiudadResidencia(e.target.value)}
             />
             <Input
-              label="Ciudad desde la que viajas"
+              label="Ciudad desde la que viajas *"
               tone="soft"
               placeholder="Lima"
               value={ciudadProcedencia}
               onChange={(e) => setCiudadProcedencia(e.target.value)}
             />
             <Input
-              label="Lo que pagaste por la estancia"
+              label="Lo que pagaste por la estancia *"
               type="text"
               inputMode="numeric"
               tone="soft"
@@ -562,7 +562,7 @@ export default function ConfirmData() {
             />
             <SelectorDeMoneda label="Moneda de lo que pagaste" value={moneda} onChange={setMoneda} />
             <CampoPais
-              label="Nacionalidad"
+              label="Nacionalidad *"
               tone="soft"
               placeholder="Seleccione"
               value={nacionalidad}
@@ -570,7 +570,7 @@ export default function ConfirmData() {
             />
             {/* Nadie nace mañana: el calendario no ofrece el futuro. */}
             <Input
-              label="Fecha de nacimiento"
+              label="Fecha de nacimiento *"
               type="date"
               tone="soft"
               max={hoyEnIso()}
