@@ -43,13 +43,13 @@ import {
   legalesDeLaEstancia,
   type DocumentoLegal,
   guardarFicha,
-  MOTIVOS,
   TIPOS_DOCUMENTO,
   tokenActual,
   type MisDatos,
   type Motivo,
   type TipoDocumento,
 } from '../lib/precheckin'
+import { useListaDeLaBase } from '../lib/listas'
 
 
 /**
@@ -67,6 +67,7 @@ import {
  * seguirá sirviendo tal cual: llegará con los campos llenos en vez de vacíos.
  */
 export default function ConfirmData() {
+  const motivos = useListaDeLaBase('motivos_de_viaje')
   const navigate = useNavigate()
   const location = useLocation()
   const token = tokenActual()
@@ -582,7 +583,7 @@ export default function ConfirmData() {
               label="Motivo de alojamiento"
               tone="soft"
               placeholder="Elige un motivo"
-              options={MOTIVOS as unknown as { value: string; label: string }[]}
+              options={motivos.opciones}
               value={motivo}
               onChange={(e) => setMotivo(e.target.value as Motivo | '')}
             />

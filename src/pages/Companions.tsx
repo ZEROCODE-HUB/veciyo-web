@@ -43,7 +43,6 @@ import {
   TIPOS_DOCUMENTO,
   adultosDeLaEstancia,
   necesitaPermiso,
-  PARENTESCOS,
   subirAutorizacionMenor,
   subirLoElegido,
   avisoDeLoQueNoSubio,
@@ -54,6 +53,7 @@ import {
   type Parentesco,
   type TipoDocumento,
 } from '../lib/precheckin'
+import { useListaDeLaBase } from '../lib/listas'
 
 /**
  * Qué puede ser el responsable de un menor.
@@ -82,6 +82,7 @@ import {
  * paso y prefiero no dejar otro formulario que finge guardar.
  */
 export default function Companions() {
+  const parentescos = useListaDeLaBase('responsables_de_menor')
   const navigate = useNavigate()
   const token = tokenActual()
   // Los documentos del país del edificio y sus reglas (25/10/2026).
@@ -735,7 +736,7 @@ export default function Companions() {
                             label="Parentesco"
                             tone="soft"
                             placeholder="Elige"
-                            options={PARENTESCOS as unknown as { value: string; label: string }[]}
+                            options={parentescos.opciones}
                             value={parentesco}
                             onChange={(e) => setParentesco(e.target.value as Parentesco | '')}
                           />

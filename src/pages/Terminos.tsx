@@ -10,6 +10,7 @@
  * que la vea uno antes de la marcha blanca.
  */
 import MainLayout from '../layouts/MainLayout'
+import CorreoDeLaBase from '../components/CorreoDeLaBase'
 
 const ACTUALIZADA = '6 de octubre de 2026'
 
@@ -131,9 +132,7 @@ export default function Terminos() {
           <p>
             Si cambiamos algo que le afecte, se lo diremos dentro de la
             aplicación antes de que entre en vigor. Para cualquier duda:{' '}
-            <a className="underline" href="mailto:hola@veciyo.com">
-              hola@veciyo.com
-            </a>
+            <CorreoDeLaBase clave="correo_contacto" />
             .
           </p>
         </Seccion>

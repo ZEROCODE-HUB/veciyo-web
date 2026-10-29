@@ -19,6 +19,7 @@
  * reporte a las autoridades, que tiene plazos y multas—.
  */
 import MainLayout from '../layouts/MainLayout'
+import CorreoDeLaBase from '../components/CorreoDeLaBase'
 
 const ACTUALIZADA = '6 de octubre de 2026'
 
@@ -49,9 +50,7 @@ export default function Privacidad() {
           </p>
           <p>
             Para cualquier solicitud sobre sus datos:{' '}
-            <a className="underline" href="mailto:privacidad@veciyo.com">
-              privacidad@veciyo.com
-            </a>
+            <CorreoDeLaBase clave="correo_privacidad" />
             .
           </p>
         </Seccion>
@@ -164,9 +163,7 @@ export default function Privacidad() {
           <p>
             Puede conocer, actualizar, rectificar y suprimir sus datos, y
             revocar la autorización, escribiendo a{' '}
-            <a className="underline" href="mailto:privacidad@veciyo.com">
-              privacidad@veciyo.com
-            </a>
+            <CorreoDeLaBase clave="correo_privacidad" />
             . Si está en Colombia, esto es lo que le reconoce la Ley 1581 de
             2012; también puede reclamar ante la Superintendencia de Industria y
             Comercio.

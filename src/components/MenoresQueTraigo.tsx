@@ -9,7 +9,6 @@ import { porQueFallo } from '../lib/motivo'
 import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
 import { errorDeDocumento, soloNombre } from '../lib/ficha'
 import {
-  PARENTESCOS,
   adultosParaAcompanante,
   guardarMenorAcompanante,
   menoresACargo,
@@ -24,6 +23,7 @@ import {
   type Parentesco,
   type TipoDocumento,
 } from '../lib/precheckin'
+import { useListaDeLaBase } from '../lib/listas'
 
 interface Props {
   token: string
@@ -48,6 +48,7 @@ interface Props {
  * Y es opcional: quien viene solo no tiene que hacer nada aquí.
  */
 export default function MenoresQueTraigo({ token, llegada }: Props) {
+  const parentescos = useListaDeLaBase('responsables_de_menor')
   // Los documentos de un menor en el país del edificio (25/10/2026).
   const { documentos } = useDocumentos(token)
   const [lista, setLista] = useState<MenorACargo[]>([])
@@ -354,7 +355,7 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
             label="Parentesco"
             tone="soft"
             placeholder="Elige"
-            options={PARENTESCOS as unknown as { value: string; label: string }[]}
+            options={parentescos.opciones}
             value={parentesco}
             onChange={(e) => setParentesco(e.target.value as Parentesco | '')}
           />

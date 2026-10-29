@@ -384,15 +384,9 @@ export function tieneDosCaras(regla: { dosCaras: boolean } | null | undefined): 
   return regla?.dosCaras ?? false
 }
 
-export const MOTIVOS = [
-  { value: 'turismo', label: 'Turismo' },
-  { value: 'negocios', label: 'Negocios' },
-  { value: 'trabajo', label: 'Trabajo' },
-  { value: 'estudios', label: 'Estudios' },
-  { value: 'transito', label: 'Tránsito' },
-] as const
-
-export type Motivo = (typeof MOTIVOS)[number]['value']
+// Los nombres de los motivos son la lista `motivos_de_viaje` de la base
+// (`useListaDeLaBase`, 28/10/2026); los códigos, el enum `motivo_estancia`.
+export type Motivo = 'turismo' | 'negocios' | 'trabajo' | 'estudios' | 'transito'
 
 export interface FichaPrecheckin {
   nombre: string
@@ -1132,26 +1126,8 @@ export async function quitarMenorAcompanante(
   if (error) throw error
 }
 
-/**
- * Qué es el responsable de un menor, para los desplegables.
- *
- * Vivía suelto dentro de `Companions.tsx`, y el 09/10/2026 hizo falta en una
- * segunda pantalla —la del acompañante que trae a sus hijos—. Dos listas con
- * las mismas cuatro etiquetas se separan en silencio: ya pasó en este
- * proyecto con el rango horario de un turno, que un sitio componía con « - »
- * y otro leía con « a », y el borde de «está en turno» no se encendía para
- * nadie.
- *
- * El orden importa poco; que sea **el mismo** en los dos sitios, mucho.
- */
-export const PARENTESCOS: { value: Parentesco; label: string }[] = [
-  { value: 'madre', label: 'Su madre' },
-  { value: 'padre', label: 'Su padre' },
-  { value: 'tutor_legal', label: 'Su tutor legal' },
-  // «Otra persona» se quitó el 16/10/2026 (responsable de producto): un
-  // menor entra con su madre, su padre o su tutor legal. El valor sigue en el
-  // tipo porque puede haber fichas antiguas con él.
-]
+// Quién responde por un menor: lista `responsables_de_menor` de la base
+// (`useListaDeLaBase`, 28/10/2026). La app y la web leen la misma.
 
 /* ========================================================================== *
  * Horas previstas, reglas del edificio y vehículos
@@ -1374,16 +1350,9 @@ export async function aceptarReglamento(
   if (error) throw error
 }
 
-/** Los tipos de vehículo que la base acepta. */
-export const TIPOS_VEHICULO = [
-  { value: 'auto', label: 'Automóvil' },
-  { value: 'camioneta', label: 'Camioneta' },
-  { value: 'moto', label: 'Moto' },
-  { value: 'bus', label: 'Bus' },
-  { value: 'van', label: 'Van' },
-] as const
-
-export type TipoVehiculo = (typeof TIPOS_VEHICULO)[number]['value']
+// Los nombres de los tipos de vehículo son la lista `tipos_de_vehiculo` de la
+// base (`useListaDeLaBase`, 28/10/2026); los códigos, el enum `tipo_vehiculo`.
+export type TipoVehiculo = 'auto' | 'camioneta' | 'moto' | 'bus' | 'van'
 
 export interface VehiculoDelPrecheckin {
   id: string

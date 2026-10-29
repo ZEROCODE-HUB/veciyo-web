@@ -7,11 +7,11 @@ import Hito from './Hito'
 import BloqueTutela from './BloqueTutela'
 import {
   necesitaPermiso,
-  PARENTESCOS,
   TIPOS_DOCUMENTO,
   type Acompanante,
   type AdultoDeLaEstancia,
 } from '../lib/precheckin'
+import { useListaDeLaBase } from '../lib/listas'
 
 /**
  * La tarjeta de cada acompañante, con el aspecto de la maqueta (15/10/2026):
@@ -59,11 +59,12 @@ export default function TarjetaAcompanante({
   onQuitar,
   children,
 }: Props) {
+  const parentescos = useListaDeLaBase('responsables_de_menor')
   const titulo = persona.nombre?.trim() || `Acompañante ${numero}`
   const responsable = adultos.find((a) => a.id === persona.responsable_id)
   // «Otra persona» ya no se ofrece, pero puede venir en fichas antiguas.
   const parentesco =
-    PARENTESCOS.find((p) => p.value === persona.parentesco)?.label ??
+    parentescos.etiquetaDe(persona.parentesco) ??
     (persona.parentesco === 'otro' ? 'Otra persona' : undefined)
 
   return (

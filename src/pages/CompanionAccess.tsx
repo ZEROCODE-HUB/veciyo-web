@@ -28,7 +28,6 @@ import { useDocumentos } from '../lib/useDocumentos'
 import CampoPais from '../components/CampoPais'
 import { esMayorDeEdadAlLlegar, hoyEnIso } from '../lib/edad'
 import {
-  MOTIVOS,
   entradaElegida,
   fotosDeMiDocumento,
   guardarDireccionYMotivoAcompanante,
@@ -48,6 +47,7 @@ import {
   type TipoDocumento,
   subirDocumentoPrecheckin,
 } from '../lib/precheckin'
+import { useListaDeLaBase } from '../lib/listas'
 
 /**
  * El acompañante llena **sus** datos y acepta **sus** términos.
@@ -104,6 +104,7 @@ const VACIA: Ficha = {
 }
 
 export default function CompanionAccess() {
+  const motivos = useListaDeLaBase('motivos_de_viaje')
   const { token } = useParams<{ token: string }>()
   const [estado, setEstado] = useState<Estado>('cargando')
   const [ficha, setFicha] = useState<Ficha>(VACIA)
@@ -529,7 +530,7 @@ export default function CompanionAccess() {
                   label="Motivo de alojamiento"
                   tone="soft"
                   placeholder="Elige un motivo"
-                  options={MOTIVOS as unknown as { value: string; label: string }[]}
+                  options={motivos.opciones}
                   value={ficha.motivo}
                   onChange={(e) => campo('motivo')(e.target.value)}
                 />

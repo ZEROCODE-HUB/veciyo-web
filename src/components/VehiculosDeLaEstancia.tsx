@@ -7,7 +7,6 @@ import Button from './Button'
 import { porQueFallo } from '../lib/motivo'
 import { useParametros } from '../lib/useParametros'
 import {
-  TIPOS_VEHICULO,
   cupoDeVehiculos,
   estacionamientosDelPrecheckin,
   guardarVehiculo,
@@ -18,6 +17,7 @@ import {
   type TipoVehiculo,
   type VehiculoDelPrecheckin,
 } from '../lib/precheckin'
+import { useListaDeLaBase } from '../lib/listas'
 
 interface Props {
   token: string
@@ -36,6 +36,7 @@ interface Props {
  * Es opcional: quien llega a pie no tiene que hacer nada.
  */
 export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
+  const tipos = useListaDeLaBase('tipos_de_vehiculo')
   const [lista, setLista] = useState<VehiculoDelPrecheckin[]>([])
   const [error, setError] = useState<string | null>(null)
   const [abierto, setAbierto] = useState(false)
@@ -164,7 +165,7 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
   }
 
   const etiquetaTipo = (valor: TipoVehiculo | null) =>
-    TIPOS_VEHICULO.find((t) => t.value === valor)?.label ?? null
+    tipos.etiquetaDe(valor)
 
   /*
     El aspecto de la maqueta (15/10/2026): «Vehículos» como encabezado pequeño
@@ -270,7 +271,7 @@ export default function VehiculosDeLaEstancia({ token, adultos }: Props) {
               label="Tipo"
               tone="soft"
               placeholder="Elige"
-              options={TIPOS_VEHICULO as unknown as { value: string; label: string }[]}
+              options={tipos.opciones}
               value={tipo}
               onChange={(e) => setTipo(e.target.value as TipoVehiculo | '')}
             />
