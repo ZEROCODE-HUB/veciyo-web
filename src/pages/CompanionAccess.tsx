@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
 import Card from '../components/Card'
@@ -19,9 +19,11 @@ import {
   errorDeDocumento,
   errorDeFechaExpedicion,
   errorDeNacimientoImposible,
+  camposObligatoriosDe,
   limitesDeLaFicha,
   loQueFaltaEnLaFicha,
   pideFechaExpedicion,
+  reglaDelCampo,
 } from '../lib/ficha'
 import { useParametros } from '../lib/useParametros'
 import { useDocumentos } from '../lib/useDocumentos'
@@ -105,6 +107,15 @@ const VACIA: Ficha = {
 
 export default function CompanionAccess() {
   const motivos = useListaDeLaBase('motivos_de_viaje')
+  /*
+    Qué se le exige a un acompañante lo dice la base desde el 29/10/2026 (la
+    columna `acompanante` de cada campo). Sin ella, lo de siempre.
+  */
+  const camposDeLaBase = useListaDeLaBase('campos_obligatorios_preregistro')
+  const obligatorios = useMemo(
+    () => camposObligatoriosDe(camposDeLaBase.filas),
+    [camposDeLaBase.filas],
+  )
   const { token } = useParams<{ token: string }>()
   const [estado, setEstado] = useState<Estado>('cargando')
   const [ficha, setFicha] = useState<Ficha>(VACIA)
@@ -254,7 +265,10 @@ export default function CompanionAccess() {
       ? ['el nombre']
       : []
     : limites && documentos
-      ? loQueFaltaEnLaFicha({ ...ficha, costo: '' }, { esTitular: false, limites, documentos })
+      ? loQueFaltaEnLaFicha(
+          { ...ficha, costo: '' },
+          { esTitular: false, limites, documentos, obligatorios },
+        )
       : []
   const errorDeFecha = esMenor || !limites
     ? ''
@@ -263,8 +277,9 @@ export default function CompanionAccess() {
       !esMayorDeEdadAlLlegar(ficha.fechaNacimiento, estancia.desde)
         ? 'Este enlace es para un adulto. A un menor lo añade quien responde por él, desde su propio registro.'
         : '')
-  if (errorDeFecha !== '' && !faltan.includes('la fecha de nacimiento')) {
-    faltan.push('la fecha de nacimiento')
+  const faltaElNacimiento = reglaDelCampo(obligatorios, 'fecha_nacimiento').etiqueta
+  if (errorDeFecha !== '' && !faltan.includes(faltaElNacimiento)) {
+    faltan.push(faltaElNacimiento)
   }
   if (!esMenor) {
     if (ficha.direccion.trim() === '') faltan.push('la dirección de residencia')

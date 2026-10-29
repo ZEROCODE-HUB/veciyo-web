@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import SelectorDeMoneda from '../components/SelectorDeMoneda'
 import { useLocation, useNavigate, Navigate } from 'react-router-dom'
 import MainLayout from '../layouts/MainLayout'
@@ -24,9 +24,13 @@ import {
   errorDeFechaExpedicion,
   errorDeNacimientoImposible,
   errorDeTelefono,
+  camposObligatoriosDe,
+  esObligatorio,
   limitesDeLaFicha,
   loQueFaltaEnLaFicha,
   pideFechaExpedicion,
+  reglaDelCampo,
+  type CampoDeLaFicha,
 } from '../lib/ficha'
 import { useParametros } from '../lib/useParametros'
 import { useDocumentos } from '../lib/useDocumentos'
@@ -68,6 +72,17 @@ import { useListaDeLaBase } from '../lib/listas'
  */
 export default function ConfirmData() {
   const motivos = useListaDeLaBase('motivos_de_viaje')
+  /*
+    Qué campos son obligatorios lo dice la base desde el 29/10/2026. Mientras
+    no llega --o si no llega--, `loQueFaltaEnLaFicha` exige lo de siempre.
+  */
+  const camposDeLaBase = useListaDeLaBase('campos_obligatorios_preregistro')
+  const obligatorios = useMemo(
+    () => camposObligatoriosDe(camposDeLaBase.filas),
+    [camposDeLaBase.filas],
+  )
+  /** « *» detrás de la etiqueta si ese campo es obligatorio para quien reserva. */
+  const marca = (campo: CampoDeLaFicha) => (esObligatorio(obligatorios, campo, true) ? ' *' : '')
   const navigate = useNavigate()
   const location = useLocation()
   const token = tokenActual()
@@ -336,10 +351,11 @@ export default function ConfirmData() {
       costo,
       fechaExpedicion,
     },
-    { esTitular: true, limites, documentos },
+    { esTitular: true, limites, documentos, obligatorios },
   )
-  if (errorDeFecha !== '' && !faltan.includes('la fecha de nacimiento')) {
-    faltan.push('la fecha de nacimiento')
+  const faltaElNacimiento = reglaDelCampo(obligatorios, 'fecha_nacimiento').etiqueta
+  if (errorDeFecha !== '' && !faltan.includes(faltaElNacimiento)) {
+    faltan.push(faltaElNacimiento)
   }
   if (!aceptados) faltan.push('aceptar los términos y condiciones')
   if (hayReglas && !reglasAceptadas) faltan.push('aceptar las reglas del edificio')
@@ -441,20 +457,20 @@ export default function ConfirmData() {
           */}
           <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
             <Recuadro
-              etiqueta="Nombre *"
+              etiqueta={`Nombre${marca('nombre')}`}
               placeholder="Como figura en el documento"
               value={nombre}
               onChange={(e) => setNombre(soloNombre(e.target.value))}
             />
             <Recuadro
-              etiqueta="Apellido *"
+              etiqueta={`Apellido${marca('apellidos')}`}
               placeholder="Como figuran en el documento"
               value={apellidos}
               onChange={(e) => setApellidos(soloNombre(e.target.value))}
             />
-            <Recuadro etiqueta="Tipo de identificación *" value={etiquetaDoc} />
+            <Recuadro etiqueta={`Tipo de identificación${marca('tipo_documento')}`} value={etiquetaDoc} />
             <Recuadro
-              etiqueta="Número de identificación *"
+              etiqueta={`Número de identificación${marca('documento')}`}
               placeholder="Tal como aparece en el documento"
               value={documento}
               error={errorDeDocumento(regla, documento)}
@@ -463,7 +479,7 @@ export default function ConfirmData() {
           </div>
           {pideFechaExpedicion(regla) ? (
             <Input
-              label="Fecha de expedición del documento *"
+              label={`Fecha de expedición del documento${marca('fecha_expedicion')}`}
               type="date"
               tone="soft"
               max={hoyEnIso()}
@@ -477,7 +493,7 @@ export default function ConfirmData() {
             />
           ) : null}
           <Input
-            label="Correo electrónico *"
+            label={`Correo electrónico${marca('correo')}`}
             type="email"
             tone="soft"
             placeholder="correo@ejemplo.com"
@@ -538,21 +554,21 @@ export default function ConfirmData() {
               onChange={(e) => setDireccion(e.target.value)}
             />
             <Input
-              label="Ciudad donde vives *"
+              label={`Ciudad donde vives${marca('ciudad_residencia')}`}
               tone="soft"
               placeholder="Medellín"
               value={ciudadResidencia}
               onChange={(e) => setCiudadResidencia(e.target.value)}
             />
             <Input
-              label="Ciudad desde la que viajas *"
+              label={`Ciudad desde la que viajas${marca('ciudad_procedencia')}`}
               tone="soft"
               placeholder="Lima"
               value={ciudadProcedencia}
               onChange={(e) => setCiudadProcedencia(e.target.value)}
             />
             <Input
-              label="Lo que pagaste por la estancia *"
+              label={`Lo que pagaste por la estancia${marca('costo')}`}
               type="text"
               inputMode="numeric"
               tone="soft"
@@ -563,7 +579,7 @@ export default function ConfirmData() {
             />
             <SelectorDeMoneda label="Moneda de lo que pagaste" value={moneda} onChange={setMoneda} />
             <CampoPais
-              label="Nacionalidad *"
+              label={`Nacionalidad${marca('nacionalidad')}`}
               tone="soft"
               placeholder="Elige"
               value={nacionalidad}
@@ -571,7 +587,7 @@ export default function ConfirmData() {
             />
             {/* Nadie nace mañana: el calendario no ofrece el futuro. */}
             <Input
-              label="Fecha de nacimiento *"
+              label={`Fecha de nacimiento${marca('fecha_nacimiento')}`}
               type="date"
               tone="soft"
               max={hoyEnIso()}

@@ -175,56 +175,158 @@ export interface DatosDeLaFicha {
 }
 
 /**
+ * Qué campos de la ficha son obligatorios, y cómo se llaman en el aviso
+ * «Para continuar falta…». Desde el 29/10/2026 lo dice la base
+ * (`catalogo_opcion`, lista `campos_obligatorios_preregistro`): el
+ * administrador de la app enciende o apaga, para quien reserva y para un
+ * acompañante, cada campo, y cambia su etiqueta. No puede agregar campos: los
+ * códigos son estos once.
+ *
+ * Solo se puede relajar el «vacío»: lo **mal escrito** --un documento que no
+ * cumple la regla, un correo sin arroba, un año imposible, un costo con
+ * letras-- sigue faltando aunque el campo no sea obligatorio, si se escribió
+ * algo. El teléfono no está en la lista: es opcional y se revisa si se escribe.
+ */
+export type CampoDeLaFicha =
+  | 'nombre'
+  | 'apellidos'
+  | 'tipo_documento'
+  | 'documento'
+  | 'correo'
+  | 'fecha_nacimiento'
+  | 'fecha_expedicion'
+  | 'nacionalidad'
+  | 'ciudad_residencia'
+  | 'ciudad_procedencia'
+  | 'costo'
+
+export interface ReglaDelCampo {
+  etiqueta: string
+  titular: boolean
+  acompanante: boolean
+}
+
+export type CamposObligatorios = ReadonlyMap<string, ReglaDelCampo>
+
+/**
+ * El respaldo: lo que se exigía antes del 29/10/2026, con sus mismos textos.
+ * Se usa mientras la lista no ha llegado, si la lectura falla o si a la lista
+ * le falta una fila. Así un fallo de red nunca deja pasar una ficha incompleta
+ * --lo contrario, pedir de más un momento, no hace daño--. Es el único lugar
+ * donde está escrito.
+ */
+export const CAMPOS_OBLIGATORIOS_DE_RESPALDO: Readonly<Record<CampoDeLaFicha, ReglaDelCampo>> = {
+  nombre: { etiqueta: 'tus nombres', titular: true, acompanante: true },
+  apellidos: { etiqueta: 'tus apellidos', titular: true, acompanante: true },
+  tipo_documento: { etiqueta: 'el tipo de documento', titular: true, acompanante: true },
+  documento: { etiqueta: 'el número de identificación', titular: true, acompanante: true },
+  correo: { etiqueta: 'un correo válido', titular: true, acompanante: false },
+  fecha_nacimiento: { etiqueta: 'la fecha de nacimiento', titular: true, acompanante: true },
+  fecha_expedicion: { etiqueta: 'la fecha de expedición del documento', titular: true, acompanante: true },
+  nacionalidad: { etiqueta: 'la nacionalidad', titular: true, acompanante: true },
+  ciudad_residencia: { etiqueta: 'la ciudad donde vives', titular: true, acompanante: false },
+  ciudad_procedencia: { etiqueta: 'la ciudad desde la que viajas', titular: true, acompanante: false },
+  costo: { etiqueta: 'lo que pagaste por la estancia', titular: true, acompanante: false },
+}
+
+/** Una fila de `catalogo_opcion` tal como llega. */
+export interface FilaDeCampoObligatorio {
+  codigo: string
+  etiqueta: string
+  activo: boolean
+  extra?: unknown
+}
+
+/**
+ * Las filas de la base, convertidas en la regla. Una fila apagada
+ * (`activo=false`) no obliga a nadie. Un dato que no se entiende --un booleano
+ * que no es booleano, una etiqueta vacía-- toma el del respaldo, y un código
+ * que no es de la ficha se ignora.
+ */
+export function camposObligatoriosDe(filas: readonly FilaDeCampoObligatorio[]): CamposObligatorios {
+  const regla = new Map<string, ReglaDelCampo>()
+  for (const f of filas) {
+    if (!Object.prototype.hasOwnProperty.call(CAMPOS_OBLIGATORIOS_DE_RESPALDO, f.codigo)) continue
+    const respaldo = CAMPOS_OBLIGATORIOS_DE_RESPALDO[f.codigo as CampoDeLaFicha]
+    const extra = (f.extra ?? {}) as { titular?: unknown; acompanante?: unknown }
+    const booleano = (v: unknown, siNo: boolean) => (typeof v === 'boolean' ? v : siNo)
+    regla.set(f.codigo, {
+      etiqueta: f.etiqueta?.trim() || respaldo.etiqueta,
+      titular: f.activo !== false && booleano(extra.titular, respaldo.titular),
+      acompanante: f.activo !== false && booleano(extra.acompanante, respaldo.acompanante),
+    })
+  }
+  return regla
+}
+
+/** La regla de un campo: la de la base, o la de respaldo si no la trae. */
+export function reglaDelCampo(
+  obligatorios: CamposObligatorios | null | undefined,
+  campo: CampoDeLaFicha,
+): ReglaDelCampo {
+  return obligatorios?.get(campo) ?? CAMPOS_OBLIGATORIOS_DE_RESPALDO[campo]
+}
+
+/** Si ese campo es obligatorio para quien llena la ficha. */
+export function esObligatorio(
+  obligatorios: CamposObligatorios | null | undefined,
+  campo: CampoDeLaFicha,
+  esTitular: boolean,
+): boolean {
+  const r = reglaDelCampo(obligatorios, campo)
+  return esTitular ? r.titular : r.acompanante
+}
+
+/**
  * Los nombres de lo que falta o está mal, en el orden del formulario.
  *
- * A quien reserva se le pide además lo que exige el ministerio de la estancia;
- * a un acompañante no se le pregunta el costo.
+ * Qué se exige a quien reserva y qué a un acompañante lo dice `obligatorios`
+ * (la lista de la base); sin ella, el respaldo de arriba, que es lo de antes:
+ * a quien reserva, además, lo que exige el ministerio de la estancia, y a un
+ * acompañante ni el costo ni el correo. Lo mal escrito falta siempre.
  */
 export function loQueFaltaEnLaFicha(
   d: DatosDeLaFicha,
-  opciones: { esTitular: boolean; limites: LimitesDeLaFicha; documentos: Documentos },
+  opciones: {
+    esTitular: boolean
+    limites: LimitesDeLaFicha
+    documentos: Documentos
+    obligatorios?: CamposObligatorios | null
+  },
 ): string[] {
   const faltan: string[] = []
-  const vacio = (v: string) => v.trim() === ''
-
-  if (vacio(d.nombre)) faltan.push('tus nombres')
-  if (vacio(d.apellidos)) faltan.push('tus apellidos')
-  if (vacio(d.tipoDocumento)) faltan.push('el tipo de documento')
-  const regla = opciones.documentos.regla(d.tipoDocumento)
-  if (vacio(d.documento) || errorDeDocumento(regla, d.documento)) {
-    faltan.push('el número de identificación')
-  }
-  if (
-    errorDeCorreo(d.correo) !== '' ||
-    (opciones.esTitular && vacio(d.correo))
-  ) {
-    faltan.push('un correo válido')
-  }
-  if (errorDeTelefono(d.telefono, opciones.limites)) faltan.push('el teléfono')
-  if (
-    vacio(d.fechaNacimiento) ||
-    errorDeNacimientoImposible(d.fechaNacimiento, opciones.limites)
-  ) {
-    faltan.push('la fecha de nacimiento')
-  }
-  if (
-    pideFechaExpedicion(regla) &&
-    (!d.fechaExpedicion ||
-      errorDeFechaExpedicion(
-        d.fechaExpedicion,
-        d.fechaNacimiento,
-        '9999-12-31',
-      ) !== '')
-  ) {
-    faltan.push('la fecha de expedición del documento')
-  }
-  if (vacio(d.nacionalidad)) faltan.push('la nacionalidad')
-  if (opciones.esTitular) {
-    if (vacio(d.ciudadResidencia)) faltan.push('la ciudad donde vives')
-    if (vacio(d.ciudadProcedencia)) faltan.push('la ciudad desde la que viajas')
-    if (vacio(d.costo) || errorDeCosto(d.costo)) {
-      faltan.push('lo que pagaste por la estancia')
+  const vacio = (v: string | undefined) => (v ?? '').trim() === ''
+  const { esTitular, obligatorios } = opciones
+  /** Obligatorio y en blanco, o escrito y mal. */
+  const revisar = (campo: CampoDeLaFicha, valor: string | undefined, malEscrito: boolean) => {
+    const enBlanco = vacio(valor)
+    if (enBlanco ? esObligatorio(obligatorios, campo, esTitular) : malEscrito) {
+      faltan.push(reglaDelCampo(obligatorios, campo).etiqueta)
     }
   }
+
+  revisar('nombre', d.nombre, false)
+  revisar('apellidos', d.apellidos, false)
+  revisar('tipo_documento', d.tipoDocumento, false)
+  const regla = opciones.documentos.regla(d.tipoDocumento)
+  revisar('documento', d.documento, errorDeDocumento(regla, d.documento) !== '')
+  revisar('correo', d.correo, errorDeCorreo(d.correo) !== '')
+  if (errorDeTelefono(d.telefono, opciones.limites)) faltan.push('el teléfono')
+  revisar(
+    'fecha_nacimiento',
+    d.fechaNacimiento,
+    errorDeNacimientoImposible(d.fechaNacimiento, opciones.limites) !== '',
+  )
+  if (pideFechaExpedicion(regla)) {
+    revisar(
+      'fecha_expedicion',
+      d.fechaExpedicion,
+      errorDeFechaExpedicion(d.fechaExpedicion ?? '', d.fechaNacimiento, '9999-12-31') !== '',
+    )
+  }
+  revisar('nacionalidad', d.nacionalidad, false)
+  revisar('ciudad_residencia', d.ciudadResidencia, false)
+  revisar('ciudad_procedencia', d.ciudadProcedencia, false)
+  revisar('costo', d.costo, errorDeCosto(d.costo) !== '')
   return faltan
 }

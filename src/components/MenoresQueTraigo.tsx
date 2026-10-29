@@ -24,6 +24,7 @@ import {
   type TipoDocumento,
 } from '../lib/precheckin'
 import { useListaDeLaBase } from '../lib/listas'
+import { useAceptaArchivos } from '../lib/formatosDeArchivo'
 
 interface Props {
   token: string
@@ -48,6 +49,8 @@ interface Props {
  * Y es opcional: quien viene solo no tiene que hacer nada aquí.
  */
 export default function MenoresQueTraigo({ token, llegada }: Props) {
+  const aceptaDocumento = useAceptaArchivos('documento_huesped')
+  const aceptaAutorizacion = useAceptaArchivos('autorizacion_menor')
   const parentescos = useListaDeLaBase('responsables_de_menor')
   // Los documentos de un menor en el país del edificio (25/10/2026).
   const { documentos } = useDocumentos(token)
@@ -227,7 +230,7 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
                       <input
                         type="file"
                         className="hidden"
-                        accept="image/jpeg,image/png,image/webp"
+                        accept={aceptaDocumento}
                         disabled={subiendo === menor.id}
                         onChange={(e) => {
                           const archivo = e.target.files?.[0]
@@ -263,7 +266,7 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
                           <input
                             type="file"
                             className="hidden"
-                            accept="image/jpeg,image/png,image/webp,application/pdf"
+                            accept={aceptaAutorizacion}
                             disabled={subiendo === menor.id}
                             onChange={(e) => {
                               const archivo = e.target.files?.[0]
@@ -368,7 +371,7 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
             compact
             title="Foto de su documento (opcional)"
             hint="El frente, donde se ve la foto"
-            accept="image/jpeg,image/png,image/webp"
+            accept={aceptaDocumento}
             onFileSelected={setFotoDocumento}
           />
           {necesitaPermiso(parentesco || null) && (
@@ -376,7 +379,7 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
               tone="soft"
               title="Carta de potestad / tutela notarial"
               hint="Hace falta al no ser su padre ni su madre. Foto o PDF."
-              accept="image/jpeg,image/png,image/webp,application/pdf"
+              accept={aceptaAutorizacion}
               onFileSelected={setAutorizacion}
             />
           )}

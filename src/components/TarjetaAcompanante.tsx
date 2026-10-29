@@ -12,6 +12,7 @@ import {
   type AdultoDeLaEstancia,
 } from '../lib/precheckin'
 import { useListaDeLaBase } from '../lib/listas'
+import { useAceptaArchivos } from '../lib/formatosDeArchivo'
 
 /**
  * La tarjeta de cada acompañante, con el aspecto de la maqueta (15/10/2026):
@@ -59,6 +60,8 @@ export default function TarjetaAcompanante({
   onQuitar,
   children,
 }: Props) {
+  const aceptaDocumento = useAceptaArchivos('documento_huesped')
+  const aceptaAutorizacion = useAceptaArchivos('autorizacion_menor')
   const parentescos = useListaDeLaBase('responsables_de_menor')
   const titulo = persona.nombre?.trim() || `Acompañante ${numero}`
   const responsable = adultos.find((a) => a.id === persona.responsable_id)
@@ -125,7 +128,7 @@ export default function TarjetaAcompanante({
                     compact
                     title="Documento adicional"
                     hint="Si la tutela viene en varias hojas. Foto o PDF."
-                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    accept={aceptaAutorizacion}
                     onFileSelected={(f) => f && onSubirAdicional(f)}
                   />
                 </>
@@ -135,7 +138,7 @@ export default function TarjetaAcompanante({
                   tone="soft"
                   title="Carta de potestad / tutela notarial"
                   hint="Hace falta al no ser su padre ni su madre. Foto o PDF."
-                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  accept={aceptaAutorizacion}
                   onFileSelected={(f) => f && onSubirCarta(f)}
                 />
               )
@@ -172,7 +175,7 @@ export default function TarjetaAcompanante({
             compact
             title="Foto de su documento"
             hint="El frente, donde se ve la foto"
-            accept="image/jpeg,image/png,image/webp"
+            accept={aceptaDocumento}
             onFileSelected={(f) => f && onSubirDocumento(f)}
           />
         )}

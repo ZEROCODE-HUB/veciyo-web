@@ -54,6 +54,7 @@ import {
   type TipoDocumento,
 } from '../lib/precheckin'
 import { useListaDeLaBase } from '../lib/listas'
+import { useAceptaArchivos } from '../lib/formatosDeArchivo'
 
 /**
  * Qué puede ser el responsable de un menor.
@@ -82,6 +83,8 @@ import { useListaDeLaBase } from '../lib/listas'
  * paso y prefiero no dejar otro formulario que finge guardar.
  */
 export default function Companions() {
+  const aceptaDocumento = useAceptaArchivos('documento_huesped')
+  const aceptaAutorizacion = useAceptaArchivos('autorizacion_menor')
   const parentescos = useListaDeLaBase('responsables_de_menor')
   const navigate = useNavigate()
   const token = tokenActual()
@@ -747,7 +750,7 @@ export default function Companions() {
                                 tone="soft"
                                 title="Carta de potestad / tutela notarial"
                                 hint="Foto o PDF."
-                                accept="image/jpeg,image/png,image/webp,application/pdf"
+                                accept={aceptaAutorizacion}
                                 onFileSelected={setAutorizacion}
                               />
                               {autorizacion &&
@@ -763,7 +766,7 @@ export default function Companions() {
                                   compact
                                   title={`Documento adicional ${adicionales.length + 1}`}
                                   hint="Si la tutela viene en varias hojas. Foto o PDF."
-                                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                                  accept={aceptaAutorizacion}
                                   onFileSelected={(f) => setAdicionales((antes) => [...antes, f])}
                                 />
                               )}
@@ -788,7 +791,7 @@ export default function Companions() {
                             key={`frente-${altaN}`}
                             tone="soft"
                             title={tieneDosCaras(reglaDelAlta) ? 'Foto del frente' : 'Foto del documento'}
-                            accept="image/jpeg,image/png,image/webp"
+                            accept={aceptaDocumento}
                             onFileSelected={setFotoDocumento}
                           />
                           {tieneDosCaras(reglaDelAlta) && (
@@ -796,7 +799,7 @@ export default function Companions() {
                               key={`reverso-${altaN}`}
                               tone="soft"
                               title="Foto del reverso"
-                              accept="image/jpeg,image/png,image/webp"
+                              accept={aceptaDocumento}
                               onFileSelected={setFotoReverso}
                             />
                           )}

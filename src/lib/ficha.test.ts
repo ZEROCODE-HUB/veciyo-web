@@ -9,7 +9,10 @@ import {
   loQueFaltaEnLaFicha,
   pideFechaExpedicion,
   soloNombre,
+  CAMPOS_OBLIGATORIOS_DE_RESPALDO,
+  camposObligatoriosDe,
   type DatosDeLaFicha,
+  type FilaDeCampoObligatorio,
   type LimitesDeLaFicha,
 } from './ficha'
 import { documentosDe, type ReglaDeDocumento } from './documentos'
@@ -221,5 +224,164 @@ describe('soloNombre', () => {
     expect(soloNombre('Ana3 María')).toBe('Ana María')
     expect(soloNombre("O'Neill-Peña Jr.")).toBe("O'Neill-Peña Jr.")
     expect(soloNombre('José#1 @Núñez')).toBe('José Núñez')
+  })
+})
+
+/*
+  Los campos obligatorios viven en la base desde el 29/10/2026
+  (`catalogo_opcion`, lista `campos_obligatorios_preregistro`). Aquí, la lista
+  tal como se sembró: la misma regla que había escrita.
+*/
+const SEMBRADA: FilaDeCampoObligatorio[] = Object.entries(CAMPOS_OBLIGATORIOS_DE_RESPALDO).map(
+  ([codigo, r]) => ({
+    codigo,
+    etiqueta: r.etiqueta,
+    activo: true,
+    extra: { titular: r.titular, acompanante: r.acompanante },
+  }),
+)
+const cambiar = (codigo: string, cambio: Partial<FilaDeCampoObligatorio>) =>
+  SEMBRADA.map((f) => (f.codigo === codigo ? { ...f, ...cambio } : f))
+
+/** Una ficha en blanco. */
+const EN_BLANCO: DatosDeLaFicha = {
+  nombre: '',
+  apellidos: '',
+  tipoDocumento: '',
+  documento: '',
+  correo: '',
+  telefono: '',
+  fechaNacimiento: '',
+  nacionalidad: '',
+  ciudadResidencia: '',
+  ciudadProcedencia: '',
+  costo: '',
+}
+
+describe('los campos obligatorios salen de la base (29/10/2026)', () => {
+  const base = { limites: LIMITES, documentos: COLOMBIA }
+
+  it('con la lista sembrada se pide exactamente lo de antes', () => {
+    const obligatorios = camposObligatoriosDe(SEMBRADA)
+    for (const esTitular of [true, false]) {
+      for (const ficha of [EN_BLANCO, BUENA, { ...BUENA, correo: 'malo', costo: '1,234' }]) {
+        expect(loQueFaltaEnLaFicha(ficha, { ...base, esTitular, obligatorios })).toEqual(
+          loQueFaltaEnLaFicha(ficha, { ...base, esTitular }),
+        )
+      }
+    }
+    expect(loQueFaltaEnLaFicha(EN_BLANCO, { ...base, esTitular: true, obligatorios })).toEqual([
+      'tus nombres',
+      'tus apellidos',
+      'el tipo de documento',
+      'el número de identificación',
+      'un correo válido',
+      'la fecha de nacimiento',
+      'la nacionalidad',
+      'la ciudad donde vives',
+      'la ciudad desde la que viajas',
+      'lo que pagaste por la estancia',
+    ])
+    expect(loQueFaltaEnLaFicha(EN_BLANCO, { ...base, esTitular: false, obligatorios })).toEqual([
+      'tus nombres',
+      'tus apellidos',
+      'el tipo de documento',
+      'el número de identificación',
+      'la fecha de nacimiento',
+      'la nacionalidad',
+    ])
+  })
+
+  it('apagar la ciudad donde vive para quien reserva deja de exigirla', () => {
+    const obligatorios = camposObligatoriosDe(
+      cambiar('ciudad_residencia', { extra: { titular: false, acompanante: false } }),
+    )
+    const sinCiudad = { ...BUENA, ciudadResidencia: '' }
+    expect(loQueFaltaEnLaFicha(sinCiudad, { ...base, esTitular: true, obligatorios })).toEqual([])
+    // Y sin la lista, se sigue pidiendo.
+    expect(loQueFaltaEnLaFicha(sinCiudad, { ...base, esTitular: true })).toEqual([
+      'la ciudad donde vives',
+    ])
+  })
+
+  it('una fila apagada no obliga a nadie', () => {
+    const obligatorios = camposObligatoriosDe(cambiar('nacionalidad', { activo: false }))
+    expect(
+      loQueFaltaEnLaFicha({ ...BUENA, nacionalidad: '' }, { ...base, esTitular: true, obligatorios }),
+    ).toEqual([])
+  })
+
+  it('lo mal escrito sigue faltando aunque el campo no sea obligatorio', () => {
+    const nadaObligatorio = camposObligatoriosDe(
+      SEMBRADA.map((f) => ({ ...f, extra: { titular: false, acompanante: false } })),
+    )
+    const opciones = { ...base, esTitular: true, obligatorios: nadaObligatorio }
+    // En blanco ya no falta nada...
+    expect(loQueFaltaEnLaFicha(EN_BLANCO, opciones)).toEqual([])
+    // ...pero lo escrito mal sí.
+    expect(
+      loQueFaltaEnLaFicha(
+        {
+          ...BUENA,
+          documento: 'ABC-12',
+          correo: 'no-es-correo',
+          telefono: '12',
+          fechaNacimiento: '1890-01-01',
+          costo: '10.555',
+        },
+        opciones,
+      ),
+    ).toEqual([
+      'el número de identificación',
+      'un correo válido',
+      'el teléfono',
+      'la fecha de nacimiento',
+      'lo que pagaste por la estancia',
+    ])
+    // A un acompañante el correo no se le exige, pero tampoco se le acepta uno malo.
+    expect(
+      loQueFaltaEnLaFicha(
+        { ...BUENA, correo: 'malo' },
+        { ...base, esTitular: false, obligatorios: camposObligatoriosDe(SEMBRADA) },
+      ),
+    ).toEqual(['un correo válido'])
+  })
+
+  it('la fecha de expedición mal puesta falta aunque no sea obligatoria', () => {
+    const obligatorios = camposObligatoriosDe(cambiar('fecha_expedicion', { activo: false }))
+    const ppt = { ...BUENA, tipoDocumento: 'ppt' }
+    expect(loQueFaltaEnLaFicha(ppt, { ...base, esTitular: true, obligatorios })).toEqual([])
+    expect(
+      loQueFaltaEnLaFicha({ ...ppt, fechaExpedicion: '1980-01-01' }, { ...base, esTitular: true, obligatorios }),
+    ).toEqual(['la fecha de expedición del documento'])
+  })
+
+  it('el aviso usa la etiqueta de la base', () => {
+    const obligatorios = camposObligatoriosDe(cambiar('nacionalidad', { etiqueta: 'tu país' }))
+    expect(
+      loQueFaltaEnLaFicha({ ...BUENA, nacionalidad: '' }, { ...base, esTitular: true, obligatorios }),
+    ).toEqual(['tu país'])
+  })
+
+  it('con la lista vacía, o sin una fila, se usa el respaldo: nunca se relaja', () => {
+    const antes = loQueFaltaEnLaFicha(EN_BLANCO, { ...base, esTitular: true })
+    expect(antes).toHaveLength(10)
+    expect(
+      loQueFaltaEnLaFicha(EN_BLANCO, { ...base, esTitular: true, obligatorios: camposObligatoriosDe([]) }),
+    ).toEqual(antes)
+    expect(loQueFaltaEnLaFicha(EN_BLANCO, { ...base, esTitular: true, obligatorios: null })).toEqual(antes)
+    const sinCosto = camposObligatoriosDe(SEMBRADA.filter((f) => f.codigo !== 'costo'))
+    expect(
+      loQueFaltaEnLaFicha({ ...BUENA, costo: '' }, { ...base, esTitular: true, obligatorios: sinCosto }),
+    ).toEqual(['lo que pagaste por la estancia'])
+  })
+
+  it('un extra que no se entiende toma el respaldo, y un código ajeno se ignora', () => {
+    const raro = camposObligatoriosDe([
+      ...cambiar('correo', { extra: { titular: 'sí' }, etiqueta: '  ' }),
+      { codigo: 'telefono', etiqueta: 'el teléfono', activo: true, extra: { titular: true } },
+    ])
+    expect(raro.get('correo')).toEqual(CAMPOS_OBLIGATORIOS_DE_RESPALDO.correo)
+    expect(raro.has('telefono')).toBe(false)
   })
 })
