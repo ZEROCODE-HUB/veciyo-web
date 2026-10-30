@@ -183,6 +183,13 @@ export default function Companions() {
     check-in llega siendo adulto.
   */
   const [llegada, setLlegada] = useState<string | null>(null)
+  /*
+    La tarjeta del acompañante nuevo no sale sola: la abre «Agregar
+    acompañante» y se cierra con «Quitar» o al guardarlo (Para Claude 168 y
+    173, 30/10/2026). Antes estaba siempre puesta encima de «Enviar
+    información» y confundía.
+  */
+  const [altaAbierta, setAltaAbierta] = useState(false)
 
   useEffect(() => {
     if (!token) return
@@ -207,6 +214,25 @@ export default function Companions() {
     fichaDelPrecheckin(token)
       .then(setTitular)
       .catch(() => {})
+  }, [token])
+
+  /*
+    Lo que un acompañante completa desde su enlace aparece aquí sin recargar
+    (Para Claude 172, 30/10/2026): se vuelve a pedir la lista cada pocos
+    segundos mientras la pantalla está abierta y a la vista.
+  */
+  useEffect(() => {
+    if (!token) return
+    const id = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return
+      Promise.all([listarAcompanantes(token), incapacidadesDelPrecheckin(token)])
+        .then(([acompanantes, declaradas]) => {
+          setLista(acompanantes)
+          setIncapacidades(declaradas)
+        })
+        .catch(() => {})
+    }, 5000)
+    return () => window.clearInterval(id)
   }, [token])
 
   if (!token) return <Navigate to="/invitacion" replace />
@@ -343,6 +369,7 @@ export default function Companions() {
       setLista(acompanantes)
       setAdultos(mayores)
       limpiar()
+      setAltaAbierta(false)
       setError(avisoDeLoQueNoSubio(fallos))
       const nueva = acompanantes.find((a) => a.id === id)
       if (nueva && quiereEnlace) void mandarEnlace(nueva)
@@ -502,6 +529,11 @@ export default function Companions() {
   const sinTerminar = lista.filter(
     (p) => !p.es_menor && !incapacidades[p.id] && (!p.terminos_aceptados || !p.tiene_documento),
   )
+  /*
+    «Enviar información» espera a que no quede nada a medias: ni la tarjeta
+    de uno nuevo abierta ni un acompañante con sus datos pendientes.
+  */
+  const pendienteDeEnviar = altaAbierta || sinTerminar.length > 0
   const etiquetaDocTitular =
     documentos?.regla(titular?.tipoDocumento)?.etiqueta ??
     TIPOS_DOCUMENTO.find((t) => t.value === titular?.tipoDocumento)?.label ??
@@ -633,10 +665,29 @@ export default function Companions() {
             />
 
             {/* La tarjeta del acompañante nuevo */}
-            {quedanPlazas ? (
+            {quedanPlazas && !altaAbierta ? (
+              <div className="mt-6 flex justify-center">
+                <Button type="button" variant="ghost" onClick={() => setAltaAbierta(true)}>
+                  + Agregar acompañante
+                </Button>
+              </div>
+            ) : quedanPlazas ? (
               <Card className="mt-6 px-6 py-7 sm:px-10 sm:py-8">
                 {/* El titular es la persona 1: el primer acompañante es el 2. */}
-                <h3 className="text-lg font-bold text-ink">Acompañante {lista.length + 2}</h3>
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-lg font-bold text-ink">Acompañante {lista.length + 2}</h3>
+                  <button
+                    type="button"
+                    className="text-sm font-semibold text-danger"
+                    disabled={guardando}
+                    onClick={() => {
+                      limpiar()
+                      setAltaAbierta(false)
+                    }}
+                  >
+                    Quitar
+                  </button>
+                </div>
 
                 <div className="mt-5 space-y-4 rounded-xl border border-line px-5 py-4">
                   <Interruptor
@@ -942,11 +993,18 @@ export default function Companions() {
               <Button
                 type="button"
                 className="w-full max-w-md py-3.5 text-base"
-                disabled={cerrando}
+                disabled={cerrando || pendienteDeEnviar}
                 onClick={finalizar}
               >
                 {cerrando ? 'Enviando…' : 'Enviar información'}
               </Button>
+              {pendienteDeEnviar && !cerrando && (
+                <p className="mt-3 text-center text-xs font-semibold text-ink/70">
+                  {altaAbierta
+                    ? 'Guarda o quita el acompañante que estás agregando para poder enviar.'
+                    : 'Falta que tus acompañantes completen sus datos y acepten sus términos.'}
+                </p>
+              )}
               {/* Cerrado el preregistro, la lista deja de tocarse desde aquí. */}
               <p className="mt-3 text-center text-xs text-ink/60">
                 Al enviar ya no vas a poder cambiar esta lista desde aquí.

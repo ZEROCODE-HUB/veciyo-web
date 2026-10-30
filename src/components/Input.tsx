@@ -1,6 +1,7 @@
 import type { InputHTMLAttributes } from 'react'
 import TextoDeEtiqueta from './TextoDeEtiqueta'
-import { useId } from 'react'
+import { useId, useState } from 'react'
+import { EyeIcon, EyeOffIcon } from './icons'
 
 type Tone = 'default' | 'soft'
 
@@ -36,8 +37,15 @@ export default function Input({
   error,
   className = '',
   id,
+  type,
   ...props
 }: InputProps) {
+  /*
+    Las contraseñas llevan un ojito para ver lo escrito y volver a taparlo
+    (Para Claude 182, 30/10/2026).
+  */
+  const esClave = type === 'password'
+  const [verClave, setVerClave] = useState(false)
   const autoId = useId()
   const inputId = id ?? autoId
   const idDelError = `${inputId}-error`
@@ -53,8 +61,10 @@ export default function Input({
           <TextoDeEtiqueta texto={label} />
         </label>
       )}
+      <div className="relative">
       <input
         id={inputId}
+        type={esClave && verClave ? 'text' : type}
         /*
           El borde rojo lo ve quien lo ve; `aria-invalid` y el texto enlazado
           con `aria-describedby` lo dicen para todos los demás.
@@ -65,9 +75,20 @@ export default function Input({
           error
             ? 'border border-danger bg-white focus:border-danger focus:ring-red-200'
             : tones[tone]
-        } ${className}`}
+        } ${esClave ? 'pr-12' : ''} ${className}`}
         {...props}
       />
+      {esClave ? (
+        <button
+          type="button"
+          onClick={() => setVerClave((v) => !v)}
+          aria-label={verClave ? 'Ocultar contraseña' : 'Ver contraseña'}
+          className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-muted hover:text-ink"
+        >
+          {verClave ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+        </button>
+      ) : null}
+      </div>
       {error ? (
         <p id={idDelError} role="alert" className="mt-1.5 text-xs text-danger">
           {error}
