@@ -751,7 +751,7 @@ export default function Companions() {
                     <>
                       {/* Si es menor lo dice su fecha, como en la base. */}
                       <Input
-                        label="Fecha de nacimiento"
+                        label={esMenor ? 'Fecha de nacimiento *' : 'Fecha de nacimiento'}
                         type="date"
                         tone="soft"
                         max={hoyEnIso()}
@@ -774,7 +774,7 @@ export default function Companions() {
                             potestad o tutela.
                           </p>
                           <Select
-                            label="Adulto responsable por el menor"
+                            label="Adulto responsable por el menor *"
                             tone="soft"
                             placeholder="Elige a un adulto de esta reserva"
                             options={adultos.map((a) => ({
@@ -787,7 +787,7 @@ export default function Companions() {
                             onChange={(e) => setResponsableId(e.target.value)}
                           />
                           <Select
-                            label="Parentesco"
+                            label="Parentesco *"
                             tone="soft"
                             placeholder="Elige"
                             options={parentescos.opciones}
@@ -828,7 +828,7 @@ export default function Companions() {
 
                       {/* El documento se pide a todos, también a un menor. */}
                       <Select
-                        label="Tipo de documento"
+                        label={esMenor ? 'Tipo de documento *' : 'Tipo de documento'}
                         tone="soft"
                         placeholder="Elige"
                         // A un menor, los de un menor en este país.
@@ -857,7 +857,7 @@ export default function Companions() {
                         </div>
                       )}
                       <Input
-                        label="Número de identificación"
+                        label={esMenor ? 'Número de identificación *' : 'Número de identificación'}
                         tone="soft"
                         placeholder="Tal como aparece en el documento"
                         value={documento}
