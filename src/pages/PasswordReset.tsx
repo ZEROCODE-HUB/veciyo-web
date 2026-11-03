@@ -172,9 +172,19 @@ export default function PasswordReset() {
                 Listo. Ya puedes entrar en la aplicación con tu contraseña
                 nueva{correo ? ` (${correo})` : ''}.
               </p>
-              <Link to="/invitacion" className="text-sm font-semibold text-brand">
-                Volver
-              </Link>
+              {/*
+                Directo a la app, que abre en el inicio de sesión (Para Claude
+                205, 03/11/2026): antes solo había «Volver», a la web.
+              */}
+              <a
+                href="veciyo://"
+                className="inline-block rounded-xl bg-brand px-6 py-3 text-sm font-bold text-white"
+              >
+                Abrir Veciyo
+              </a>
+              <p className="text-xs text-ink/60">
+                Si el botón no abre la app, ábrela tú desde el celular.
+              </p>
             </div>
           )}
         </Card>
