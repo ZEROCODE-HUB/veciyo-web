@@ -156,7 +156,7 @@ function Detalle({
       */}
       <p className="mx-auto mt-4 max-w-md text-center text-base leading-relaxed text-ink/80">
         {esHuesped
-          ? 'Crea tu cuenta para ver tu alojamiento durante la estadía.'
+          ? 'Entra a Veciyo para ver tu alojamiento durante la estadía.'
           : datos.unidad
             ? 'Crea tu cuenta para entrar a la vivienda que te asignaron.'
             : 'Crea tu cuenta para entrar a tu edificio.'}
@@ -199,10 +199,20 @@ function Detalle({
         <p className="text-sm font-bold text-ink">Cómo entrar</p>
         <ol className="mt-2 space-y-1.5 text-sm leading-relaxed text-ink/80">
           <li>1. Abre Veciyo con el botón de abajo.</li>
-          <li>
-            2. Crea tu cuenta con <strong className="break-all">{datos.correo}</strong>, el mismo
-            correo al que se emitió esta invitación.
-          </li>
+          {esHuesped ? (
+            <>
+              <li>
+                2. Inicia sesión con <strong className="break-all">{datos.correo}</strong>. Si
+                todavía no tienes cuenta, créala con ese mismo correo.
+              </li>
+              <li>3. Al entrar verás tu invitación: pulsa «Aceptar invitación».</li>
+            </>
+          ) : (
+            <li>
+              2. Crea tu cuenta con <strong className="break-all">{datos.correo}</strong>, el mismo
+              correo al que se emitió esta invitación.
+            </li>
+          )}
         </ol>
         <p className="mt-3 text-xs text-ink/60">
           Tiene que ser ese correo exacto. Con otro, la invitación no se puede
@@ -214,12 +224,22 @@ function Detalle({
           cuenta» llegaba aquí y no tenía a dónde ir (12/10/2026). La
           aplicación abre este mismo camino --`/invitacion?token=`--.
         */}
-        {token && (
+        {/*
+          El huésped va al inicio de sesión normal de la app, donde entra con su
+          cuenta o crea una, y allí le espera su invitación (Para Claude 223 y
+          224, 04/11/2026). Decía «Abrir Veciyo y crear mi cuenta» también a
+          quien ya tenía cuenta. Los demás roles siguen entrando por el token.
+        */}
+        {(esHuesped || token) && (
           <a
-            href={`${URL_DE_LA_APP}/invitacion?token=${encodeURIComponent(token)}`}
+            href={
+              esHuesped || !token
+                ? `${URL_DE_LA_APP}/`
+                : `${URL_DE_LA_APP}/invitacion?token=${encodeURIComponent(token)}`
+            }
             className="mt-4 block rounded-xl bg-brand px-4 py-3 text-center text-sm font-bold text-white transition-opacity hover:opacity-90"
           >
-            Abrir Veciyo y crear mi cuenta
+            Abrir Veciyo
           </a>
         )}
         {/*

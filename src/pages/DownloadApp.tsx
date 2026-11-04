@@ -32,8 +32,15 @@ export default function DownloadApp() {
   const location = useLocation()
   const navigate = useNavigate()
   const acceso = (location.state as { acceso?: string } | null)?.acceso ?? null
+  const entrada = entradaElegida()
   // Eligió «Crear una cuenta» al empezar: el «Sí» ya viene destacado.
-  const quiereCuenta = entradaElegida() === 'crear_cuenta'
+  const quiereCuenta = entrada === 'crear_cuenta'
+  /*
+    Entró con «Iniciar sesión»: ya tiene cuenta, así que no se le ofrece
+    crearla sino entrar con ella (Para Claude 223, 04/11/2026). «Sí, crear mi
+    cuenta» queda solo para quien hizo el preregistro como invitado.
+  */
+  const yaTieneCuenta = entrada === 'sesion'
   /*
     Al terminar se le pregunta si quiere su cuenta (16/10/2026). Si dice que sí,
     pasa a la página de crearla, que es donde están las tiendas; si no, se
@@ -123,10 +130,12 @@ export default function DownloadApp() {
           {acceso && !noPorAhora && (
             <div
               className={`mt-6 rounded-2xl border px-5 py-5 ${
-                quiereCuenta ? 'border-brand bg-brand/5' : 'border-line bg-surface-soft'
+                quiereCuenta || yaTieneCuenta ? 'border-brand bg-brand/5' : 'border-line bg-surface-soft'
               }`}
             >
-              <p className="text-base font-bold text-ink">¿Quieres crear tu cuenta en Veciyo?</p>
+              <p className="text-base font-bold text-ink">
+                {yaTieneCuenta ? 'Entra a Veciyo con tu cuenta' : '¿Quieres crear tu cuenta en Veciyo?'}
+              </p>
               <ul className="mt-3 space-y-2.5">
                 {POR_QUE_CREARLA.map((texto) => (
                   <li key={texto} className="flex gap-3 text-sm text-ink/80">
@@ -137,7 +146,7 @@ export default function DownloadApp() {
               </ul>
               <div className="mt-5 flex flex-col gap-2 sm:flex-row">
                 <Button type="button" className="flex-1 py-3" onClick={crearCuenta}>
-                  Sí, crear mi cuenta
+                  {yaTieneCuenta ? 'Iniciar sesión' : 'Sí, crear mi cuenta'}
                 </Button>
                 <Button
                   type="button"
