@@ -513,6 +513,8 @@ export default function CompanionAccess() {
               <div className="space-y-3">
                 {/* Las mismas cajas que el paso 1 del titular. */}
                 <FileUploader
+                  revisar
+                  conCamara
                   tone="soft"
                   title={
                     tieneDosCaras(regla)
@@ -524,6 +526,8 @@ export default function CompanionAccess() {
                 />
                 {tieneDosCaras(regla) && (
                   <FileUploader
+                    revisar
+                    conCamara
                     tone="soft"
                     title="Foto del reverso del documento"
                     hint={fotos.reverso ? 'Ya está guardada. Puedes cambiarla.' : undefined}

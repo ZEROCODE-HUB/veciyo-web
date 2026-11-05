@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { megabytesABytes, parametrosPublicos } from './parametros'
+import { revisarFoto } from './fotoDelDocumento'
 
 /**
  * El cliente con el que hablar con la base.
@@ -866,6 +867,14 @@ export async function subirDocumentoPrecheckin(
 ): Promise<void> {
   const url = import.meta.env.VITE_SUPABASE_URL
   if (!url) throw new Error('Sin conexión con el servidor')
+  /*
+    Reducida a 2000 px antes de subirla (05/11/2026): la foto de un celular
+    de hoy pesa 4-8 MB, un tercio más en base64, y pasaba del tope. Si el
+    navegador no puede abrirla, va tal cual y decide el servidor.
+  */
+  archivo = await revisarFoto(archivo)
+    .then((r) => r.archivo)
+    .catch(() => archivo)
   await comprobarTamano(archivo)
 
   // `FileReader` da `data:image/png;base64,AAA...`; la función quiere solo lo

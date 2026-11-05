@@ -368,6 +368,8 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
             los selectores empiezan vacíos cada vez.
           */}
           <FileUploader
+            revisar
+            conCamara
             compact
             title="Foto de su documento (opcional)"
             hint="El frente, donde se ve la foto"

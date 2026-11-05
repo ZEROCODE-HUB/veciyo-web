@@ -54,6 +54,7 @@ import {
   type TipoDocumento,
 } from '../lib/precheckin'
 import { useListaDeLaBase } from '../lib/listas'
+import { comoNombre, numeroParaComparar, type DatosDelCodigo } from '../lib/codigoDelDocumento'
 
 
 /**
@@ -265,6 +266,28 @@ export default function ConfirmData() {
     }
   }, [token])
   const [guardando, setGuardando] = useState(false)
+  /*
+    Lo leído del código de barras del reverso en el paso anterior (05/11/2026).
+    Rellena **lo que esté vacío** cuando acaba de cargar la ficha: lo que el
+    anfitrión o el propio huésped ya escribieron no se pisa. Y si el número
+    escrito no es el del código, se avisa al lado del campo.
+  */
+  const leido = (location.state as { leido?: DatosDelCodigo | null } | null)?.leido ?? null
+  const [rellenadoDelCodigo, setRellenadoDelCodigo] = useState(false)
+  useEffect(() => {
+    if (cargandoFicha || !leido) return
+    const siVacio = (nuevo: string) => (antes: string) => (antes.trim() ? antes : nuevo)
+    if (leido.nombres.length) setNombre(siVacio(comoNombre(leido.nombres)))
+    if (leido.apellidos.length) setApellidos(siVacio(comoNombre(leido.apellidos)))
+    setDocumento(siVacio(leido.numero))
+    if (leido.nacimiento) setFechaNacimiento(siVacio(leido.nacimiento))
+    setRellenadoDelCodigo(true)
+  }, [cargandoFicha, leido])
+  const numeroDistintoDelCodigo =
+    leido !== null &&
+    documento.trim() !== '' &&
+    numeroParaComparar(documento) !== numeroParaComparar(leido.numero)
+
   const [error, setError] = useState<string | null>(null)
   // Los límites del teléfono y del año de nacimiento viven en la base.
   const { parametros, error: errorParametros } = useParametros()
@@ -473,10 +496,21 @@ export default function ConfirmData() {
               etiqueta={`Número de identificación${marca('documento')}`}
               placeholder="Tal como aparece en el documento"
               value={documento}
-              error={errorDeDocumento(regla, documento)}
+              error={
+                errorDeDocumento(regla, documento) ||
+                (numeroDistintoDelCodigo
+                  ? `El código de barras de tu documento dice ${leido?.numero}. Revisa el número.`
+                  : '')
+              }
               onChange={(e) => setDocumento(e.target.value)}
             />
           </div>
+          {rellenadoDelCodigo ? (
+            <p className="rounded-xl bg-brand/5 px-4 py-3 text-sm leading-relaxed text-ink">
+              Escribimos lo que leímos del código de barras de tu documento. Revísalo: el código
+              no trae tildes.
+            </p>
+          ) : null}
           {pideFechaExpedicion(regla) ? (
             <Input
               label={`Fecha de expedición del documento${marca('fecha_expedicion')}`}

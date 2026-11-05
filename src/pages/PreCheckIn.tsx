@@ -7,6 +7,9 @@ import FileUploader from '../components/FileUploader'
 import Loading from '../components/Loading'
 import { porQueFallo } from '../lib/motivo'
 import { useDocumentos } from '../lib/useDocumentos'
+import { useAceptaArchivos } from '../lib/formatosDeArchivo'
+import { distancia, leerCodigoDeLaFoto, MISMA_FOTO, revisarFoto } from '../lib/fotoDelDocumento'
+import type { DatosDelCodigo } from '../lib/codigoDelDocumento'
 import {
   subirDocumentoPrecheckin,
   consultarPrecheckin,
@@ -31,6 +34,8 @@ import {
  * cédula es `cedula_ciudadania`; `dni` es otra cosa y «otro» no existe. Ahora
  * los valores son los que la base acepta, en `lib/precheckin.ts`.
  */
+type Cara = 'frente' | 'reverso'
+
 export default function PreCheckIn() {
   const navigate = useNavigate()
   const token = tokenActual()
@@ -45,6 +50,18 @@ export default function PreCheckIn() {
   const [reverso, setReverso] = useState<File | null>(null)
   const [subiendo, setSubiendo] = useState(false)
   const [errorFoto, setErrorFoto] = useState('')
+  const aceptaDocumento = useAceptaArchivos('documento_huesped')
+  /*
+    Lo que se mira de cada foto al elegirla (05/11/2026): si se ve mal, si es
+    la misma que la otra cara, y si trae el código de barras del reverso, con
+    el que se rellena el paso siguiente.
+  */
+  const [revision, setRevision] = useState<Record<Cara, { aviso: string | null; huella: string }>>({
+    frente: { aviso: null, huella: '' },
+    reverso: { aviso: null, huella: '' },
+  })
+  const [leyendoCodigo, setLeyendoCodigo] = useState(false)
+  const [leido, setLeido] = useState<DatosDelCodigo | null>(null)
   // «Faltan 3 días»: lo pidió la responsable de producto (14/10/2026).
   const [aviso, setAviso] = useState<string | null>(null)
   // Para el «Bienvenido {nombre}» de la maqueta. Vacío si el anfitrión no lo
@@ -89,6 +106,30 @@ export default function PreCheckIn() {
 
     Si la subida falla, no se sigue: se dice por qué y se puede reintentar.
   */
+  const elegir = (cara: Cara, archivo: File) => {
+    if (cara === 'frente') setFrente(archivo)
+    else setReverso(archivo)
+    revisarFoto(archivo)
+      .then((r) => setRevision((antes) => ({ ...antes, [cara]: { aviso: r.aviso, huella: r.huella } })))
+      .catch(() => {})
+    if (leido) return
+    setLeyendoCodigo(true)
+    leerCodigoDeLaFoto(archivo)
+      .then((r) => {
+        if (r) setLeido(r.datos)
+      })
+      // Sin código no pasa nada: los datos se escriben a mano, como siempre.
+      .catch(() => {})
+      .finally(() => setLeyendoCodigo(false))
+  }
+
+  const mismaFoto =
+    Boolean(revision.frente.huella && revision.reverso.huella) &&
+    distancia(revision.frente.huella, revision.reverso.huella) <= MISMA_FOTO
+  const avisoReverso = mismaFoto
+    ? 'Parece la misma foto que el frente. Sube la foto del otro lado del documento.'
+    : revision.reverso.aviso
+
   const regla = documentos?.regla(docType) ?? null
   const faltanFotos = tieneDosCaras(regla)
     ? !(frente && reverso)
@@ -97,9 +138,9 @@ export default function PreCheckIn() {
   /**
    * Sube lo que haya y pasa al siguiente paso.
    *
-   * Las dos caras van por separado, que es como las saca una persona. Un fallo
-   * no detiene el preregistro: se avisa y se sigue, porque el dato que de
-   * verdad hace falta --el numero-- ya esta.
+   * Las dos caras van por separado, que es como las saca una persona. Si una
+   * no se puede subir, no se sigue: las fotos son obligatorias desde el
+   * 16/10/2026, así que se dice por qué y se puede reintentar.
    */
   const continuar = async () => {
     if (!token || faltanFotos) return
@@ -114,7 +155,7 @@ export default function PreCheckIn() {
       return
     }
     setSubiendo(false)
-    navigate('/confirm-data', { state: { docType } })
+    navigate('/confirm-data', { state: { docType, leido } })
   }
 
   if (cargando) {
@@ -221,27 +262,53 @@ export default function PreCheckIn() {
                   setDocType((e.target.value || null) as TipoDocumento | null)
                   setFrente(null)
                   setReverso(null)
+                  setRevision({
+                    frente: { aviso: null, huella: '' },
+                    reverso: { aviso: null, huella: '' },
+                  })
+                  setLeido(null)
                 }}
               />
 
               {docType && (
                 <div className="space-y-4">
+                  {/*
+                    Con la `key` del tipo de documento: al cambiarlo se borran
+                    las fotos elegidas, y antes seguían en pantalla aunque ya
+                    no contaran --parecían subidas y el botón seguía apagado--.
+                  */}
                   <FileUploader
+                    key={`frente-${docType}`}
                     tone="soft"
+                    accept={aceptaDocumento}
+                    conCamara
                     title={
                       tieneDosCaras(regla)
                         ? 'Foto del frente del documento'
                         : 'Foto del documento'
                     }
-                    onFileSelected={setFrente}
+                    aviso={revision.frente.aviso}
+                    onFileSelected={(f) => elegir('frente', f)}
                   />
                   {tieneDosCaras(regla) && (
                     <FileUploader
+                      key={`reverso-${docType}`}
                       tone="soft"
+                      accept={aceptaDocumento}
+                      conCamara
                       title="Foto del reverso del documento"
-                      onFileSelected={setReverso}
+                      aviso={avisoReverso}
+                      onFileSelected={(f) => elegir('reverso', f)}
                     />
                   )}
+                  {leyendoCodigo ? (
+                    <p className="text-sm text-ink/70">Leyendo el código de barras del documento…</p>
+                  ) : leido ? (
+                    <p className="rounded-xl bg-brand/5 px-4 py-3 text-sm leading-relaxed text-ink">
+                      ✓ Leímos el código de barras de tu documento: en el paso siguiente
+                      encontrarás tus datos ya escritos. Revísalos antes de seguir.
+                    </p>
+                  ) : null}
                 </div>
               )}
 

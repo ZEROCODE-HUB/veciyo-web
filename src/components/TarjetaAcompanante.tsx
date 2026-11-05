@@ -170,6 +170,8 @@ export default function TarjetaAcompanante({
             no puede hacerlo por sí mismo; un adulto la sube desde su enlace. */}
         {!persona.tiene_documento && (persona.es_menor || incapacidad) && (
           <FileUploader
+            revisar
+            conCamara
             key={`doc-${persona.id}`}
             tone="soft"
             compact

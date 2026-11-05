@@ -839,6 +839,8 @@ export default function Companions() {
                       {tipoDoc && (
                         <div className="space-y-3">
                           <FileUploader
+                            revisar
+                            conCamara
                             key={`frente-${altaN}`}
                             tone="soft"
                             title={tieneDosCaras(reglaDelAlta) ? 'Foto del frente' : 'Foto del documento'}
@@ -847,6 +849,8 @@ export default function Companions() {
                           />
                           {tieneDosCaras(reglaDelAlta) && (
                             <FileUploader
+                              revisar
+                              conCamara
                               key={`reverso-${altaN}`}
                               tone="soft"
                               title="Foto del reverso"
