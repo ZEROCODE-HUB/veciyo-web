@@ -456,12 +456,14 @@ export default function CompanionAccess() {
           <div className="space-y-3">
             <Input
               label="Nombres"
+              autoCapitalize="words"
               tone="soft"
               value={ficha.nombre}
               onChange={(e) => campo('nombre')(soloNombre(e.target.value))}
             />
             <Input
               label="Apellidos"
+              autoCapitalize="words"
               tone="soft"
               value={ficha.apellidos}
               onChange={(e) => campo('apellidos')(soloNombre(e.target.value))}

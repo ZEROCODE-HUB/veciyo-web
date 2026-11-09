@@ -297,6 +297,7 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
         <div className="mt-4 space-y-3 rounded-2xl border border-line bg-surface-soft p-4">
           <Input
             label="Nombres"
+            autoCapitalize="words"
             tone="soft"
             placeholder="Como figuran en su documento"
             value={nombre}
@@ -304,6 +305,7 @@ export default function MenoresQueTraigo({ token, llegada }: Props) {
           />
           <Input
             label="Apellidos"
+            autoCapitalize="words"
             tone="soft"
             value={apellidos}
             onChange={(e) => setApellidos(soloNombre(e.target.value))}

@@ -722,6 +722,7 @@ export default function Companions() {
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <Input
                         label="Nombres"
+                        autoCapitalize="words"
                         tone="soft"
                         placeholder="Como figura en el documento"
                         value={nombre}
@@ -729,6 +730,7 @@ export default function Companions() {
                       />
                       <Input
                         label="Apellidos"
+                        autoCapitalize="words"
                         tone="soft"
                         placeholder="Como figuran en el documento"
                         value={apellidos}

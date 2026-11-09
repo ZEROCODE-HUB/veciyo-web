@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
-
-export interface OpcionDeMoneda {
-  pais: string
-  moneda: string
-  nombreMoneda: string
-}
+import { monedasDelMundo, type MonedaDelMundo } from '../lib/monedasDelMundo'
 
 interface Props {
   label: string
@@ -14,62 +9,59 @@ interface Props {
   onChange: (moneda: string) => void
 }
 
+const sinTildes = (t: string) =>
+  t
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .trim()
+
 /**
- * La moneda de lo que pagó, buscándola por país (QA 23/10/2026).
+ * La moneda de lo que pagó.
  *
- * La responsable de producto pidió elegir la moneda «con país, que la búsqueda
- * funcione por país, en orden alfabético». Los países y su moneda salen de los
- * catálogos de la base (`pais`, `moneda`), que se leen sin sesión.
+ * QA 23/10/2026: buscarla también por país. 09/11/2026 (Correcciones fila 15):
+ * cualquier moneda del mundo, no solo las de los países activos de la base
+ * (que eran tres). Las de aquí --COP, PEN, USD-- van primero; se busca por el
+ * nombre de la moneda, su código o el país (los países salen de la base, que
+ * se lee sin sesión; si no carga, se busca igual por moneda).
  */
 export default function SelectorDeMoneda({ label, value, onChange }: Props) {
-  const [opciones, setOpciones] = useState<OpcionDeMoneda[]>([])
+  const [paisesPorMoneda, setPaisesPorMoneda] = useState<Map<string, string[]>>(new Map())
   const [busqueda, setBusqueda] = useState('')
   const [abierto, setAbierto] = useState(false)
 
   useEffect(() => {
     if (!supabase) return
     let vigente = true
-    Promise.all([
-      supabase.from('pais').select('nombre, moneda').eq('activo', true),
-      supabase.from('moneda').select('codigo, nombre').eq('activa', true),
-    ]).then(([paises, monedas]) => {
-      if (!vigente || paises.error || monedas.error) return
-      const nombreDe = new Map((monedas.data ?? []).map((m) => [m.codigo as string, m.nombre as string]))
-      const lista = (paises.data ?? [])
-        .filter((p) => p.moneda && nombreDe.has(p.moneda as string))
-        .map((p) => ({
-          pais: p.nombre as string,
-          moneda: p.moneda as string,
-          nombreMoneda: nombreDe.get(p.moneda as string) ?? '',
-        }))
-        .sort((a, b) => a.pais.localeCompare(b.pais, 'es'))
-      setOpciones(lista)
-    })
+    supabase
+      .from('pais')
+      .select('nombre, moneda')
+      .then(({ data, error }) => {
+        if (!vigente || error) return
+        const mapa = new Map<string, string[]>()
+        for (const p of data ?? []) {
+          if (!p.moneda) continue
+          const lista = mapa.get(p.moneda as string) ?? []
+          lista.push(p.nombre as string)
+          mapa.set(p.moneda as string, lista)
+        }
+        setPaisesPorMoneda(mapa)
+      })
     return () => {
       vigente = false
     }
   }, [])
 
+  const opciones = useMemo(() => monedasDelMundo(paisesPorMoneda), [paisesPorMoneda])
+
   const filtradas = useMemo(() => {
-    const q = busqueda
-      .normalize('NFD')
-      .replace(/\p{M}/gu, '')
-      .toLowerCase()
-      .trim()
+    const q = sinTildes(busqueda)
     if (!q) return opciones
-    return opciones.filter((o) =>
-      `${o.pais} ${o.nombreMoneda} ${o.moneda}`
-        .normalize('NFD')
-        .replace(/\p{M}/gu, '')
-        .toLowerCase()
-        .includes(q),
-    )
+    return opciones.filter((o) => sinTildes(`${o.nombre} ${o.codigo} ${o.paises.join(' ')}`).includes(q))
   }, [busqueda, opciones])
 
-  const elegida = opciones.find((o) => o.moneda === value)
-  const etiqueta = elegida
-    ? `${elegida.nombreMoneda} (${elegida.moneda})`
-    : value || 'Elige el país de la moneda'
+  const elegida: MonedaDelMundo | undefined = opciones.find((o) => o.codigo === value)
+  const etiqueta = elegida ? `${elegida.nombre} (${elegida.codigo})` : value || 'Elige la moneda'
 
   return (
     <div className="relative">
@@ -88,29 +80,30 @@ export default function SelectorDeMoneda({ label, value, onChange }: Props) {
             autoFocus
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Busca el país"
+            placeholder="Busca la moneda o el país"
             className="w-full rounded-lg border border-line px-3 py-2 text-base focus:border-brand focus:outline-none"
           />
           <ul className="mt-2 max-h-60 overflow-y-auto">
             {filtradas.map((o) => (
-              <li key={`${o.pais}-${o.moneda}`}>
+              <li key={o.codigo}>
                 <button
                   type="button"
                   onClick={() => {
-                    onChange(o.moneda)
+                    onChange(o.codigo)
                     setBusqueda('')
                     setAbierto(false)
                   }}
                   className={`w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-brand/5 ${
-                    o.moneda === value ? 'font-bold text-ink' : 'text-ink/80'
+                    o.codigo === value ? 'font-bold text-ink' : 'text-ink/80'
                   }`}
                 >
-                  {o.pais} · {o.nombreMoneda} ({o.moneda})
+                  {o.nombre} ({o.codigo})
+                  {o.paises.length ? <span className="text-ink/50"> · {o.paises.join(', ')}</span> : null}
                 </button>
               </li>
             ))}
             {filtradas.length === 0 && (
-              <li className="px-3 py-2 text-sm text-ink/60">Ningún país con ese nombre.</li>
+              <li className="px-3 py-2 text-sm text-ink/60">Ninguna moneda ni país con ese nombre.</li>
             )}
           </ul>
         </div>

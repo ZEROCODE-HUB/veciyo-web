@@ -481,12 +481,14 @@ export default function ConfirmData() {
           <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
             <Recuadro
               etiqueta={`Nombre${marca('nombre')}`}
+              autoCapitalize="words"
               placeholder="Como figura en el documento"
               value={nombre}
               onChange={(e) => setNombre(soloNombre(e.target.value))}
             />
             <Recuadro
               etiqueta={`Apellido${marca('apellidos')}`}
+              autoCapitalize="words"
               placeholder="Como figuran en el documento"
               value={apellidos}
               onChange={(e) => setApellidos(soloNombre(e.target.value))}

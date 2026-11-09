@@ -130,12 +130,14 @@ function Formulario({
 
       <Input
         label="Nombres"
+        autoCapitalize="words"
         tone="soft"
         value={nombre}
         onChange={(e) => setNombre(soloNombre(e.target.value))}
       />
       <Input
         label="Apellidos"
+        autoCapitalize="words"
         tone="soft"
         value={apellidos}
         onChange={(e) => setApellidos(soloNombre(e.target.value))}
@@ -164,6 +166,7 @@ function Formulario({
       />
       <Input
         label="Tu nombre completo, como firma"
+        autoCapitalize="words"
         tone="soft"
         value={firma}
         onChange={(e) => setFirma(soloNombre(e.target.value))}
