@@ -499,7 +499,7 @@ export default function ConfirmData() {
               error={
                 errorDeDocumento(regla, documento) ||
                 (numeroDistintoDelCodigo
-                  ? `El código de barras de tu documento dice ${leido?.numero}. Revisa el número.`
+                  ? `Tu documento dice ${leido?.numero}. Revisa el número.`
                   : '')
               }
               onChange={(e) => setDocumento(e.target.value)}
@@ -507,8 +507,8 @@ export default function ConfirmData() {
           </div>
           {rellenadoDelCodigo ? (
             <p className="rounded-xl bg-brand/5 px-4 py-3 text-sm leading-relaxed text-ink">
-              Escribimos lo que leímos del código de barras de tu documento. Revísalo: el código
-              no trae tildes.
+              Escribimos los datos que leímos de tu documento. Revísalos y pon las tildes que
+              falten: el documento no las trae.
             </p>
           ) : null}
           {pideFechaExpedicion(regla) ? (

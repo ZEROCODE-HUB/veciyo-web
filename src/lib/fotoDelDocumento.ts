@@ -236,3 +236,112 @@ export async function leerCodigoDeLaFoto(
   }
   return null
 }
+
+/**
+ * Un lienzo con la foto girada `grados`: de cuarto en cuarto para ponerla
+ * derecha, o unos pocos grados para enderezar una foto torcida. Lo que queda
+ * fuera de la foto al girar se pinta blanco, que no se lee como texto.
+ */
+function lienzoGirado(img: HTMLImageElement, ladoMaximo: number, grados: number): HTMLCanvasElement {
+  if (grados === 0 || grados === 90) return lienzo(img, ladoMaximo, grados === 90)
+  const base = lienzo(img, ladoMaximo)
+  const rad = (grados * Math.PI) / 180
+  const seno = Math.abs(Math.sin(rad))
+  const coseno = Math.abs(Math.cos(rad))
+  const c = document.createElement('canvas')
+  c.width = Math.round(base.width * coseno + base.height * seno)
+  c.height = Math.round(base.width * seno + base.height * coseno)
+  const ctx = c.getContext('2d')
+  if (!ctx) throw new Error('Este navegador no puede leer la foto')
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, c.width, c.height)
+  ctx.translate(c.width / 2, c.height / 2)
+  ctx.rotate(rad)
+  ctx.drawImage(base, -base.width / 2, -base.height / 2)
+  return c
+}
+
+/** El lado largo con el que se lee la franja: más, y el celular tarda mucho. */
+const LADO_PARA_LA_FRANJA = 1600
+
+/*
+  El lector se crea una vez y se reutiliza: cargarlo (el motor y el modelo)
+  es lo que más tarda, y quien sube frente y reverso lee dos fotos seguidas.
+  Si falla al crearse, se olvida para que el siguiente intento lo reintente.
+
+  El modelo general («eng») lee mal la franja: confunde «<» con K y L, la O
+  con el 0 y la L con el 1 (y L/1 dan el mismo dígito de control, así que
+  eso no lo delata). Se usa uno entrenado para la letra de la franja
+  (OCR-B, github.com/Shreeshrii/tessdata_ocrb, versión compacta de 1,4 MB),
+  servido desde la propia web en `public/tessdata`.
+*/
+let lectorDeFranja: Promise<import('tesseract.js').Worker> | null = null
+
+function elLectorDeFranja() {
+  lectorDeFranja ??= (async () => {
+    const { createWorker, PSM } = await import('tesseract.js')
+    const lector = await createWorker('ocrb_int', 1, {
+      langPath: `${window.location.origin}/tessdata`,
+      gzip: false,
+    })
+    await lector.setParameters({
+      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<',
+      tessedit_pageseg_mode: PSM.AUTO,
+    })
+    return lector
+  })().catch((e) => {
+    lectorDeFranja = null
+    throw e
+  })
+  return lectorDeFranja
+}
+
+/** Una lectura a la vez: el lector es uno y no se le piden dos fotos juntas. */
+let cola: Promise<unknown> = Promise.resolve()
+
+/**
+ * Los datos de la franja «<<<» de la foto (pasaporte, cédula digital, carné de
+ * extranjería), o null (09/11/2026). Ver `franjaDelDocumento.ts`.
+ *
+ * Se prueba derecha y, si no aparece, girada: una foto en vertical deja la
+ * franja de lado. Primero enderezando lo torcido (`rotateAuto`, lo normal en
+ * una foto hecha con la mano) y, si no sale, sin enderezar, que a veces el
+ * enderezado se equivoca. Tesseract se carga solo aquí, la primera vez: quien
+ * no tiene franja en su documento no tiene por qué bajarlo. Si no se puede
+ * cargar (sin conexión), null: los datos se escriben a mano.
+ */
+export function leerFranjaDeLaFoto(archivo: File): Promise<DatosDelCodigo | null> {
+  const lectura = cola.then(() => leerFranja(archivo))
+  cola = lectura.catch(() => null)
+  return lectura
+}
+
+async function leerFranja(archivo: File): Promise<DatosDelCodigo | null> {
+  if (!archivo.type.startsWith('image/')) return null
+  let img: HTMLImageElement
+  try {
+    img = await cargar(archivo)
+  } catch {
+    return null
+  }
+  const { datosDeLaFranja } = await import('./franjaDelDocumento')
+  const lector = await elLectorDeFranja()
+  /*
+    El orden va de lo más común a lo más raro, y se para en cuanto sale: la
+    foto derecha y enderezada; de lado o al revés; sin enderezar (a veces el
+    enderezado se equivoca); y, por último, girada unos grados a mano.
+  */
+  const intentos: Array<{ grados: number; rotateAuto: boolean }> = [
+    ...[0, 90, 270, 180].map((grados) => ({ grados, rotateAuto: true })),
+    ...[0, 90, 270, 180].map((grados) => ({ grados, rotateAuto: false })),
+    ...[-4, 4, 86, 94].map((grados) => ({ grados, rotateAuto: false })),
+  ]
+  for (const { grados, rotateAuto } of intentos) {
+    const { data } = await lector.recognize(lienzoGirado(img, LADO_PARA_LA_FRANJA, grados), {
+      rotateAuto,
+    })
+    const datos = datosDeLaFranja(data.text)
+    if (datos) return datos
+  }
+  return null
+}

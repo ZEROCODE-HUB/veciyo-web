@@ -8,7 +8,13 @@ import Loading from '../components/Loading'
 import { porQueFallo } from '../lib/motivo'
 import { useDocumentos } from '../lib/useDocumentos'
 import { useAceptaArchivos } from '../lib/formatosDeArchivo'
-import { distancia, leerCodigoDeLaFoto, MISMA_FOTO, revisarFoto } from '../lib/fotoDelDocumento'
+import {
+  distancia,
+  leerCodigoDeLaFoto,
+  leerFranjaDeLaFoto,
+  MISMA_FOTO,
+  revisarFoto,
+} from '../lib/fotoDelDocumento'
 import type { DatosDelCodigo } from '../lib/codigoDelDocumento'
 import {
   subirDocumentoPrecheckin,
@@ -21,6 +27,9 @@ import {
   type EstanciaPrecheckin,
   type TipoDocumento,
 } from '../lib/precheckin'
+
+/** Lo más que se espera a leer el documento antes de dejar seguir a mano. */
+const TOPE_DE_LECTURA_MS = 25_000
 
 /**
  * Primer paso del preregistro: qué documento trae el huésped.
@@ -114,12 +123,22 @@ export default function PreCheckIn() {
       .catch(() => {})
     if (leido) return
     setLeyendoCodigo(true)
-    leerCodigoDeLaFoto(archivo)
-      .then((r) => {
-        if (r) setLeido(r.datos)
+    /*
+      Primero el código de barras (cédula amarilla, DNI peruano) y, si no hay,
+      la franja «<<<» (pasaporte, cédula digital, carné de extranjería). Leer
+      la franja tarda unos segundos en un celular; pasado el tope se deja y los
+      datos se escriben a mano, como siempre.
+    */
+    const leer = async () => {
+      const codigo = await leerCodigoDeLaFoto(archivo).catch(() => null)
+      if (codigo) return codigo.datos
+      return leerFranjaDeLaFoto(archivo).catch(() => null)
+    }
+    const tope = new Promise<null>((listo) => setTimeout(() => listo(null), TOPE_DE_LECTURA_MS))
+    Promise.race([leer(), tope])
+      .then((datos) => {
+        if (datos) setLeido((antes) => antes ?? datos)
       })
-      // Sin código no pasa nada: los datos se escriben a mano, como siempre.
-      .catch(() => {})
       .finally(() => setLeyendoCodigo(false))
   }
 
@@ -302,10 +321,12 @@ export default function PreCheckIn() {
                     />
                   )}
                   {leyendoCodigo ? (
-                    <p className="text-sm text-ink/70">Leyendo el código de barras del documento…</p>
+                    <p className="text-sm text-ink/70">
+                      Leyendo los datos de tu documento… Puede tardar unos segundos.
+                    </p>
                   ) : leido ? (
                     <p className="rounded-xl bg-brand/5 px-4 py-3 text-sm leading-relaxed text-ink">
-                      ✓ Leímos el código de barras de tu documento: en el paso siguiente
+                      ✓ Leímos los datos de tu documento: en el paso siguiente
                       encontrarás tus datos ya escritos. Revísalos antes de seguir.
                     </p>
                   ) : null}
@@ -328,7 +349,7 @@ export default function PreCheckIn() {
                 <Button
                   type="button"
                   className="w-full max-w-md py-3.5"
-                  disabled={!docType || faltanFotos || subiendo}
+                  disabled={!docType || faltanFotos || subiendo || leyendoCodigo}
                   onClick={() => void continuar()}
                 >
                   {subiendo ? 'Guardando documento...' : 'Continuar'}
