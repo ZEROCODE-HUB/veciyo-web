@@ -16,7 +16,7 @@ import {
   type EstanciaPrecheckin,
 } from '../lib/precheckin'
 
-const images = import.meta.glob('../assets/Imágenes/new/*.png', {
+const images = import.meta.glob('../assets/Imágenes/new/*.webp', {
   eager: true,
   query: '?url',
   import: 'default',

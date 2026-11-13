@@ -12,15 +12,26 @@ export default function BackgroundCarousel({
   const [ready, setReady] = useState(false)
   const [active, setActive] = useState(0)
 
+  /*
+    Primero solo la primera imagen; las demás, cuando esa ya se ve (13/11/2026).
+    Antes se pedían las seis a la vez y el huésped, con datos móviles, esperaba
+    a todas antes de ver la página.
+  */
   useEffect(() => {
-    let loaded = 0
-    for (const src of images) {
-      const img = new Image()
-      img.onload = img.onerror = () => {
-        loaded++
-        if (loaded === 1) setReady(true)
+    if (images.length === 0) return
+    let vigente = true
+    const primera = new Image()
+    primera.onload = primera.onerror = () => {
+      if (!vigente) return
+      setReady(true)
+      for (const src of images.slice(1)) {
+        const img = new Image()
+        img.src = src
       }
-      img.src = src
+    }
+    primera.src = images[0]
+    return () => {
+      vigente = false
     }
   }, [images])
 

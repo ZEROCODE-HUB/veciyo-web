@@ -10,7 +10,7 @@ import {
   type InvitacionConsultada,
 } from '../lib/supabase'
 
-const images = import.meta.glob('../assets/Imágenes/new/*.png', {
+const images = import.meta.glob('../assets/Imágenes/new/*.webp', {
   eager: true,
   query: '?url',
   import: 'default',
