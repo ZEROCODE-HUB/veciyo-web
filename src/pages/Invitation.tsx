@@ -230,6 +230,13 @@ function Detalle({
           224, 04/11/2026). Decía «Abrir Veciyo y crear mi cuenta» también a
           quien ya tenía cuenta. Los demás roles siguen entrando por el token.
         */}
+        {/*
+          13/11/2026 (cliente: «al tocar Abrir VeciYo no me lleva a la app, me
+          lleva a una web»): primero se intenta abrir la app instalada con su
+          enlace propio (`veciyo://`). Si en un momento la página sigue a la
+          vista --no la tiene instalada, o el navegador no dejó--, va a la web
+          como antes.
+        */}
         {(esHuesped || token) && (
           <a
             href={
@@ -237,6 +244,19 @@ function Detalle({
                 ? `${URL_DE_LA_APP}/`
                 : `${URL_DE_LA_APP}/invitacion?token=${encodeURIComponent(token)}`
             }
+            onClick={(evento) => {
+              const web = evento.currentTarget.href
+              const app =
+                esHuesped || !token
+                  ? 'veciyo://'
+                  : `veciyo://invitacion?token=${encodeURIComponent(token)}`
+              evento.preventDefault()
+              const seFue = () => document.visibilityState === 'hidden'
+              window.location.href = app
+              window.setTimeout(() => {
+                if (!seFue()) window.location.href = web
+              }, 1500)
+            }}
             className="mt-4 block rounded-xl bg-brand px-4 py-3 text-center text-sm font-bold text-white transition-opacity hover:opacity-90"
           >
             Abrir Veciyo

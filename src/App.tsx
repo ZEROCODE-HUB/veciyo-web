@@ -4,6 +4,7 @@ import PreCheckIn from './pages/PreCheckIn'
 import Invitation from './pages/Invitation'
 import Companions from './pages/Companions'
 import ConfirmData from './pages/ConfirmData'
+import AbrirApp from './pages/AbrirApp'
 import DownloadApp from './pages/DownloadApp'
 import Access from './pages/Access'
 import Reserva from './pages/Reserva'
@@ -76,6 +77,8 @@ export default function App() {
           va entre «Enviar información» y la descarga de la app. */}
       <Route path="/validation" element={<Validation />} />
       <Route path="/download-app" element={<DownloadApp />} />
+      {/* Abrir la app desde un correo, o ir a la tienda (13/11/2026). */}
+      <Route path="/abrir" element={<AbrirApp />} />
       {/* El QR del correo de «ingreso aprobado» (16/10/2026). */}
       <Route path="/qr/:codigo" element={<CodigoQr />} />
       <Route path="/cuenta-confirmada" element={<CuentaConfirmada />} />
