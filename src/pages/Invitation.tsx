@@ -9,6 +9,7 @@ import {
   hayBackend,
   type InvitacionConsultada,
 } from '../lib/supabase'
+import { abrirLaApp, tiendaDeEsteCelular } from '../lib/abrirLaApp'
 
 const images = import.meta.glob('../assets/Imágenes/new/*.webp', {
   eager: true,
@@ -22,12 +23,6 @@ const TRAVEL_IMAGES = Object.entries(images)
     return order.indexOf(num(a)) - order.indexOf(num(b))
   })
   .map(([, src]) => src) as string[]
-
-/** Dónde vive la aplicación. Se puede cambiar por entorno sin tocar código. */
-const URL_DE_LA_APP = (
-  (import.meta.env.VITE_APP_URL as string | undefined) ??
-  'https://veciyo-app.vercel.app'
-).replace(/\/$/, '')
 
 type Estado =
   | { tipo: 'cargando' }
@@ -141,6 +136,14 @@ function Detalle({
   token: string | null
 }) {
   const esHuesped = datos.rol === 'huesped_temporal'
+  const [tienda, setTienda] = useState<string | null>(null)
+  useEffect(() => {
+    let vigente = true
+    void tiendaDeEsteCelular().then((url) => vigente && setTienda(url))
+    return () => {
+      vigente = false
+    }
+  }, [])
 
   return (
     <>
@@ -158,8 +161,8 @@ function Detalle({
         {esHuesped
           ? 'Entra a Veciyo para ver tu alojamiento durante la estadía.'
           : datos.unidad
-            ? 'Crea tu cuenta para entrar a la vivienda que te asignaron.'
-            : 'Crea tu cuenta para entrar a tu edificio.'}
+            ? 'Abre tu invitación en la app de Veciyo para entrar a la vivienda que te asignaron.'
+            : 'Abre tu invitación en la app de Veciyo para entrar a tu edificio.'}
       </p>
 
       <div className="mt-8 rounded-xl border border-white/30 bg-white/40 px-4 py-5 sm:px-6 shadow-lg backdrop-blur-md">
@@ -198,69 +201,38 @@ function Detalle({
       <div className="mt-8 rounded-xl border border-white/30 bg-white/40 px-4 py-4 sm:mt-10 sm:px-5 text-left backdrop-blur-md">
         <p className="text-sm font-bold text-ink">Cómo entrar</p>
         <ol className="mt-2 space-y-1.5 text-sm leading-relaxed text-ink/80">
-          <li>1. Abre Veciyo con el botón de abajo.</li>
-          {esHuesped ? (
-            <>
-              <li>
-                2. Inicia sesión con <strong className="break-all">{datos.correo}</strong>. Si
-                todavía no tienes cuenta, créala con ese mismo correo.
-              </li>
-              <li>3. Al entrar verás tu invitación: pulsa «Aceptar invitación».</li>
-            </>
-          ) : (
-            <li>
-              2. Crea tu cuenta con <strong className="break-all">{datos.correo}</strong>, el mismo
-              correo al que se emitió esta invitación.
-            </li>
-          )}
+          <li>
+            1. Pulsa «Abrir Veciyo». Si todavía no tienes la app, te lleva a la tienda de tu
+            celular para descargarla.
+          </li>
+          <li>
+            2. La app te enseña la invitación y te dice si tienes que iniciar sesión o crear tu
+            cuenta con <strong className="break-all">{datos.correo}</strong>.
+          </li>
+          <li>3. Acepta la invitación.</li>
         </ol>
         <p className="mt-3 text-xs text-ink/60">
           Tiene que ser ese correo exacto. Con otro, la invitación no se puede
           aceptar.
         </p>
         {/*
-          Decía «instala la aplicación y vuelve a abrir este enlace» y no había
-          ni un botón: quien terminaba su preregistro y pulsaba «Crear mi
-          cuenta» llegaba aquí y no tenía a dónde ir (12/10/2026). La
-          aplicación abre este mismo camino --`/invitacion?token=`--.
+          Una sola forma de invitar, para todos los roles (16/11/2026, cliente:
+          «se abre la app, le muestra la invitación y la app decide si debe
+          crear cuenta o iniciar sesión»). El botón abre la app **con la
+          invitación** --también al huésped, que antes iba al inicio sin
+          ella--, y si no está instalada, la tienda de su celular. Antes caía
+          en la app web, que es una demo y se va a eliminar.
         */}
-        {/*
-          El huésped va al inicio de sesión normal de la app, donde entra con su
-          cuenta o crea una, y allí le espera su invitación (Para Claude 223 y
-          224, 04/11/2026). Decía «Abrir Veciyo y crear mi cuenta» también a
-          quien ya tenía cuenta. Los demás roles siguen entrando por el token.
-        */}
-        {/*
-          13/11/2026 (cliente: «al tocar Abrir VeciYo no me lleva a la app, me
-          lleva a una web»): primero se intenta abrir la app instalada con su
-          enlace propio (`veciyo://`). Si en un momento la página sigue a la
-          vista --no la tiene instalada, o el navegador no dejó--, va a la web
-          como antes.
-        */}
-        {(esHuesped || token) && (
-          <a
-            href={
-              esHuesped || !token
-                ? `${URL_DE_LA_APP}/`
-                : `${URL_DE_LA_APP}/invitacion?token=${encodeURIComponent(token)}`
+        {token && (
+          <button
+            type="button"
+            onClick={() =>
+              abrirLaApp(`veciyo://invitacion?token=${encodeURIComponent(token)}`, tienda)
             }
-            onClick={(evento) => {
-              const web = evento.currentTarget.href
-              const app =
-                esHuesped || !token
-                  ? 'veciyo://'
-                  : `veciyo://invitacion?token=${encodeURIComponent(token)}`
-              evento.preventDefault()
-              const seFue = () => document.visibilityState === 'hidden'
-              window.location.href = app
-              window.setTimeout(() => {
-                if (!seFue()) window.location.href = web
-              }, 1500)
-            }}
-            className="mt-4 block rounded-xl bg-brand px-4 py-3 text-center text-sm font-bold text-white transition-opacity hover:opacity-90"
+            className="mt-4 block w-full rounded-xl bg-brand px-4 py-3 text-center text-sm font-bold text-white transition-opacity hover:opacity-90"
           >
             Abrir Veciyo
-          </a>
+          </button>
         )}
         {/*
           Las tiendas, aquí y no al final del preregistro: se enseñan cuando

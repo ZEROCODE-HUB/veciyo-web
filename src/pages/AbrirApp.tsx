@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import MainLayout from '../layouts/MainLayout'
 import Card from '../components/Card'
 import Tiendas from '../components/Tiendas'
-import { parametrosPublicos } from '../lib/parametros'
+import { abrirLaApp, sistema, tiendaDeEsteCelular } from '../lib/abrirLaApp'
 
 /**
  * «Abrir Veciyo» desde un correo (13/11/2026, cliente: «debería ir un botón
@@ -18,45 +18,18 @@ import { parametrosPublicos } from '../lib/parametros'
  */
 const ENLACE_DE_LA_APP = 'veciyo://'
 
-function sistema(): 'ios' | 'android' | 'otro' {
-  const ua = navigator.userAgent
-  if (/iPhone|iPad|iPod/i.test(ua)) return 'ios'
-  if (/Android/i.test(ua)) return 'android'
-  return 'otro'
-}
-
 export default function AbrirApp() {
   const [tienda, setTienda] = useState<string | null>(null)
 
   useEffect(() => {
     let vigente = true
-    const cual = sistema()
-    if (cual === 'otro') return
-    parametrosPublicos()
-      .then((p) => {
-        if (!vigente) return
-        try {
-          const url = p
-            .texto(cual === 'ios' ? 'tienda_app_store_url' : 'tienda_google_play_url')
-            .trim()
-          if (/^https:\/\//.test(url)) setTienda(url)
-        } catch {
-          // Sin enlace, se queda en esta página con los botones.
-        }
-      })
-      .catch(() => {})
+    void tiendaDeEsteCelular().then((url) => vigente && setTienda(url))
     return () => {
       vigente = false
     }
   }, [])
 
-  const abrir = (destinoSiNoAbre: string | null) => {
-    window.location.href = ENLACE_DE_LA_APP
-    if (!destinoSiNoAbre) return
-    window.setTimeout(() => {
-      if (document.visibilityState !== 'hidden') window.location.href = destinoSiNoAbre
-    }, 1500)
-  }
+  const abrir = (destinoSiNoAbre: string | null) => abrirLaApp(ENLACE_DE_LA_APP, destinoSiNoAbre)
 
   // En el celular se intenta sola al llegar.
   useEffect(() => {
